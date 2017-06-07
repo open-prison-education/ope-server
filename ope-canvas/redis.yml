@@ -1,0 +1,15 @@
+test:
+  servers:
+    - "redis://redis"
+  database: 1
+
+development:
+  servers:
+    - "redis://redis"
+
+    
+production:
+  servers:
+    - "redis://redis"
+
+    

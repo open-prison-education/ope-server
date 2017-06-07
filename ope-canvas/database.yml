@@ -1,0 +1,34 @@
+test:
+  adapter: postgresql
+  encoding: utf8
+  database: canvas_production
+  host: postgresql
+  port: 5432
+  username: postgres
+  password: "<IT_PW>"
+  timeout: 5000
+
+login: &login
+  adapter: postgresql
+  encoding: utf8
+  timeout: 5000
+  username: "postgres"
+  password: "<IT_PW>"
+
+development:
+  <<: *login
+  database: canvas_production
+  host: postgresql
+  port: 5432
+  queue:
+    <<: *login
+    database: canvas_queue_production
+
+production:
+  <<: *login
+  database: canvas_production
+  host: postgresql
+  port: 5432
+  queue:
+    <<: *login
+    database: canvas_queue_production
