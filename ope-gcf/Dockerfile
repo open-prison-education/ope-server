@@ -10,8 +10,8 @@ FROM nginx
 
 # To copy to offline server use the setup tool
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="GCFLearnFree.org offline website - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
+LABEL description="GCFLearnFree.org offline website - Image for Open Prison Education"
+LABEL version="0.1"
 
 LABEL build=1
 COPY start.sh /start.sh

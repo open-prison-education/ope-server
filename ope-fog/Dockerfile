@@ -11,8 +11,9 @@ LABEL rebuild=22
 
 # To copy to offline server use the setup tool
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="Fogproject server Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
+LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
+LABEL description="Fogproject server Image for Open Prison Education"
+LABEL version="0.1"
 
 #RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8

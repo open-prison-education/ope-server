@@ -1,9 +1,6 @@
 FROM alpine:3.18
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Author="Ray Pulsipher <ray@cmagic.biz>"
-LABEL Description="Student Management Console - Image for Open Prison Education"
-LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.9"
+LABEL description="Student Management Console - Image for Open Prison Education"
+LABEL version="1.9"
 
 LABEL rebuild=1
 # install base
@@ -139,14 +136,6 @@ LABEL rebuild=26
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
-# In smc now
-#COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
-
-# TEMP - Need this 7/24/23 - fix pytube error in current version
-# 8/30/23 Pulled from forked pytube, main repo not updated yet - https://github.com/oncename/pytube/blob/master/pytube/cipher.py
-# COPY cipher.py /usr/lib/python3.8/site-packages/pytube/cipher.py
-
-
 RUN chmod +x /start.sh \
      && chown -R www-data:www-data $W2P_DIR \
      && chown -R git:git $INSTALL_DIR/git \
