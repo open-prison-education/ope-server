@@ -10,8 +10,8 @@ FROM python:2.7-alpine3.6
 
 # To copy to offline server use the setup tool
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="KALite Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
+LABEL description="KALite Image for Open Prison Education"
+LABEL version="0.1"
 
 RUN apk add --update --no-cache \
 	bash wget  unzip \

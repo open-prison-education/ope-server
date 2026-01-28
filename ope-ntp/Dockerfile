@@ -5,9 +5,10 @@ FROM alpine:3.9.4
 # Build with docker build -t ope-ntp .
 
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="NTP Server for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
-LABEL version=0.1
+LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
+LABEL description="NTP Server for Open Prison Education"
+LABEL vendor="openprisoneducation.com"
+LABEL version="0.1"
 
 
 RUN apk --no-cache add chrony

@@ -1,5 +1,5 @@
 FROM alpine
-MAINTAINER You <you@example.com>
+LABEL maintainer="OPE Project"
 RUN apk update && \
     apk add util-linux && \
     rm -rf /var/cache/apk/*

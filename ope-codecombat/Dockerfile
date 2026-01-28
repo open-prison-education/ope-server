@@ -8,8 +8,8 @@ FROM ubuntu:16.04
 
 # To copy to offline server use the setup tool
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="CodeCombat Learning Environment - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
+LABEL description="CodeCombat Learning Environment - Image for Open Prison Education"
+LABEL version="0.1"
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
