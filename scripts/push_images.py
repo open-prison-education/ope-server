@@ -16,9 +16,8 @@ sys.exit()
 images = [] #[ "ope-gateway", "ope-dns" ]
 
 
-# Grab current folder, then move back one, then into the docker_build_files folder
+# Grab current folder, then move back one
 pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-pwd = os.path.join(pwd, "docker_build_files")
 if not os.path.isdir(pwd):
     print("Unable to find docker build files at: " + pwd)
     sys.exit()
