@@ -14,4 +14,4 @@ fi;
 
 echo "Using Python: $PY"
 
-$PY ../build_tools/rebuild_compose.py
+$PY scripts/rebuild_compose.py
