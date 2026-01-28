@@ -70,7 +70,7 @@ if [ "$build_flag" = "auto" ]; then
   rebuild_param="auto"
 fi
 #echo "Rebuilding docker compose..."
-$PY $ROOTDIR/build_tools/rebuild_compose.py "$rebuild_param"
+$PY $BASEDIR/scripts/rebuild_compose.py "$rebuild_param"
 
 if [ "$build_flag" = "b" ]; then
   echo "Building docker containers..."
