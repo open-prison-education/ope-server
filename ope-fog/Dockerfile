@@ -11,7 +11,6 @@ LABEL rebuild=22
 
 # To copy to offline server use the setup tool
 
-LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Fogproject server Image for Open Prison Education"
 LABEL version="0.1"
 
