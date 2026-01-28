@@ -1,118 +1,85 @@
+# OPE Canvas
+
+Canvas LMS for the Open Prison Education platform.
+
 ## Overview
-Open Prison Education - Canvas Server
-Provides basic functionality to students and teachers to explore courses and learn basic Canvas LMS features. 
-LMS is set up to run offline and integrate with OPE project.
 
+Canvas is a learning management system (LMS) by Instructure, configured to run offline and integrate with the OPE project. It provides course management, assignments, grading, and communication tools for students and teachers.
 
-## Tech Notes
-SHARDING CHANGES
-The gem for switchman (/opt/canvas/.gems/gems/switchman-1.8.0/app/models/switchman/shard_internal.rb) sets
-10 trillion to seperate shard ids and local ids. We move this 10_000_000_000_000 ==> 1_000_000_000_000_000_000
+## Features
 
-We push shard ids to the last digit in a 64bit int. We use the next 7 digits for our facility id.
+- Course creation and management
+- Assignment submission and grading
+- Discussion boards
+- Quiz and assessment tools
+- Offline sync capabilities
+- Integration with OPE SMC
 
-Max Value -		9_223_372_036_854_775_807  ( 64 bit integer max possible value )
-Shard Range - 	*_000_000_000_000_000_000  (normally set at 10trillion, but that interfered
-											with our range so we bump it up, this still
-											allows for 10 shards)
-School Range - 	0_***_***_*00_000_000_000 ( this gives 99 billion ids for each table and
-											9,999,999 facilities )
-Local ID Range -0_000_000_0**_***_***_*** ( Leaves 99 billion for local ids )
+## Configuration
 
-FACILITY ID
+Configure Canvas settings in `.env`:
 
-Generate a facility ID based on the current minute. We then subtract 12/1/16 from it so that is
-the start of our range. This should give us about 19.5 years before the range rolls over. The code
-will roll over automatically at that time.
+```
+CANVAS_DEFAULT_DOMAIN=canvas.<DOMAIN>
+LMS_ACCOUNT_NAME=<Institution Name>
+TIME_ZONE=<Timezone>
+CANVAS_LOGIN_PROMPT=<Login prompt text>
+```
 
-These ids are generated when a new canvas server boots the FIRST time
- (saved in volumes/canvas/tmp/db_sequence_range). Delete this file and restart the canvas server to generate
- a new range.
+## Ports
 
-Conflict Danger - If you start up 2 canvas servers at the exact same minute they could potentially end up
-with the same facility ID. Otherwise the odds of 2 servers ending up with the same ID are miniscule.
+| Port | Protocol | Description |
+|------|----------|-------------|
+| 3000 | HTTP | Canvas web interface |
 
- 
-EFFECTS ON SHARD DATABASES
-Unknown - You should be able to have 9 or 10 shard servers with these changes in place. In the prison
-environment we have less issue with student volume and more issues with connectivity - hence the
-changes to allow for offline sync capabilities.
+## Related Services
 
+- **ope-postgresql:** Database backend
+- **ope-redis:** Cache and session storage
+- **ope-canvas-rce:** Rich Content Editor
+- **ope-canvas-mathman:** Math equation rendering
 
+## Usage
 
+Enable the service:
 
+```bash
+touch ope-canvas/.enabled
+./up.sh
+```
 
-SCRATCH PAD
+## Initial Setup
 
+1. Access Canvas at `https://canvas.<your-domain>`
+2. Complete the setup wizard
+3. Create an admin account
 
+---
 
-CREATE TABLE IF NOT EXISTS ope_audit.import_actions (
-    event_id bigserial primary key,
-    schema_name text not null,
-    table_name text not null,
-    relid oid not null,
-    session_user_name text,
-    action_tstamp_tx TIMESTAMP WITH TIME ZONE NOT NULL,
-    action_tstamp_stm TIMESTAMP WITH TIME ZONE NOT NULL,
-    action_tstamp_clk TIMESTAMP WITH TIME ZONE NOT NULL,
-    transaction_id bigint,
-    application_name text,
-    client_addr inet,
-    client_port integer,
-    client_query text,
-    action TEXT NOT NULL CHECK (action IN ('I','D','U', 'T')),
-    row_data jsonb,
-    changed_fields jsonb,
-    statement_only boolean not null,
-    
-    processed boolean NOT NULL default false,
-    processed_on TIMESTAMP WITH TIME ZONE,
-    server_id bigint not null default 0,
-    sql_statement_run text not null default ''::text
-);
+## Technical Notes
 
-REVOKE ALL ON ope_audit.import_actions FROM public;
-ALTER TABLE ope_audit.import_actions
-    OWNER to postgres;
+### Sharding Configuration
 
-COMMENT ON TABLE ope_audit.import_actions IS 'Impoted actions from remote servers';
-CREATE INDEX IF NOT EXISTS import_actions_relid_idx ON ope_audit.import_actions(relid);
-CREATE INDEX IF NOT EXISTS import_actions_action_tstamp_tx_stm_idx ON ope_audit.import_actions(action_tstamp_stm);
-CREATE INDEX IF NOT EXISTS import_actions_action_idx ON ope_audit.import_actions(action);
-CREATE INDEX IF NOT EXISTS import_actions_table_name_idx ON ope_audit.import_actions(table_name);
-CREATE INDEX IF NOT EXISTS import_actions_processed_idx ON ope_audit.import_actions(processed);
+The OPE Canvas implementation modifies the default sharding behavior to support offline sync between facilities:
 
-CREATE TABLE IF NOT EXISTS ope_audit.export_log
-(
-    id bigint NOT NULL,
-    start_id bigint NOT NULL,
-    end_id bigint NOT NULL,
-    export_time timestamp with time zone NOT NULL,
-    server_id bigint NOT NULL,
-    CONSTRAINT "Exports_pkey" PRIMARY KEY (id)
-);
+- **Shard Range:** Modified from 10 trillion to 1 quintillion to accommodate facility IDs
+- **Facility ID:** Auto-generated based on timestamp, stored in `volumes/canvas/tmp/db_sequence_range`
+- **ID Structure:**
+  - Max Value: `9,223,372,036,854,775,807` (64-bit max)
+  - Shard Range: Last digit (supports ~10 shards)
+  - School Range: 7 digits for facility ID (supports ~10 million facilities)
+  - Local ID Range: 11 digits (~99 billion IDs per table)
 
-REVOKE ALL ON ope_audit.export_log FROM public;
-ALTER TABLE ope_audit.export_log
-    OWNER to postgres;
-COMMENT ON TABLE ope_audit.export_log
-    IS 'Keep track of exports';
-	
+### Facility ID Generation
 
-CREATE TABLE IF NOT EXISTS ope_audit.import_log
-(
-    id bigint NOT NULL,
-    server_id bigint NOT NULL,
-    export_id bigint NOT NULL,
-    imported_on timestamp with time zone,
-    CONSTRAINT import_pkey PRIMARY KEY (id)
-);
+Facility IDs are generated on first boot based on the current timestamp minus a base date (12/1/16). This provides approximately 19.5 years of unique IDs before rollover.
 
-REVOKE ALL ON ope_audit.import_log FROM public;
-ALTER TABLE ope_audit.import_log
-    OWNER to postgres;
-COMMENT ON TABLE ope_audit.import_log
-    IS 'Keep track of imported log files';
-	
+**Note:** Starting two Canvas servers at the exact same minute could result in ID conflicts. This is extremely unlikely in practice.
 
+### Database Tables
 
+The OPE audit system uses these tables for sync tracking:
+
+- `ope_audit.import_actions` - Tracks imported changes from remote servers
+- `ope_audit.export_log` - Tracks export operations
+- `ope_audit.import_log` - Tracks import operations
