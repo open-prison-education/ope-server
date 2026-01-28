@@ -8,7 +8,6 @@ FROM redis:5.0.3-alpine
 
 # To copy to offline server use the setup tool
 
-LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Redis container used by canvas - Image for Open Prison Education"
 LABEL version="0.1"
 
