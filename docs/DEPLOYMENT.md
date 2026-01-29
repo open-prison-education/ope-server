@@ -12,6 +12,8 @@ This guide covers the complete deployment process for the Open Prison Education 
 - [Backup and Restore](#backup-and-restore)
 - [Troubleshooting](#troubleshooting)
 
+**Related:** [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+
 ## System Requirements
 
 ### Hardware
@@ -95,9 +97,10 @@ Key settings to configure:
 | Setting | Description |
 |---------|-------------|
 | `PUBLIC_IP` | Server's IP address (auto-detected if blank) |
-| `DOMAIN` | Main services domain
-| `IT_PW` | IT administrator password |
-| `OFFICE_PW` | Office user password used for SMC login 
+| `CANVAS_DEFAULT_DOMAIN` | Canvas domain (defaults to canvas.ed)
+| `SMC_DEFAULT_DOMAIN` | SMC domain (default to smc.ed)
+| `IT_PW` | IT administrator password (defaults to changeme) used for apps such as Canvas and PostgreSQL|
+| `OFFICE_PW` | Office user password used for SMC login (defaults to changme)
 
 ### 3. Enable Services
 
@@ -134,6 +137,22 @@ touch ope-gcf/.enabled        # GCFLearnFree content
 ./up.sh
 ```
 
+### 6. Access Services
+
+Once services are running, see the **[Accessing Services Guide](ACCESSING_SERVICES.md)** for detailed instructions on:
+- Accessing Canvas, SMC, and other applications
+- Configuring DNS for air-gapped environments
+- Remote access via public IP
+- Handling SSL certificate warnings
+
+**Quick start (remote access):** If accessing over the internet, add entries to your local machine's `/etc/hosts` file:
+```
+<SERVER_PUBLIC_IP> canvas.ed
+<SERVER_PUBLIC_IP> smc.ed
+```
+
+Then navigate to `https://canvas.ed` in your local machine's browser. For air-gapped/local network setups, see the full guide for DNS configuration.
+
 ## Configuration
 
 ### SSL Certificates
@@ -145,20 +164,20 @@ SSL certificates are automatically generated on first run. For custom certificat
 
 ### DNS Configuration
 
-The `ope-dns` service provides local DNS resolution. Configure additional entries in `.env`:
+The `ope-dns` service provides local DNS resolution for air-gapped environments. It uses dnsmasq and automatically resolves the `.ed` domain to the server IP.
 
+To add extra DNS records or dnsmasq options, use `DNS_EXTRAS` in `.env`. This value is passed directly to the dnsmasq command line:
+
+```bash
+# Example: Add additional domain resolution
+DNS_EXTRAS=-A /custom.local/192.168.1.100
+
+# Example: Multiple options
+DNS_EXTRAS=-A /internal.lab/10.0.0.50 -A /printer.local/10.0.0.25
 ```
-DNS_EXTRAS=extra1.domain,extra2.domain
-```
 
-### Canvas LMS Setup
+See the [dnsmasq documentation](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for available options.
 
-After first startup:
-
-1. Access Canvas at `https://canvas.<your-domain>`
-2. Complete the initial setup wizard
-3. Create/access admin account
-`
 ## Service Management
 
 ### Start All Services

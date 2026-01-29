@@ -73,7 +73,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
    ```bash
    cp .env.template .env
    # Edit .env with your settings
-   ```
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.   ```
 
 3. **Enable desired services:**
    ```bash
