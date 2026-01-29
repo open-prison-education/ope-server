@@ -50,7 +50,6 @@ OPE Server is a collection of Docker containers that work together to provide a 
 | **ope-jsbin** | JS Bin code playground |
 | **ope-rachel** | RACHEL offline educational content |
 | **ope-git** | Git server for code repositories |
-| **ope-hub** | Django-based SMC replacement (in development) |
 
 ## Prerequisites
 
@@ -65,7 +64,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/operepo/ope-server.git
+   git clone https://github.com/open-prison-education/ope-server
    cd ope-server
    ```
 
@@ -157,5 +156,4 @@ This project is open source. See individual service directories for specific lic
 
 ## Support
 
-- GitHub Issues: [https://github.com/operepo/ope-server/issues](https://github.com/operepo/ope-server/issues)
-- Documentation: [https://github.com/operepo/ope](https://github.com/operepo/ope)
+- GitHub Issues: [https://github.com/open-prison-education/ope-server/issues](https://github.com/operepo/ope-server/issues)
