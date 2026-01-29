@@ -1,67 +1,109 @@
+# OPE FOG
 
-# Fog imaging server - running in docker container
+FOG Project imaging server for the Open Prison Education platform.
 
-## Description
-A conversion of the fogproject imaging server running in a docker container
+## Overview
 
-The container is designed to run from docker-compose in the OPE project. The compose
-configuration properly exposes ports. The up.sh script in the compose folder makes sure
-that the host loads the needed modules and rebuilds the compose file based on the
-current IP, domain, and password.
+FOG (Free Open-source Ghost) is a computer imaging solution that allows deployment and management of system images across multiple computers. This container runs the FOG server within Docker for the OPE project.
 
-## Implementation details
+## Features
 
-Special settings are in place to deal with FTP, TFTP, and NFS protocols.
+- Network-based system imaging (PXE boot)
+- Multicast image deployment
+- Image management and storage
+- Host registration and inventory
+- Task scheduling
 
-The container is launched with the following privileges:
-privileged: true
-cap_add:
-    - NET_ADMIN
-    - SYS_ADMIN
+## Requirements
 
-This runs as a BRIDGED network, NOT a HOST network. Services are set to use static ports
-to allow nat port forwarding to work properly.
+### Host System
 
-# Host changes
-These settings should be taken care of if lauched via the up.sh script.
+The Docker host requires specific kernel modules for TFTP, NFS, and FTP:
 
-This is setup to run on a linux host (openSuse 42.1). It hasn't run properly in
-docker for windows, though it should be possible.
-
-## TFTP
-The docker host needs to have the following changes in place to support TFTP and allow
-for traffic to flow through the NAT adaptor properly
-
+```bash
+# TFTP support
 modprobe nf_conntrack_tftp
 modprobe nf_nat_tftp
 
-# Add some rules to track tftp traffic
-WLAN_IF=eth0
-iptables -A INPUT -i $WLAN_IF -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
-iptables -A INPUT -i $WLAN_IF -p udp --dport 69 -m state --state NEW -j ACCEPT
-
-## NFS/FTP
-The following modules need to be loaded on the host for FTP and NFS to work
+# FTP/NFS support
 modprobe nf_conntrack_ftp
 modprobe nf_conntrack_netbios_ns
 modprobe nfs
 modprobe nfsd
+```
 
+**Note:** The `up.sh` script automatically loads these modules on supported systems.
 
-# Container Changes
-Inside the container, adjustments were made to FTP, NFS, TFTP to specify static ports
-so that they can be exposed form docker properly.
+## Network Configuration
 
-The container needs this on to allow proper tracking/routing of UDP packets for TFTP/NFS
+The container runs in **bridged** network mode (not host mode) with static ports for NAT forwarding compatibility.
+
+### Exposed Ports
+
+| Port | Protocol | Service |
+|------|----------|---------|
+| 80, 443 | TCP | Web interface |
+| 20, 21 | TCP | FTP |
+| 69 | UDP | TFTP |
+| 111 | TCP/UDP | RPC |
+| 2049 | TCP/UDP | NFS |
+| 4045 | TCP/UDP | NFS Lock |
+| 7000-7030 | UDP | TFTP transfer |
+
+## Container Privileges
+
+The container requires elevated privileges:
+
+```yaml
+privileged: true
+cap_add:
+  - NET_ADMIN
+  - SYS_ADMIN
+```
+
+## Volumes
+
+| Path | Description |
+|------|-------------|
+| `/var/lib/mysql` | MySQL database |
+| `/images` | System images |
+| `/backup` | Backup storage |
+
+## Configuration
+
+On startup, `update_fog_ip.py` automatically configures:
+- FOG settings with current IP
+- MySQL database entries
+- TFTP boot configuration
+
+## Usage
+
+Enable the service:
+
+```bash
+touch ope-fog/.enabled
+./up.sh
+```
+
+## Troubleshooting
+
+### TFTP Issues
+
+Ensure iptables rules allow TFTP traffic:
+
+```bash
+iptables -A INPUT -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p udp --dport 69 -m state --state NEW -j ACCEPT
+```
+
+### Container NAT
+
+The container uses masquerading for proper UDP packet routing:
+
+```bash
 iptables -t nat -A POSTROUTING -j MASQUERADE
+```
 
-On startup, the container should adjust itself and set the passwords based on the compose 
-environment variables.
+## Resources
 
-update_fog_ip.py runs on startup and should adjust the IP settings in fog automatically.
-
-Services are modified to use static ports or specific ranges (e.g. ftp in passive mode, etc...)
-
-
-# TODO
-- Need to set root password on startup
+- FOG Project: https://fogproject.org/

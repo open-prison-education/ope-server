@@ -1,5 +1,5 @@
 FROM instructure/node-passenger:12
-MAINTAINER Instructure
+LABEL maintainer="Instructure"
 
 LABEL rebuild=1
 

@@ -8,8 +8,8 @@ FROM redis:5.0.3-alpine
 
 # To copy to offline server use the setup tool
 
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="Redis container used by canvas - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
+LABEL description="Redis container used by canvas - Image for Open Prison Education"
+LABEL version="0.1"
 
 LABEL version="3"
 COPY redis.conf.tmpl /etc/redis.conf.tmpl
