@@ -4,10 +4,8 @@ FROM alpine:3.9.4
 # ope-ntp  - Open Prison Education ntp device
 # Build with docker build -t ope-ntp .
 
-
-MAINTAINER Ray Pulsipher <ray@cmagic.biz>
-LABEL Description="NTP Server for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
-LABEL version=0.1
+LABEL description="NTP Server for Open Prison Education"
+LABEL version="0.1"
 
 
 RUN apk --no-cache add chrony

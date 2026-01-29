@@ -55,9 +55,12 @@ services:
 """
 
 # A list of values to substitute in the docker-compose.yml or .env.template file
-replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
-    "<CANVAS_SECRET>": '<NEW_UUID>',  # 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
+replacement_values = { 
+    '<DOMAIN>': 'ed', 
+    '<IP>': '', 
+    "<VOLUMES>": '',
     "<NETWORK_MODE>": 'bridge',
+    "<CANVAS_SECRET>": '<NEW_UUID>',  # 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
     "<IT_PW>": 'changeme',
     "<OFFICE_PW>": 'changeme',
     "<LMS_ACCOUNT_NAME>": 'Open Prison Education',
@@ -83,7 +86,6 @@ volume_list = []
 
 def getComposeFolder():
     pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pwd = os.path.join(pwd, "docker_build_files")
     return pwd
 
 
@@ -95,9 +97,6 @@ def getIP():
         s.connect(('10.255.255.255', 0))
         IP = s.getsockname()[0]
     except:
-        # IP = '127.0.0.1'
-        # try using hostname -i
-        #IP = commands.getoutput('hostname -i')
         IP = subprocess.check_output(['hostname', '-i'])
         IP = IP.strip()
     finally:
@@ -107,12 +106,12 @@ def getIP():
 def getSavedSetting(setting_name="", default_val=None):
     # Locate the base folder
     pwd = getComposeFolder()
+    # <IP> would be .IP file
     setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">",""))
     ret = default_val
     try:
-        f = open(setting_file, "r")
-        ret = f.read().strip()
-        f.close()
+        with open(setting_file, "r") as f:
+            ret = f.read().strip()
         if ret == "":
             ret = default_val
     except:
@@ -124,9 +123,8 @@ def saveSetting(setting_name="", value=""):
     # Locate the base folder
     pwd = getComposeFolder()
     setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">", ""))
-    f = open(setting_file, "w")
-    f.write(value)
-    f.close()
+    with open(setting_file, "w") as f:  
+        f.write(value)
 
 def processFolder(cwd=""):
     global volume_list
@@ -148,9 +146,8 @@ def processFolder(cwd=""):
         print("        Skipping - No docker-compose-include.yml file found")
     
     try:
-        f = open(dc_import, "r")
-        ret = f.read()
-        f.close()
+        with open(dc_import, "r") as f:
+            ret = f.read()
     except:
         print("         Error reading " + dc_import)
         ret = ""
@@ -165,22 +162,22 @@ def processFolder(cwd=""):
         #print("\t\tNo volumes file.")
         return ret
     
-    print("\tProcessing volume file: " + vol_import)
+    print("\nProcessing volume file: " + vol_import)
     
     try:
-        f = open(vol_import, "r")
-        lines = f.readlines()
-        for line in lines:
-            line = line.strip()
-            # Strip off comments
-            i = line.find("#")
-            if (i > -1):
-                line = line[0:i]
-            line = line.strip()
-            if (line != ""):
-                print("\t===> Volume Found: " + line)
-                volume_list.append(line)
-        f.close()
+        with open(vol_import, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip()
+                # Strip off comments
+                i = line.find("#")
+                if (i > -1):
+                    line = line[0:i]
+                line = line.strip()
+                if (line != ""):
+                    print("\t===> Volume Found: " + line)
+                    volume_list.append(line)
+
     except:
         print("\t\tError reading " + vol_import)
     
@@ -232,9 +229,8 @@ for k in replacement_values:
     # print("Saved " + k + ":" + str(replacement_values[k]))
 
 
-# Grab current folder, then move back one, then into the docker_build_files folder
+# Grab current folder, then move back one
 pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-pwd = os.path.join(pwd, "docker_build_files")
 if not os.path.isdir(pwd):
     print("Unable to find docker build files at: " + pwd)
     sys.exit()
@@ -299,85 +295,3 @@ print("\n\nRebuild Compose Complete.")
 
 # ------------------------------------------------------------------
 sys.exit(0)
-
-   
-#print("Current IP: " + getIP())
-
-# Get current IP address
-ip = getIP()
-saved_ip = getSavedIP()
-get_new_ip = False
-if ip != saved_ip and saved_ip != "" and not auto is True:
-    # Looks like your ip has changed?
-    print("Possible IP change!!!")
-    print("Saved IP: " + saved_ip + " - Machine IP: " + ip)
-    choice = raw_input("Do you want to continue to use the saved IP? [Enter for Y, N to enter a new IP]: ")
-    if choice.lower() == "n":
-        get_new_ip = True
-    else:
-        # continue with saved ip
-        ip = saved_ip
-
-if (saved_ip == "" or get_new_ip == True) and not auto is True:
-    choice = raw_input("Enter public IP [enter to use " + ip + "]: ")
-    choice = choice.strip()
-    if (choice != ""):
-        ip = choice
-
-replacement_values["<IP>"] = ip
-print("Using IP: " + ip + "...")
-saveIP(ip)
-
-pw = getPW()
-replacement_values["<IT_PW>"] = pw
-replacement_values["<OFFICE_PW>"] = pw
-
-secret = getSecret()
-replacement_values["<CANVAS_SECRET>"] = secret
-# make sure we save it in case it was just created
-saveSecret(secret)
-
-domain = "ed"
-saved_domain = getDomain()
-if saved_domain == "" and not auto is True:
-    choice = raw_input("Enter domain to use [enter to use " + domain + "]: ")
-    choice = choice.strip()
-    if (choice != ""):
-        domain = choice
-else:
-    domain = saved_domain
-replacement_values["<DOMAIN>"] = domain
-print("Using domain: " + domain + "...")
-saveDomain(domain)
-
-
-
-# Make sure the PUBLIC_IP field is updated in the .env file
-public_ip_found = False
-if os.path.isfile(env_file) == True:
-    # Check each line in the file
-    ef = open(env_file, "r")
-    lines = ef.readlines()
-    ef.close()
-    
-    ef = open(env_file, "w")
-    for line in lines:
-        if line.startswith("PUBLIC_IP"):
-            ef.write("PUBLIC_IP=" + ip + "\n")
-            public_ip_found = True
-        else:
-            ef.write(line)
-    if public_ip_found is not True:
-        # Didn't find it, add it
-        ef.write("\nPUBLIC_IP=" + ip)
-    
-    ef.close()
-# Grab all ope- folders and start each one
-
-#pwd = os.getcwd()
-
-#for folder in os.listdir("."):
-#  if (folder[:4] == "ope-"):
-#    st = "python " + folder + "/start.py"
-#    print("Starting " + st)
-#    os.system(st)
