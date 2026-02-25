@@ -57,7 +57,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
 - Docker Engine 20.10+
 - Docker Compose v2+
 - Python 3.6+
-- Minimum 16GB RAM (32GB+ recommended)
+- Minimum 16GB RAM
 - 500GB+ storage (varies based on content)
 
 ## Quick Start
@@ -156,4 +156,4 @@ This project is open source. See individual service directories for specific lic
 
 ## Support
 
-- GitHub Issues: [https://github.com/open-prison-education/ope-server/issues](https://github.com/operepo/ope-server/issues)
+- GitHub Issues: [https://github.com/open-prison-education/ope-server/issues](https://github.com/open-prison-education/ope-server/issues)

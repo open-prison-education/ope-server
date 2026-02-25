@@ -19,7 +19,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 ### Hardware
 
 - **CPU:** 4+ cores recommended
-- **RAM:** Minimum 16GB, 32GB+ recommended
+- **RAM:** Minimum 16GB
 - **Storage:** 500GB+ (varies based on content)
 - **Network:** Static IP address recommended
 
