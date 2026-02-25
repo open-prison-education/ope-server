@@ -11,6 +11,9 @@ This guide explains how to access Canvas LMS and other OPE services after deploy
   - [Remote Access via Public IP](#remote-access-via-public-ip)
 - [SSL Certificate Warnings](#ssl-certificate-warnings)
 - [Troubleshooting](#troubleshooting)
+  - [Cannot Connect to Services](#cannot-connect-to-services)
+  - [503 Service Temporarily Unavailable](#503-service-temporarily-unavailable)
+  - ["INVALID CERT SETUP"](#invalid-cert-setup)
 
 ## Architecture Overview
 
@@ -48,13 +51,13 @@ The default domain suffix is `.ed` (configurable via `DOMAIN` in `.env`).
 
 | Service | Default Domain(s) | Description |
 |---------|-------------------|-------------|
-| Canvas LMS | `canvas.ed`, `ed` | Learning Management System |
-| SMC | `smc.ed`, `admin.ed`, `videos.ed`, `media.ed` | Student Management Console |
+| Canvas LMS | `canvas.ed` | Learning Management System |
+| SMC | `smc.ed` | Student Management Console |
 | Canvas RCE | `rce.ed` | Rich Content Editor for Canvas |
 | Canvas Mathman | `mathman.ed` | Math equation rendering |
-| KA Lite | `kalite.ed`, `khan.ed` | Khan Academy offline content |
-| GCF | `gcf.ed`, `gcflearnfree.ed` | GCFLearnFree content |
-| FOG | `fog.ed`, `fogserver.ed` | System imaging server |
+| KA Lite | `kalite.ed`| Khan Academy offline content |
+| GCF | `gcf.ed` | GCFLearnFree content |
+| FOG | `fog.ed`| System imaging server |
 | Git | `git.ed` | Git server |
 | JS Bin | `jsbin.ed` | JavaScript code playground |
 | CodeCombat | `codecombat.ed` | Coding education game |
@@ -155,22 +158,40 @@ For production deployments, configure a real domain:
 The nginx gateway routes requests based on the `Host` header. When you access `https://203.0.113.50` directly, the browser sends `Host: 203.0.113.50`, which doesn't match any configured virtual host, resulting in a 503 error.
 
 The hosts file approach works because:
-1. Your browser resolves `canvas.ed` → `54.71.244.206` (via hosts file)
-2. Browser connects to `54.71.244.206` but sends `Host: canvas.ed`
+1. Your browser resolves `canvas.ed` → `<PUBLIC_IP>` (via hosts file)
+2. Browser connects to `<PUBLIC_IP>` but sends `Host: canvas.ed`
 3. Nginx matches `canvas.ed` and routes to the correct service
 
 ## SSL Certificate Warnings
 
-OPE Server generates self-signed SSL certificates by default. When accessing services, your browser will display a security warning.
+When you access `https://canvas.ed` or `https://smc.ed` (especially via [remote access with a hosts file](#remote-access-via-public-ip)), your browser will show a certificate warning. This is expected.
 
-**To proceed:**
-- **Chrome:** Click "Advanced" → "Proceed to canvas.ed (unsafe)"
-- **Firefox:** Click "Advanced" → "Accept the Risk and Continue"
-- **Safari:** Click "Show Details" → "visit this website"
+### Why you see "Certificate not trusted" or "This root certificate is not trusted"
 
-For production environments, consider:
-- Using Let's Encrypt (configure `ope-letsencrypt` service)
-- Installing your own trusted certificates in `volumes/gateway/certs/`
+- **Using hosts file with `.ed` domains:** The names `canvas.ed` and `smc.ed` are not real public domains. Let's Encrypt can only issue certificates for domains that resolve in public DNS and pass its verification. So when you use a hosts file to point `canvas.ed` / `smc.ed` at your server's public IP, the gateway has no valid public certificate for those hostnames and falls back to a default self-signed certificate. Your system does not trust that certificate, so you see "Certificate not trusted" or "This root certificate is not trusted."
+- **Self-signed default:** If the `ope-letsencrypt` service is not used, the gateway uses a self-signed certificate by default, which browsers also do not trust.
+
+### How to proceed (accept the warning and continue)
+
+You can safely continue to the site after accepting the warning:
+
+- **Chrome:** Click **Advanced** → **Proceed to canvas.ed (unsafe)** (or the equivalent for smc.ed).
+- **Firefox:** Click **Advanced** → **Accept the Risk and Continue**.
+- **Safari:** Click **Show Details** → **visit this website**.
+
+Your connection is still encrypted; the warning only means the certificate authority is not in your system's trust store.
+
+### When you get a trusted certificate (no warning)
+
+- **Real domain + Let's Encrypt:** Use [Option 2: Use a real domain](#option-2-use-a-real-domain) so that `canvas.myschool.org`, `smc.myschool.org`, etc. point to your server. Then Let's Encrypt can issue trusted certificates for those names.
+- **Your own certificates:** Install your own trusted certificates in `volumes/gateway/certs/` and configure the gateway to use them.
+
+> **Important:** If you are using `.ed` domains with a hosts file (not a real public domain), **disable the `ope-letsencrypt` service**. The letsencrypt companion cannot issue certificates for `.ed` domains and will create empty certificate directories that interfere with the gateway's cert lookup (causing "INVALID CERT SETUP" errors). To disable it:
+> ```bash
+> rm ope-letsencrypt/.enabled
+> docker stop ope-letsencrypt
+> ```
+> Only enable `ope-letsencrypt` when using real public domains that resolve in DNS.
 
 ## Troubleshooting
 
@@ -191,43 +212,78 @@ For production environments, consider:
    curl -H "Host: canvas.ed" --insecure https://localhost:443
    ```
 
-### 503 Service Unavailable
+4. **Check firewall / security groups:**
+   ```bash
+   sudo ufw status
+   sudo ufw allow 80/tcp
+   sudo ufw allow 443/tcp
+   ```
+   For cloud providers (AWS, GCP, Azure), also verify security group / firewall rules in the cloud console.
 
-This usually means nginx can't route to the backend. Check:
-- The service container is running
-- The `VIRTUAL_HOST` environment variable is set correctly
-- Run `docker logs ope-gateway` for details
+### 503 Service Temporarily Unavailable
 
-### SSL Certificate Errors (Not Warnings)
+A **503** from nginx means the gateway received the request (e.g. for `smc.ed` or `canvas.ed`) but could not reach the backend container. Common causes: the service isn't running, or the gateway generated its config before the backend was ready.
 
-If you see "INVALID CERT SETUP" instead of the application:
+1. **Confirm the service is enabled and running:**
+   ```bash
+   ls ope-smc/.enabled
+   docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E 'ope-gateway|ope-smc|ope-canvas'
+   ```
+   If the service container is missing, enable and start it:
+   ```bash
+   touch ope-smc/.enabled    # or ope-canvas/.enabled, etc.
+   ./rebuild.sh
+   ./up.sh
+   ```
+
+2. **Restart the gateway after backends are up.**
+   The gateway generates its routing config from running containers. If it started before the backend was ready, it has no upstream for that host:
+   ```bash
+   docker restart ope-gateway
+   ```
+
+3. **Inspect logs:**
+   ```bash
+   docker logs ope-gateway 2>&1 | tail -50
+   docker logs ope-smc 2>&1 | tail -50
+   ```
+
+4. **Quick connectivity test from the server:**
+   ```bash
+   curl -H "Host: smc.ed" --insecure -s -o /dev/null -w "%{http_code}" https://127.0.0.1:443/
+   ```
+   `502`/`503` = gateway routes but backend isn't responding. `200` (or `401` for Canvas) = backend is fine and the issue is client-side (hosts file, firewall).
+
+### "INVALID CERT SETUP"
+
+If you see **"INVALID CERT SETUP"** and *"Make sure the .CERT_NAME value is set or that a proper cert exists"* after clicking through the certificate warning, the gateway matched your host (e.g. `canvas.ed`) to an **incomplete certificate** instead of the working default cert.
+
+**Root cause:** The `ope-letsencrypt` companion creates empty directories (`canvas.ed/`, `smc.ed/`, `mathman.ed/`, `rce.ed/`) in the certs volume when it tries (and fails) to get Let's Encrypt certificates for `.ed` domains. The gateway's cert-lookup matches these directory names as if they were cert files, finds no actual `.crt`/`.key` inside, and returns the error page.
+
+**Fix:**
 
 ```bash
-# Check for empty certificate directories
-ls -la volumes/gateway/certs/
+# 1. Stop and disable ope-letsencrypt (it cannot work with .ed domains)
+docker stop ope-letsencrypt
+rm ope-letsencrypt/.enabled
 
-# Remove empty domain directories (they interfere with cert lookup)
-sudo rm -rf volumes/gateway/certs/canvas.ed
-sudo rm -rf volumes/gateway/certs/smc.ed
+# 2. Remove the empty cert directories it created
+docker exec ope-gateway rm -rf \
+  /etc/nginx/certs/canvas.ed \
+  /etc/nginx/certs/smc.ed \
+  /etc/nginx/certs/mathman.ed \
+  /etc/nginx/certs/rce.ed \
+  /etc/nginx/certs/accounts
 
-# Restart gateway
+# 3. Confirm default cert and .CERT_NAME exist
+docker exec ope-gateway ls /etc/nginx/certs/default.crt /etc/nginx/certs/default.key
+cat .CERT_NAME    # should show: default
+
+# 4. Restart gateway to regenerate config
 docker restart ope-gateway
 ```
 
-### Firewall Issues
-
-Ensure ports 80 and 443 are open:
-
-```bash
-# Check UFW (Ubuntu)
-sudo ufw status
-
-# Allow ports if needed
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-```
-
-For cloud providers (AWS, GCP, Azure), also check security group / firewall rules in the cloud console.
+Then try `https://canvas.ed` again. You will still see a one-time certificate warning (see [SSL Certificate Warnings](#ssl-certificate-warnings)), but after proceeding the application should load.
 
 ---
 
