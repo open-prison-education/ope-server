@@ -17,7 +17,7 @@ if len(sys.argv) > 1:
 ## Write this to the docker-compose.yml file
 dc_out = """##### Open Prison Education - Docker Environment #####
 # NOTE - This file gets rebuilt, make changes to docker-compose-include.yml file
-#           in individual container directories and run rebuild_compose.py 
+#           in individual container directories and run rebuild.sh 
 #
 # Start docker containers by running this command from the main folder:
 #        docker-compose up -d
@@ -25,8 +25,12 @@ dc_out = """##### Open Prison Education - Docker Environment #####
 # Stop containers by running this command from the main folder:
 #        docker-compose down
 #
+# Alternatively, use from the main folder:
+#        up.sh   - to start containers
+#        down.sh - to stop containers
+#
 # START OF docker-compose.yml
-version: '2'
+version: "2"
 
 <VOLUMES>
 
@@ -55,30 +59,30 @@ services:
 """
 
 # A list of values to substitute in the docker-compose.yml or .env.template file
-replacement_values = { 
-    '<DOMAIN>': 'ed', 
-    '<IP>': '', 
-    "<VOLUMES>": '',
-    "<NETWORK_MODE>": 'bridge',
-    "<CANVAS_SECRET>": '<NEW_UUID>',  # 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
-    "<IT_PW>": 'changeme',
-    "<OFFICE_PW>": 'changeme',
-    "<LMS_ACCOUNT_NAME>": 'Open Prison Education',
-    "<TIME_ZONE>": 'Pacific Time (US & Canada)',
+replacement_values = {
+    "<DOMAIN>": "ed",
+    "<IP>": "",
+    "<VOLUMES>": "",
+    "<NETWORK_MODE>": "bridge",
+    "<CANVAS_SECRET>": "<NEW_UUID>",
+    "<IT_PW>": "changeme",
+    "<OFFICE_PW>": "changeme",
+    "<LMS_ACCOUNT_NAME>": "Open Prison Education",
+    "<TIME_ZONE>": "Pacific Time (US & Canada)",
     "<CANVAS_LOGIN_PROMPT>": "Student ID (default is s + DOC number - s113412)",
     "<CANVAS_DEFAULT_DOMAIN>": "canvas.<DOMAIN>",
     "<SMC_DEFAULT_DOMAIN>": "smc.<DOMAIN>",
     "<IS_ONLINE>": "0",
     "<DNS_EXTRAS>": "",
     "<ACME_AUTH_CODE>": "ZZZZ",
-    "<CANVAS_ENC_SECRET>": '<NEW_UUID_32>',
-    "<CANVAS_SIGN_SECRET>": '<NEW_UUID_32>',
+    "<CANVAS_ENC_SECRET>": "<NEW_UUID_32>",
+    "<CANVAS_SIGN_SECRET>": "<NEW_UUID_32>",
     "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
     "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": "mathman.<DOMAIN>",
     "<NTP_SERVERS>": "time.windows.com",
     "<ALERT_EMAIL>": "alert@correctionsed.com",
     "<CERT_NAME>": "default",
-    }
+}
 
 # A list of volumes that need to be specified in the volumes section
 volume_list = []
@@ -92,12 +96,12 @@ def getComposeFolder():
 # Find the local/public ip of the machine
 def getIP():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    IP = ''
+    IP = ""
     try:
-        s.connect(('10.255.255.255', 0))
+        s.connect(("10.255.255.255", 0))
         IP = s.getsockname()[0]
     except:
-        IP = subprocess.check_output(['hostname', '-i'])
+        IP = subprocess.check_output(["hostname", "-i"])
         IP = IP.strip()
     finally:
         s.close()
@@ -107,7 +111,7 @@ def getSavedSetting(setting_name="", default_val=None):
     # Locate the base folder
     pwd = getComposeFolder()
     # <IP> would be .IP file
-    setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">",""))
+    setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">", ""))
     ret = default_val
     try:
         with open(setting_file, "r") as f:
@@ -128,12 +132,11 @@ def saveSetting(setting_name="", value=""):
 
 def processFolder(cwd=""):
     global volume_list
-    
+
     ret = ""
     if (os.path.isdir(cwd) != True):
-        #print("Not a folder, skipping...")
         return ret
-    
+
     enabled = os.path.join(cwd, ".enabled")
     if (os.path.isfile(enabled) != True):
         #print("Not enabled, skipping " + cwd)
@@ -144,7 +147,7 @@ def processFolder(cwd=""):
     dc_import = os.path.join(cwd, "docker-compose-include.yml")
     if (os.path.isfile(dc_import) != True):
         print("        Skipping - No docker-compose-include.yml file found")
-    
+
     try:
         with open(dc_import, "r") as f:
             ret = f.read()
@@ -190,19 +193,19 @@ for k in replacement_values:
     # print("Val " + str(replacement_values[k]))
 
 # Make sure canvas secret is a new uuid if it is blank
-if replacement_values['<CANVAS_SECRET>'] == "":
-    replacement_values['<CANVAS_SECRET>'] = "<NEW_UUID>"
+if replacement_values["<CANVAS_SECRET>"] == "":
+    replacement_values["<CANVAS_SECRET>"] = "<NEW_UUID>"
 
 # Make sure enc secrets are 32byte strings
-if replacement_values['<CANVAS_ENC_SECRET>'] == "":
-    replacement_values['<CANVAS_ENC_SECRET>'] = "<NEW_UUID_32>"
+if replacement_values["<CANVAS_ENC_SECRET>"] == "":
+    replacement_values["<CANVAS_ENC_SECRET>"] = "<NEW_UUID_32>"
 
-if replacement_values['<CANVAS_SIGN_SECRET>'] == "":
-    replacement_values['<CANVAS_SIGN_SECRET>'] = "<NEW_UUID_32>"
+if replacement_values["<CANVAS_SIGN_SECRET>"] == "":
+    replacement_values["<CANVAS_SIGN_SECRET>"] = "<NEW_UUID_32>"
 
 # Make sure IP is set to current IP if blank
-if replacement_values['<IP>'] == "":
-    replacement_values['<IP>'] = getIP()
+if replacement_values["<IP>"] == "":
+    replacement_values["<IP>"] = getIP()
 
 # Make sure <NEW_UUID> values are replaced with an ID
 for k in replacement_values:
@@ -214,8 +217,8 @@ for k in replacement_values:
     if replacement_values[k] == "<NEW_UUID_32>":
         replacement_values[k] = str(str(uuid.uuid4()) + "000").strip()[:32]
 
-t_ip = replacement_values['<IP>']
-t_domain = replacement_values['<DOMAIN>']
+t_ip = replacement_values["<IP>"]
+t_domain = replacement_values["<DOMAIN>"]
 
 # Make sure each value has the <DOMAIN> and <IP> values replaced in them
 for k in replacement_values:
