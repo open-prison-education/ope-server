@@ -5,7 +5,8 @@ LABEL rebuild=1
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends zip \
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+  && apt-get update && apt-get install -y --no-install-recommends zip \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package.json
