@@ -1,50 +1,40 @@
-#!/usr/bin/python
-import os, sys
-import socket
-import shutil
+#!/usr/bin/env python3
+"""Push Docker images for all enabled services to Docker Hub."""
 
-# USE docker-compose push from the docker_build_files folder
-print("Pushing images using docker-compose push...")
-cmd = "docker-compose push"
-os.system(cmd)
-a=raw_input("Press ENTER to quit...")
-sys.exit()
+import os
+import sys
 
-# Push images up to dockerhub so they can be pulled later
+import yaml
 
-# Images to push - will fill in with folders that have .enabled files
-images = [] #[ "ope-gateway", "ope-dns" ]
+from service_deps import resolve_services
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(BASE_DIR, "config.yml")
 
 
-# Grab current folder, then move back one
-pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if not os.path.isdir(pwd):
-    print("Unable to find docker build files at: " + pwd)
-    sys.exit()
-else:
-    print("Searching for images to push...")
-#print(" " + pwd)
-#sys.exit()
+def main():
+    if not os.path.isfile(CONFIG_PATH):
+        print("ERROR: No config.yml found. Run ./setup.sh first.")
+        sys.exit(1)
+
+    with open(CONFIG_PATH, "r") as f:
+        config = yaml.safe_load(f) or {}
+
+    user_services = config.get("services", [])
+    resolved = resolve_services(user_services)
+
+    for svc in sorted(resolved):
+        svc_dir = os.path.join(BASE_DIR, svc)
+        if not os.path.isdir(svc_dir):
+            continue
+        image = f"operepo/{svc}:release"
+        print(f"Pushing {image} ...")
+        ret = os.system(f"docker push {image}")
+        if ret != 0:
+            print(f"  WARNING: push failed for {image}")
+
+    print("\nFinished!")
 
 
-# Loop through the folders and find containers with .enabled files.
-for folder in os.listdir(pwd):
-	if (os.path.isdir(os.path.join(pwd, folder))):
-		# See if this has an enabled file in it
-		ef = os.path.join(pwd, folder)
-		ef = os.path.join(ef, ".enabled")
-		if (os.path.isfile(ef)):
-			print("Found " + folder + "... adding to push list")
-			images.append(folder)
-
-
-# Push images
-for image in images:
-	print("Trying to push: " + image)
-	cmd = "docker push operepo/operelease:" + image
-	print("\t" + cmd)
-	os.system(cmddock)
-	print "Done."
-
-print("\n\nFinished!")
-a = raw_input("Press ENTER key to continue")
+if __name__ == "__main__":
+    main()
