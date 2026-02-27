@@ -44,8 +44,6 @@ DC_HEADER = """\
 #        docker-compose down
 #
 # START OF docker-compose.yml
-version: '2'
-
 <VOLUMES>
 
 
