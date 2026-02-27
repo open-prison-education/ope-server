@@ -1,17 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+# Rebuild docker-compose.yml and .env from config.yml.
 
-# Detect python path (py2 or py3 in the system)
+SCRIPT=$(readlink -f "$0")
+BASEDIR=$(dirname "$SCRIPT")
 
-PY3=`which python3`
-PY2=`which python`
+# Bootstrap the virtual environment and dependencies
+source "$BASEDIR/scripts/ensure_venv.sh"
 
-PY=$PY3
-
-if [ -z "$PY" ]; then
-  echo Switching to py2
-  PY=$PY2
-fi;
-
-echo "Using Python: $PY"
-
-$PY scripts/rebuild_compose.py
+python3 "$BASEDIR/scripts/rebuild_compose.py"
