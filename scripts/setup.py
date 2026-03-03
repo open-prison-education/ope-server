@@ -256,7 +256,8 @@ def main():
         yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
     print(f"Config saved to {CONFIG_PATH}")
 
-    with open(SECRETS_PATH, "w") as f:
+    fd = os.open(SECRETS_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
         yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
     print(f"Secrets saved to {SECRETS_PATH}")
 
