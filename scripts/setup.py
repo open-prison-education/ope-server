@@ -8,9 +8,6 @@ dependencies, and writes config.yml + .secrets.yml.
 
 import os
 import sys
-import uuid
-import socket
-import subprocess
 
 import yaml
 
@@ -19,6 +16,9 @@ from service_deps import (
     SERVICE_CATALOG,
     SERVICE_DEPS,
     resolve_services,
+    detect_ip,
+    generate_secret,
+    generate_secret_32,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,31 +46,6 @@ DEFAULT_SETTINGS = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def detect_ip():
-    """Auto-detect the local IP address."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 0))
-        return s.getsockname()[0]
-    except Exception:
-        try:
-            out = subprocess.check_output(["hostname", "-i"])
-            return out.decode().strip()
-        except Exception:
-            return ""
-    finally:
-        s.close()
-
-
-def generate_secret():
-    return str(uuid.uuid4()) + "000"
-
-
-def generate_secret_32():
-    return (str(uuid.uuid4()) + "000")[:32]
-
-
 def prompt(label, default=""):
     """Prompt the user for a value, showing the current default."""
     display_default = str(default) if default != "" else ""
