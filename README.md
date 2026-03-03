@@ -149,6 +149,27 @@ The system is configured through:
 
 To reconfigure the server, either edit `config.yml` directly or re-run `./setup.sh`.
 
+## Adding a New Service
+
+To add a new service (e.g. `ope-myapp`):
+
+1. Create the service directory with a `docker-compose-include.yml` (and optionally a `volumes-include.yml`):
+
+```
+ope-myapp/
+├── Dockerfile
+├── docker-compose-include.yml
+└── README.md
+```
+
+2. Register the service in `scripts/service_deps.py`:
+   - Add an entry to **`SERVICE_DEPS`** mapping the service name to its dependency list (e.g. `"ope-myapp": ["ope-gateway", "ope-dns"]`). Use an empty list `[]` if it has no dependencies beyond the core services.
+   - Add it to the appropriate group in **`SERVICE_CATALOG`** so it appears in the `./setup.sh` interactive wizard. If you skip this step, users can still enable it by hand-editing `config.yml`, but the wizard won't present it as an option.
+
+3. Add it as a commented-out entry in `config.yml.example` so users can discover it.
+
+4. Enable the service in `config.yml` and run `./up.sh b` to build and start it.
+
 ## Development
 
 To work on individual services:
