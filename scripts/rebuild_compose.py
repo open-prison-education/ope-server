@@ -9,14 +9,18 @@ and populates .env from .env.template with the configured values.
 
 import os
 import sys
-import uuid
-import socket
 import shutil
-import subprocess
 
 import yaml
 
-from service_deps import CORE_SERVICES, SERVICE_DEPS, resolve_services
+from service_deps import (
+    CORE_SERVICES,
+    SERVICE_DEPS,
+    resolve_services,
+    detect_ip,
+    generate_secret,
+    generate_secret_32,
+)
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -54,29 +58,6 @@ services:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def detect_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 0))
-        return s.getsockname()[0]
-    except Exception:
-        try:
-            out = subprocess.check_output(["hostname", "-i"])
-            return out.decode().strip()
-        except Exception:
-            return "127.0.0.1"
-    finally:
-        s.close()
-
-
-def generate_secret():
-    return str(uuid.uuid4()) + "000"
-
-
-def generate_secret_32():
-    return (str(uuid.uuid4()) + "000")[:32]
-
 
 def load_config():
     if not os.path.isfile(CONFIG_PATH):
@@ -212,8 +193,8 @@ def main():
     config = load_config()
     secrets = load_or_create_secrets()
 
-    settings = config.get("settings", {})
-    user_services = config.get("services", [])
+    settings = config.get("settings") or {}
+    user_services = config.get("services") or []
 
     resolved = resolve_services(user_services)
 

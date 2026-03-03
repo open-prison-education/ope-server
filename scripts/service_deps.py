@@ -98,3 +98,31 @@ def resolve_services(selected):
             if dep not in resolved:
                 queue.append(dep)
     return resolved
+
+import uuid
+import socket
+import subprocess
+
+# Helper functions used in setup.py and rebuild_compose.py
+def detect_ip():
+    """Auto-detect the local IP address."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 0))
+        return s.getsockname()[0]
+    except Exception:
+        try:
+            out = subprocess.check_output(["hostname", "-i"])
+            return out.decode().strip()
+        except Exception:
+            return ""
+    finally:
+        s.close()
+
+
+def generate_secret():
+    return str(uuid.uuid4()) + "000"
+
+
+def generate_secret_32():
+    return (str(uuid.uuid4()) + "000")[:32]
