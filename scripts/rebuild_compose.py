@@ -88,44 +88,50 @@ def load_or_create_secrets():
         changed = True
 
     if changed:
-        with open(SECRETS_PATH, "w") as f:
+        fd = os.open(SECRETS_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
             yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
         print("Secrets auto-generated and saved to .secrets.yml")
 
     return secrets
 
 
+def fallback(val, default=""):
+    """Return *val* as a string, falling back to *default* when val is None."""
+    return str(val) if val is not None else str(default)
+
+
 def build_replacement_values(settings, secrets):
     """Build the placeholder -> value mapping used in compose and .env files."""
-    domain = settings.get("domain", "ed")
-    ip = settings.get("ip", "") or detect_ip()
+    domain = fallback(settings.get("domain"), "ed")
+    ip = fallback(settings.get("ip"), "") or detect_ip()
 
     values = {
         "<DOMAIN>": domain,
         "<IP>": ip,
         "<VOLUMES>": "",
-        "<NETWORK_MODE>": settings.get("network_mode", "bridge"),
-        "<CANVAS_SECRET>": secrets.get("canvas_secret", ""),
-        "<CANVAS_ENC_SECRET>": secrets.get("canvas_enc_secret", ""),
-        "<CANVAS_SIGN_SECRET>": secrets.get("canvas_sign_secret", ""),
-        "<IT_PW>": str(settings.get("it_pw", "changeme")),
-        "<OFFICE_PW>": str(settings.get("office_pw", "changeme")),
-        "<LMS_ACCOUNT_NAME>": settings.get("lms_account_name", "Open Prison Education"),
-        "<TIME_ZONE>": settings.get("time_zone", "Pacific Time (US & Canada)"),
-        "<CANVAS_LOGIN_PROMPT>": settings.get(
-            "canvas_login_prompt",
+        "<NETWORK_MODE>": fallback(settings.get("network_mode"), "bridge"),
+        "<CANVAS_SECRET>": fallback(secrets.get("canvas_secret"), ""),
+        "<CANVAS_ENC_SECRET>": fallback(secrets.get("canvas_enc_secret"), ""),
+        "<CANVAS_SIGN_SECRET>": fallback(secrets.get("canvas_sign_secret"), ""),
+        "<IT_PW>": fallback(settings.get("it_pw"), "changeme"),
+        "<OFFICE_PW>": fallback(settings.get("office_pw"), "changeme"),
+        "<LMS_ACCOUNT_NAME>": fallback(settings.get("lms_account_name"), "Open Prison Education"),
+        "<TIME_ZONE>": fallback(settings.get("time_zone"), "Pacific Time (US & Canada)"),
+        "<CANVAS_LOGIN_PROMPT>": fallback(
+            settings.get("canvas_login_prompt"),
             "Student ID (default is s + DOC number - s113412)",
         ),
         "<CANVAS_DEFAULT_DOMAIN>": f"canvas.{domain}",
         "<SMC_DEFAULT_DOMAIN>": f"smc.{domain}",
-        "<IS_ONLINE>": str(settings.get("is_online", 0)),
-        "<DNS_EXTRAS>": settings.get("dns_extras", ""),
-        "<ACME_AUTH_CODE>": settings.get("acme_auth_code", "ZZZZ"),
+        "<IS_ONLINE>": fallback(settings.get("is_online"), 0),
+        "<DNS_EXTRAS>": fallback(settings.get("dns_extras"), ""),
+        "<ACME_AUTH_CODE>": fallback(settings.get("acme_auth_code"), "ZZZZ"),
         "<CANVAS_RCE_DEFAULT_DOMAIN>": f"rce.{domain}",
         "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": f"mathman.{domain}",
-        "<NTP_SERVERS>": settings.get("ntp_servers", "time.windows.com"),
-        "<ALERT_EMAIL>": settings.get("alert_email", "alert@correctionsed.com"),
-        "<CERT_NAME>": settings.get("cert_name", "default"),
+        "<NTP_SERVERS>": fallback(settings.get("ntp_servers"), "time.windows.com"),
+        "<ALERT_EMAIL>": fallback(settings.get("alert_email"), "alert@correctionsed.com"),
+        "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
     }
     return values
 
