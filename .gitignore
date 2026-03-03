@@ -4,7 +4,7 @@
 config.yml
 .secrets.yml
 .venv/
-docker-compose.yml
+/docker-compose.yml
 __pycache__/
 *.pyc
 
