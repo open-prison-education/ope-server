@@ -28,9 +28,6 @@ Clear the Redis cache:
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-redis/.enabled
-./up.sh
-```
+This service is a **dependency** that is enabled automatically when a service
+that requires it (e.g. `ope-canvas`, `ope-smc`) is listed in `config.yml`.
+There is no need to enable it manually.

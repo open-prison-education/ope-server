@@ -8,10 +8,16 @@ GCFGlobal provides free learning opportunities to improve the technology, litera
 
 ## Usage
 
-Enable the service:
+Enable GCF in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-gcf
+```
+
+Then start services:
 
 ```bash
-touch ope-gcf/.enabled
 ./up.sh
 ```
 
