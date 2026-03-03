@@ -8,10 +8,11 @@ Provides local DNS resolution for all OPE services, allowing domain-based access
 
 ## Configuration
 
-DNS entries are configured through the `.env` file:
+Custom DNS entries can be set via the `dns_extras` field in `config.yml`:
 
-```
-DNS_EXTRAS=custom1.domain,custom2.domain
+```yaml
+settings:
+  dns_extras: "custom1.domain,custom2.domain"
 ```
 
 ## Ports
@@ -22,10 +23,6 @@ DNS_EXTRAS=custom1.domain,custom2.domain
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-dns/.enabled
-./up.sh
-```
+This is a **core service** that is always enabled automatically. No manual
+configuration is needed -- it is included in every deployment.
 

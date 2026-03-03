@@ -21,10 +21,16 @@ CodeCombat is a game-based platform for learning programming. Students learn to 
 
 ## Usage
 
-Enable the service:
+Enable CodeCombat in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-codecombat
+```
+
+Then start services:
 
 ```bash
-touch ope-codecombat/.enabled
 ./up.sh
 ```
 

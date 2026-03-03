@@ -20,10 +20,16 @@ Provides time synchronization services using Chrony, allowing all OPE services a
 
 ## Usage
 
-Enable the service:
+Enable NTP in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-ntp
+```
+
+Then start services:
 
 ```bash
-touch ope-ntp/.enabled
 ./up.sh
 ```
 

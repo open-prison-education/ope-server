@@ -4,10 +4,16 @@ Git server for the Open Prison Education platform.
 
 ## Usage
 
-Enable the service:
+Enable the Git server in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-git
+```
+
+Then start services:
 
 ```bash
-touch ope-git/.enabled
 ./up.sh
 ```
 

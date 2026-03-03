@@ -32,10 +32,6 @@ Custom nginx configuration can be added via:
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-gateway/.enabled
-./up.sh
-```
+This is a **core service** that is always enabled automatically. No manual
+configuration is needed -- it is included in every deployment.
 

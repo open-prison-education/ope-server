@@ -15,10 +15,16 @@ Provides offline educational content from various sources including Wikipedia, K
 
 ## Usage
 
-Enable the service:
+Enable RACHEL in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-rachel
+```
+
+Then start services:
 
 ```bash
-touch ope-rachel/.enabled
 ./up.sh
 ```
 

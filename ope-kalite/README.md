@@ -9,10 +9,16 @@ KA Lite (Khan Academy Lite) provides offline access to Khan Academy's educationa
 
 ## Usage
 
-Enable the service:
+Enable KA Lite in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-kalite
+```
+
+Then start services:
 
 ```bash
-touch ope-kalite/.enabled
 ./up.sh
 ```
 
