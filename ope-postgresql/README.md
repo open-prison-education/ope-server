@@ -31,7 +31,7 @@ Provides the primary database backend for Canvas LMS and other OPE services requ
 Use the provided backup script:
 
 ```bash
-./export_databases.sh
+./scripts/export_databases.sh
 ```
 
 Backups are stored in `/var/lib/postgresql/data/backups/`.

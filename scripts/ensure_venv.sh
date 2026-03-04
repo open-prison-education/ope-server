@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shared venv bootstrap -- sourced by setup.sh, up.sh, rebuild.sh
+# Shared venv bootstrap -- sourced by setup.sh, up.sh, scripts/rebuild.sh
 # Creates a .venv if needed and installs Python dependencies.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

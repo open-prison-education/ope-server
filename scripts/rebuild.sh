@@ -2,9 +2,10 @@
 # Rebuild docker-compose.yml and .env from config.yml.
 
 SCRIPT=$(readlink -f "$0")
-BASEDIR=$(dirname "$SCRIPT")
+SCRIPTDIR=$(dirname "$SCRIPT")
+BASEDIR=$(dirname "$SCRIPTDIR")
 
 # Bootstrap the virtual environment and dependencies
-source "$BASEDIR/scripts/ensure_venv.sh"
+source "$SCRIPTDIR/ensure_venv.sh"
 
-python3 "$BASEDIR/scripts/rebuild_compose.py"
+python3 "$SCRIPTDIR/rebuild_compose.py"

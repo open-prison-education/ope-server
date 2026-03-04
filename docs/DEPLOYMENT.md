@@ -230,13 +230,13 @@ Add to crontab for daily backups at 2:00 AM:
 ```bash
 crontab -e
 # Add this line:
-0 2 * * * /path/to/ope-server/export_databases.sh
+0 2 * * * /path/to/ope-server/scripts/export_databases.sh
 ```
 
 ### Manual Backup
 
 ```bash
-./export_databases.sh
+./scripts/export_databases.sh
 ```
 
 Backups are stored in:
@@ -325,13 +325,13 @@ sudo chown -R 1000:1000 volumes/
 If you encounter `PG::UniqueViolation` errors:
 
 ```bash
-./fix_role_overrides_migration_error.sh
+./scripts/fix_role_overrides_migration_error.sh
 ```
 
 #### Redis Cache Issues
 
 ```bash
-./flush_redis_keys.sh
+./scripts/flush_redis_keys.sh
 ```
 
 ### Getting Help

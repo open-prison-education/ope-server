@@ -23,7 +23,7 @@ Provides in-memory caching and session storage for Canvas LMS and other OPE serv
 Clear the Redis cache:
 
 ```bash
-./flush_redis_keys.sh
+./scripts/flush_redis_keys.sh
 ```
 
 ## Usage
