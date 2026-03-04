@@ -10,6 +10,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 - [Configuration](#configuration)
 - [Service Management](#service-management)
 - [Backup and Restore](#backup-and-restore)
+- [Public Deployment: Preventing Search Engine Crawling](#public-deployment-preventing-search-engine-crawling)
 - [Troubleshooting](#troubleshooting)
 
 **Related:** [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
@@ -82,62 +83,56 @@ git clone https://github.com/open-prison-education/ope-server
 cd ope-server
 ```
 
-### 2. Configure Environment
+### 2. Configure the Server
+
+Run the interactive setup wizard:
 
 ```bash
-# Copy the template
-cp .env.template .env
-
-# Edit configuration
-nano .env
+./setup.sh
 ```
 
-Key settings to configure:
+The wizard walks you through all settings and service selection, then writes
+`config.yml` and `.secrets.yml`. Alternatively, copy the example config and
+edit it by hand:
+
+```bash
+cp config.yml.example config.yml
+nano config.yml
+```
+
+Key settings in `config.yml`:
 
 | Setting | Description |
 |---------|-------------|
-| `PUBLIC_IP` | Server's IP address (auto-detected if blank) |
-| `CANVAS_DEFAULT_DOMAIN` | Canvas domain (defaults to canvas.ed)
-| `SMC_DEFAULT_DOMAIN` | SMC domain (default to smc.ed)
-| `IT_PW` | IT administrator password (defaults to changeme) used for apps such as Canvas and PostgreSQL|
-| `OFFICE_PW` | Office user password used for SMC login (defaults to changme)
+| `domain` | Base domain for service subdomains (default `ed`, giving `canvas.ed`, `smc.ed`, etc.) |
+| `ip` | Server's IP address (auto-detected if blank) |
+| `it_pw` | IT administrator password (used for Canvas admin, PostgreSQL, etc.) |
+| `office_pw` | Office user password (used for SMC login) |
+| `is_online` | `1` if the server has internet access, `0` for offline / air-gapped |
 
-### 3. Enable Services
+Services are listed under the `services:` key. Core services (`ope-gateway`,
+`ope-dns`) and dependencies (e.g. `ope-redis`, `ope-postgresql` for Canvas)
+are resolved automatically -- you only need to list the services you want:
 
-Create `.enabled` files in each service directory you want to run:
-
-```bash
-# Core services (recommended)
-touch ope-gateway/.enabled
-touch ope-dns/.enabled
-touch ope-postgresql/.enabled
-touch ope-redis/.enabled
-touch ope-canvas/.enabled
-touch ope-canvas-mathman/.enabled
-touch ope-canvas-rce/.enabled
-touch ope-smc/.enabled
-touch ope-letsencrypt/.enabled
-
-# Optional services
-touch ope-ntp/.enabled        # Time synchronization
-touch ope-fog/.enabled        # System imaging
-touch ope-kalite/.enabled     # Khan Academy content
-touch ope-gcf/.enabled        # GCFLearnFree content
+```yaml
+services:
+  - ope-canvas
+  - ope-smc
 ```
 
-### 4. Generate Docker Compose
+See `config.yml.example` for the full list of available services and settings.
 
-```bash
-./rebuild.sh
-```
-
-### 5. Start Services
+### 3. Start Services
 
 ```bash
 ./up.sh
 ```
 
-### 6. Access Services
+This rebuilds `docker-compose.yml` and `.env` from `config.yml`, then starts
+all configured containers. If `config.yml` does not exist yet, `up.sh` will
+launch the setup wizard automatically.
+
+### 4. Access Services
 
 Once services are running, see the **[Accessing Services Guide](ACCESSING_SERVICES.md)** for detailed instructions on:
 - Accessing Canvas, SMC, and other applications
@@ -164,23 +159,26 @@ SSL certificates are automatically generated on first run. For custom certificat
 
 ### DNS Configuration
 
-The `ope-dns` service provides local DNS resolution for air-gapped environments. It uses dnsmasq and automatically resolves the `.ed` domain to the server IP.
+The `ope-dns` service provides local DNS resolution for air-gapped environments. It uses dnsmasq and automatically resolves the configured domain (default `.ed`) to the server IP.
 
-To add extra DNS records or dnsmasq options, use `DNS_EXTRAS` in `.env`. This value is passed directly to the dnsmasq command line:
+To add extra DNS records or dnsmasq options, set `dns_extras` in `config.yml`. The value is passed directly to the dnsmasq command line:
 
-```bash
-# Example: Add additional domain resolution
-DNS_EXTRAS=-A /custom.local/192.168.1.100
+```yaml
+settings:
+  # Single option
+  dns_extras: "-A /custom.local/192.168.1.100"
 
-# Example: Multiple options
-DNS_EXTRAS=-A /internal.lab/10.0.0.50 -A /printer.local/10.0.0.25
+  # Multiple options
+  dns_extras: "-A /internal.lab/10.0.0.50 -A /printer.local/10.0.0.25"
 ```
 
-See the [dnsmasq documentation](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for available options.
+After editing, run `./up.sh` to apply the changes. See the [dnsmasq documentation](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for available options.
 
 ## Service Management
 
 ### Start All Services
+
+Pulls pre-built images from the registry and starts containers:
 
 ```bash
 ./up.sh
@@ -192,11 +190,24 @@ See the [dnsmasq documentation](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-m
 ./down.sh
 ```
 
-### Rebuild and Start
+### Build Locally and Start
+
+Builds images from source locally (instead of pulling from the registry), then starts containers:
 
 ```bash
 ./up.sh b
 ```
+
+### Reconfigure
+
+Re-run the interactive setup wizard to change settings or toggle services:
+
+```bash
+./setup.sh
+./up.sh
+```
+
+Or edit `config.yml` directly and run `./up.sh`.
 
 ### View Logs
 
@@ -219,13 +230,13 @@ Add to crontab for daily backups at 2:00 AM:
 ```bash
 crontab -e
 # Add this line:
-0 2 * * * /path/to/ope-server/export_databases.sh
+0 2 * * * /path/to/ope-server/scripts/export_databases.sh
 ```
 
 ### Manual Backup
 
 ```bash
-./export_databases.sh
+./scripts/export_databases.sh
 ```
 
 Backups are stored in:
@@ -240,6 +251,42 @@ docker compose exec ope-postgresql psql -U postgres -d canvas_production < backu
 
 # MySQL
 docker compose exec ope-fog mysql < backup.sql
+```
+
+## Public Deployment: Preventing Search Engine Crawling
+
+When deploying OPE Server on a public-facing network, you should prevent search engines from indexing and crawling the SMC application.
+
+### Add Nginx Virtual Host Configuration
+
+Create a file under `volumes/gateway/vhost.d/` named after your SMC domain. For example, if your domain is `smc.yourSchool.org`:
+
+```bash
+nano volumes/gateway/vhost.d/smc.yourSchool.org
+```
+
+Add the following content:
+
+```nginx
+## Prevent search engines from indexing/crawling ope-smc
+add_header X-Robots-Tag "noindex, nofollow, nosnippet, noarchive" always;
+
+## Start of configuration add by letsencrypt container
+location ^~ /.well-known/acme-challenge/ {
+    auth_basic off;
+    auth_request off;
+    allow all;
+    root /usr/share/nginx/html;
+    try_files $uri =404;
+    break;
+}
+## End of configuration add by letsencrypt container
+```
+
+Replace `smc.yourSchool.org` with your actual SMC domain (i.e. `smc.<your-domain>`). Restart the gateway for the changes to take effect:
+
+```bash
+docker compose restart ope-gateway
 ```
 
 ## Troubleshooting
@@ -278,13 +325,13 @@ sudo chown -R 1000:1000 volumes/
 If you encounter `PG::UniqueViolation` errors:
 
 ```bash
-./fix_role_overrides_migration_error.sh
+./scripts/fix_role_overrides_migration_error.sh
 ```
 
 #### Redis Cache Issues
 
 ```bash
-./flush_redis_keys.sh
+./scripts/flush_redis_keys.sh
 ```
 
 ### Getting Help

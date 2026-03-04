@@ -65,12 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/
 
 #RUN apt-add-repository -y ppa:brightbox/ruby-ng \
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-  && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-  && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
-  && printf 'path-exclude /usr/share/doc/*\npath-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc \
-  && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
-  && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+RUN printf 'path-exclude /usr/share/doc/*\npath-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc \
   && apt-get update -qq \
   && apt-get install -qqy --no-install-recommends \
        ruby$RUBY_MAJOR \
@@ -99,8 +94,6 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
        libxslt-dev \
        libyaml-dev \
        zlib1g-dev \
-       nodejs \
-       yarn="$YARN_VERSION" \
        libxmlsec1-dev \
        python-lxml \
        python3-lxml \
@@ -127,8 +120,18 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
        file \
        rsync \
        python3-pip \
+       xz-utils \
   && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/ \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
+
+# Install Node.js 14 from official binary (NodeSource legacy apt repo has broken GPG keys)
+ENV NODE_VERSION=14.21.3
+RUN curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz \
+  | tar -xJ -C /usr/local --strip-components=1 \
+  && node --version \
+  && npm --version \
+  && npm install -g yarn@1.19.1 \
+  && yarn --version
 
 RUN python3 -m pip install watchfiles
 
@@ -309,6 +312,11 @@ ARG JS_BUILD_NO_UGLIFY=0
 # RAILS_LOAD_ALL_LOCALES  COMPILE_ASSETS_BUILD_JS
 # COMPILE_ASSETS_BRAND_CONFIGS  USE_OPTIMIZED_JSJS_BUILD_NO_FALLBACK
 # JS_BUILD_NO_FALLBACK   JS_BUILD_NO_UGLIFY
+
+# activesupport 6.1.4.x uses Logger::Severity without requiring 'logger' first,
+# which fails on Ruby 2.7.8+ where logger is no longer auto-required.
+RUN sed -i '1s/^/require "logger"\n/' \
+  $GEM_HOME/gems/activesupport-*/lib/active_support/logger_thread_safe_level.rb
 
 RUN COMPILE_ASSETS_BRAND_CONFIGS=0 bundle exec rake canvas:compile_assets --trace
 

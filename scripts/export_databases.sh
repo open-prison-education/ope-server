@@ -2,7 +2,7 @@
 
 # This script can be added to contab (crontab -e) to take daily backups of the databases.
 # Add the following line to crontab to run this script daily at 2:00 AM:
-# 0 2 * * * /path/to/export_databases.sh
+# 0 2 * * * /path/to/ope-server/scripts/export_databases.sh
 
 
 compose=`which docker-compose`

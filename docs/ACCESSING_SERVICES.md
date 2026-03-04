@@ -47,14 +47,14 @@ OPE Server uses a domain-based routing architecture:
 
 ## Available Services
 
-The default domain suffix is `.ed` (configurable via `DOMAIN` in `.env`).
+The default domain suffix is `.ed` (configurable via the `domain` setting in `config.yml`).
 
 | Service | Default Domain(s) | Description |
 |---------|-------------------|-------------|
 | Canvas LMS | `canvas.ed` | Learning Management System |
 | SMC | `smc.ed` | Student Management Console |
-| Canvas RCE | `rce.ed` | Rich Content Editor for Canvas |
-| Canvas Mathman | `mathman.ed` | Math equation rendering |
+| Canvas RCE | `N/A` | Rich Content Editor for Canvas |
+| Canvas Mathman | `N/A` | Math equation rendering |
 | KA Lite | `kalite.ed`| Khan Academy offline content |
 | GCF | `gcf.ed` | GCFLearnFree content |
 | FOG | `fog.ed`| System imaging server |
@@ -64,7 +64,7 @@ The default domain suffix is `.ed` (configurable via `DOMAIN` in `.env`).
 | freeCodeCamp | `freecodecamp.ed` | freeCodeCamp offline content |
 | RACHEL | `rachel.ed` | RACHEL offline educational content |
 
-**Note:** Only services with a `.enabled` file in their directory will be active. See [Installation](DEPLOYMENT.md#3-enable-services) for details.
+**Note:** Only services listed in `config.yml` (and their automatically resolved dependencies) will be active. See the [Deployment Guide](DEPLOYMENT.md#2-configure-the-server) for details.
 
 ## Access Methods
 
@@ -150,8 +150,8 @@ For production deployments, configure a real domain:
 2. Create DNS A records pointing to your server's public IP:
    - `canvas.myschool.org` → `<PUBLIC_IP>`
    - `smc.myschool.org` → `<PUBLIC_IP>`
-3. Update the `VIRTUAL_HOST` environment variables in the docker-compose files
-4. Run `./rebuild.sh` and `./up.sh` to apply changes
+3. Update the `domain` setting in `config.yml` to your domain
+4. Run `./up.sh` to apply changes
 
 #### Why You Can't Just Use the IP Address
 
@@ -186,9 +186,9 @@ Your connection is still encrypted; the warning only means the certificate autho
 - **Real domain + Let's Encrypt:** Use [Option 2: Use a real domain](#option-2-use-a-real-domain) so that `canvas.myschool.org`, `smc.myschool.org`, etc. point to your server. Then Let's Encrypt can issue trusted certificates for those names.
 - **Your own certificates:** Install your own trusted certificates in `volumes/gateway/certs/` and configure the gateway to use them.
 
-> **Important:** If you are using `.ed` domains with a hosts file (not a real public domain), **disable the `ope-letsencrypt` service**. The letsencrypt companion cannot issue certificates for `.ed` domains and will create empty certificate directories that interfere with the gateway's cert lookup (causing "INVALID CERT SETUP" errors). To disable it:
+> **Important:** If you are using `.ed` domains with a hosts file (not a real public domain), **do not enable the `ope-letsencrypt` service**. The letsencrypt companion cannot issue certificates for `.ed` domains and will create empty certificate directories that interfere with the gateway's cert lookup (causing "INVALID CERT SETUP" errors). To disable it, remove `ope-letsencrypt` from the `services` list in `config.yml`, then run:
 > ```bash
-> rm ope-letsencrypt/.enabled
+> ./up.sh
 > docker stop ope-letsencrypt
 > ```
 > Only enable `ope-letsencrypt` when using real public domains that resolve in DNS.
@@ -226,13 +226,11 @@ A **503** from nginx means the gateway received the request (e.g. for `smc.ed` o
 
 1. **Confirm the service is enabled and running:**
    ```bash
-   ls ope-smc/.enabled
    docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E 'ope-gateway|ope-smc|ope-canvas'
    ```
-   If the service container is missing, enable and start it:
+   If the service container is missing, make sure it is listed in `config.yml`
+   under `services:`, then rebuild and start:
    ```bash
-   touch ope-smc/.enabled    # or ope-canvas/.enabled, etc.
-   ./rebuild.sh
    ./up.sh
    ```
 
@@ -263,9 +261,10 @@ If you see **"INVALID CERT SETUP"** and *"Make sure the .CERT_NAME value is set 
 **Fix:**
 
 ```bash
-# 1. Stop and disable ope-letsencrypt (it cannot work with .ed domains)
+# 1. Stop ope-letsencrypt and remove it from config.yml services list
 docker stop ope-letsencrypt
-rm ope-letsencrypt/.enabled
+# Edit config.yml and remove ope-letsencrypt from the services list, then:
+./up.sh
 
 # 2. Remove the empty cert directories it created
 docker exec ope-gateway rm -rf \
@@ -275,9 +274,8 @@ docker exec ope-gateway rm -rf \
   /etc/nginx/certs/rce.ed \
   /etc/nginx/certs/accounts
 
-# 3. Confirm default cert and .CERT_NAME exist
+# 3. Confirm default cert exists (cert_name is set in config.yml, default: "default")
 docker exec ope-gateway ls /etc/nginx/certs/default.crt /etc/nginx/certs/default.key
-cat .CERT_NAME    # should show: default
 
 # 4. Restart gateway to regenerate config
 docker restart ope-gateway

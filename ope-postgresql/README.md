@@ -31,16 +31,13 @@ Provides the primary database backend for Canvas LMS and other OPE services requ
 Use the provided backup script:
 
 ```bash
-./export_databases.sh
+./scripts/export_databases.sh
 ```
 
 Backups are stored in `/var/lib/postgresql/data/backups/`.
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-postgresql/.enabled
-./up.sh
-```
+This service is a **dependency** that is enabled automatically when a service
+that requires it (e.g. `ope-canvas`, `ope-smc`) is listed in `config.yml`.
+There is no need to enable it manually.

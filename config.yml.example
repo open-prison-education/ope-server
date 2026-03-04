@@ -1,0 +1,95 @@
+# ============================================================================
+# OPE Server Configuration
+# ============================================================================
+# Copy this file to config.yml and customise, or run ./setup.sh for an
+# interactive wizard that generates it for you.
+#
+# After editing, run ./up.sh to rebuild and start the services.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Services to enable
+# ----------------------------------------------------------------------------
+# List only the services you want.  Dependencies (and core services
+# ope-gateway + ope-dns) are resolved automatically.
+#
+# Available services:
+#   ope-canvas          Canvas LMS  (pulls redis, postgresql, canvas-rce, canvas-mathman)
+#   ope-smc             Student Management Console  (pulls redis, postgresql)
+#   ope-kalite          Khan Academy Lite
+#   ope-gcf             GCFLearnFree
+#   ope-freecodecamp    freeCodeCamp
+#   ope-codecombat      CodeCombat
+#   ope-rachel          RACHEL
+#   ope-jsbin           JS Bin
+#   ope-git             Git Server (GitLab)
+#   ope-ntp             NTP Time Server
+#   ope-letsencrypt     Let's Encrypt SSL
+#   ope-fog             FOG Imaging
+
+services:
+  - ope-canvas
+  # - ope-smc
+  # - ope-kalite
+  # - ope-gcf
+  # - ope-freecodecamp
+  # - ope-codecombat
+  # - ope-rachel
+  # - ope-jsbin
+  # - ope-git
+  # - ope-ntp
+  # - ope-letsencrypt
+  # - ope-fog
+
+# ----------------------------------------------------------------------------
+# Settings
+# ----------------------------------------------------------------------------
+settings:
+  # Base domain name used for service subdomains (canvas.<domain>, smc.<domain>, etc.)
+  domain: ed
+
+  # Public IP address of the server.  Leave blank to auto-detect.
+  ip: ""
+
+  # Set to 1 if the server has internet access, 0 for offline / air-gapped.
+  is_online: 0
+
+  # IT administrator password (used for Canvas admin, PostgreSQL, etc.)
+  it_pw: changeme
+
+  # Office user password
+  office_pw: changeme
+
+  # Timezone for Canvas LMS
+  time_zone: "Pacific Time (US & Canada)"
+
+  # Institution name displayed in Canvas
+  lms_account_name: "Open Prison Education"
+
+  # Login prompt shown to Canvas users
+  canvas_login_prompt: "Student ID (default is s + DOC number - s113412)"
+
+  # NTP servers for time synchronisation (comma-separated)
+  ntp_servers: "time.windows.com"
+
+  # Alert / notification email
+  alert_email: "alert@correctionsed.com"
+
+  # ACME authorisation code for Let's Encrypt (if using)
+  acme_auth_code: "ZZZZ"
+
+  # SSL certificate name on the gateway
+  cert_name: "default"
+
+  # Extra dnsmasq options (passed to ope-dns)
+  dns_extras: ""
+
+  # Docker network mode
+  network_mode: "bridge"
+
+# ----------------------------------------------------------------------------
+# Secrets  (stored separately in .secrets.yml, auto-generated on first run)
+# ----------------------------------------------------------------------------
+# canvas_secret, canvas_enc_secret, canvas_sign_secret are kept in
+# .secrets.yml and are NOT committed to version control.  They are
+# auto-generated if the file does not exist.  Override them there if needed.
