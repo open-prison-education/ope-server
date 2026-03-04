@@ -114,14 +114,17 @@ ope-server/
 ├── setup.sh                 # Interactive setup wizard
 ├── up.sh                    # Rebuild compose & start services
 ├── down.sh                  # Stop all services
-├── rebuild.sh               # Rebuild docker-compose.yml & .env only
 ├── scripts/
 │   ├── setup.py             # Setup wizard logic
 │   ├── rebuild_compose.py   # Generates docker-compose.yml & .env
+│   ├── rebuild.sh           # Rebuild docker-compose.yml & .env only
 │   ├── service_deps.py      # Service dependency map
 │   ├── ensure_venv.sh       # Python venv bootstrap (sourced by shell scripts)
 │   ├── requirements.txt     # Python dependencies
-│   └── push_images.py       # Push images to registry
+│   ├── push_images.py       # Push images to registry
+│   ├── export_databases.sh  # Backup PostgreSQL and MySQL databases
+│   ├── flush_redis_keys.sh  # Clear Redis cache
+│   └── recompile_canvas_assets.sh  # Recompile Canvas assets
 ├── docs/                    # Documentation
 └── ope-*/                   # Individual service directories
 ```
@@ -134,9 +137,9 @@ ope-server/
 | `./up.sh` | Rebuild compose files and start all configured services (pulls pre-built images from the registry) |
 | `./up.sh b` | Build images locally from source instead of pulling from the registry, then start services |
 | `./down.sh` | Stop all containers |
-| `./rebuild.sh` | Regenerate `docker-compose.yml` and `.env` without starting containers |
-| `./export_databases.sh` | Backup PostgreSQL and MySQL databases |
-| `./flush_redis_keys.sh` | Clear Redis cache |
+| `./scripts/rebuild.sh` | Regenerate `docker-compose.yml` and `.env` without starting containers |
+| `./scripts/export_databases.sh` | Backup PostgreSQL and MySQL databases |
+| `./scripts/flush_redis_keys.sh` | Clear Redis cache |
 
 ## Configuration
 
