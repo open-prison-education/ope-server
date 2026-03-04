@@ -170,6 +170,12 @@ ope-myapp/
 
 4. Enable the service in `config.yml` and run `./up.sh b` to build and start it.
 
+## Deployment
+
+For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
+
+Once services are running, the **[Accessing Services Guide](docs/ACCESSING_SERVICES.md)** covers how to reach Canvas, SMC, and other applications -- including DNS setup for air-gapped environments and remote access via public IP.
+
 ## Development
 
 To work on individual services:
