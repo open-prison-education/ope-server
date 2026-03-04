@@ -29,6 +29,10 @@ fi
 
 if [ "$CURRENT_HASH" != "$SAVED_HASH" ]; then
     echo "Installing Python dependencies ..."
-    pip install -q -r "$REQ_FILE"
-    echo "$CURRENT_HASH" > "$REQ_HASH_FILE"
+    if pip install -q -r "$REQ_FILE"; then
+        echo "$CURRENT_HASH" > "$REQ_HASH_FILE"
+    else
+        echo "ERROR: pip install failed. Dependencies may be missing."
+        exit 1
+    fi
 fi
