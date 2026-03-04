@@ -24,17 +24,21 @@ SMC is the central management interface for OPE, providing tools to manage stude
 
 ## Configuration
 
-Configure the SMC domain in `.env`:
-
-```
-SMC_DEFAULT_DOMAIN=smc.<DOMAIN>
-```
+The SMC domain is derived from the `domain` setting in `config.yml`
+(e.g. `smc.<domain>`). No separate configuration is needed.
 
 ## Usage
 
-Enable the service:
+Enable SMC in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-smc
+```
+
+Dependencies (`ope-redis`, `ope-postgresql`) are resolved automatically.
+Then start services:
 
 ```bash
-touch ope-smc/.enabled
 ./up.sh
 ```

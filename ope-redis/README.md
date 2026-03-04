@@ -23,14 +23,11 @@ Provides in-memory caching and session storage for Canvas LMS and other OPE serv
 Clear the Redis cache:
 
 ```bash
-./flush_redis_keys.sh
+./scripts/flush_redis_keys.sh
 ```
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-redis/.enabled
-./up.sh
-```
+This service is a **dependency** that is enabled automatically when a service
+that requires it (e.g. `ope-canvas`, `ope-smc`) is listed in `config.yml`.
+There is no need to enable it manually.

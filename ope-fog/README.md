@@ -78,10 +78,16 @@ On startup, `update_fog_ip.py` automatically configures:
 
 ## Usage
 
-Enable the service:
+Enable FOG in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-fog
+```
+
+Then start services:
 
 ```bash
-touch ope-fog/.enabled
 ./up.sh
 ```
 

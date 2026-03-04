@@ -14,18 +14,25 @@ Provides automatic SSL certificate provisioning and renewal using Let's Encrypt 
 
 ## Configuration
 
-Configure the ACME authorization code in `.env`:
+Set the ACME authorization code in `config.yml`:
 
-```
-ACME_AUTH_CODE=<your-auth-code>
+```yaml
+settings:
+  acme_auth_code: "<your-auth-code>"
 ```
 
 ## Usage
 
-Enable the service (requires internet access):
+Enable Let's Encrypt in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-letsencrypt
+```
+
+Then start services:
 
 ```bash
-touch ope-letsencrypt/.enabled
 ./up.sh
 ```
 

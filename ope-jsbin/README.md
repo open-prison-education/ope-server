@@ -15,10 +15,16 @@ JS Bin is a collaborative JavaScript debugging tool that allows students to writ
 
 ## Usage
 
-Enable the service:
+Enable JS Bin in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-jsbin
+```
+
+Then start services:
 
 ```bash
-touch ope-jsbin/.enabled
 ./up.sh
 ```
 

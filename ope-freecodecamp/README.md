@@ -8,10 +8,16 @@ Provides offline access to freeCodeCamp curriculum, allowing students to learn w
 
 ## Usage
 
-Enable the service:
+Enable freeCodeCamp in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-freecodecamp
+```
+
+Then start services:
 
 ```bash
-touch ope-freecodecamp/.enabled
 ./up.sh
 ```
 

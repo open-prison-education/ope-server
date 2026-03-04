@@ -17,14 +17,18 @@ Canvas is a learning management system (LMS) by Instructure, configured to run o
 
 ## Configuration
 
-Configure Canvas settings in `.env`:
+Canvas settings are managed in `config.yml`:
 
+```yaml
+settings:
+  domain: ed                  # canvas.<domain>
+  lms_account_name: "Open Prison Education"
+  time_zone: "Pacific Time (US & Canada)"
+  canvas_login_prompt: "Student ID (default is s + DOC number - s113412)"
 ```
-CANVAS_DEFAULT_DOMAIN=canvas.<DOMAIN>
-LMS_ACCOUNT_NAME=<Institution Name>
-TIME_ZONE=<Timezone>
-CANVAS_LOGIN_PROMPT=<Login prompt text>
-```
+
+Canvas encryption secrets are stored in `.secrets.yml` and auto-generated
+on first run.
 
 ## Ports
 
@@ -41,18 +45,24 @@ CANVAS_LOGIN_PROMPT=<Login prompt text>
 
 ## Usage
 
-Enable the service:
+Enable Canvas in `config.yml` (or via the interactive setup wizard `./setup.sh`):
+
+```yaml
+services:
+  - ope-canvas
+```
+
+Dependencies (`ope-redis`, `ope-postgresql`, `ope-canvas-rce`,
+`ope-canvas-mathman`) are resolved automatically. Then start services:
 
 ```bash
-touch ope-canvas/.enabled
 ./up.sh
 ```
 
 ## Initial Setup
 
 1. Access Canvas at `https://canvas.<your-domain>`
-2. Complete the setup wizard
-3. Create an admin account
+2. Login with username: `admin@<your-domain>`, password: (the **it_pw** value set in `config.yml`)
 
 ---
 

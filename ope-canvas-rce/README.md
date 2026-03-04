@@ -15,20 +15,13 @@ Provides the Rich Content Editor (RCE) functionality for Canvas LMS, enabling ri
 
 ## Configuration
 
-Configure the RCE domain in `.env`:
-
-```
-CANVAS_RCE_DEFAULT_DOMAIN=rce.<DOMAIN>
-```
+The RCE domain is derived from the `domain` setting in `config.yml`
+(e.g. `rce.<domain>`). No separate configuration is needed.
 
 ## Usage
 
-Enable the service:
-
-```bash
-touch ope-canvas-rce/.enabled
-./up.sh
-```
+This service is a **dependency** of `ope-canvas` and is enabled automatically
+when Canvas is listed in `config.yml`. There is no need to enable it manually.
 
 ## Technical Details
 
