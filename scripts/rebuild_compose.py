@@ -14,8 +14,6 @@ import shutil
 import yaml
 
 from service_deps import (
-    CORE_SERVICES,
-    SERVICE_DEPS,
     resolve_services,
     detect_ip,
     generate_secret,
