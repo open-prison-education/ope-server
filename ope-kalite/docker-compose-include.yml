@@ -7,7 +7,7 @@
         ports:
             - "8008"
         volumes:
-            - ../volumes/kalite:/root/.kalite:rw
+            - ./volumes/kalite:/root/.kalite:rw
         depends_on:
             - ope-gateway
             - ope-dns
