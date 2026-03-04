@@ -10,6 +10,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 - [Configuration](#configuration)
 - [Service Management](#service-management)
 - [Backup and Restore](#backup-and-restore)
+- [Public Deployment: Preventing Search Engine Crawling](#public-deployment-preventing-search-engine-crawling)
 - [Troubleshooting](#troubleshooting)
 
 **Related:** [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
@@ -250,6 +251,42 @@ docker compose exec ope-postgresql psql -U postgres -d canvas_production < backu
 
 # MySQL
 docker compose exec ope-fog mysql < backup.sql
+```
+
+## Public Deployment: Preventing Search Engine Crawling
+
+When deploying OPE Server on a public-facing network, you should prevent search engines from indexing and crawling the SMC application.
+
+### Add Nginx Virtual Host Configuration
+
+Create a file under `volumes/gateway/vhost.d/` named after your SMC domain. For example, if your domain is `smc.yourSchool.org`:
+
+```bash
+nano volumes/gateway/vhost.d/smc.yourSchool.org
+```
+
+Add the following content:
+
+```nginx
+## Prevent search engines from indexing/crawling ope-smc
+add_header X-Robots-Tag "noindex, nofollow, nosnippet, noarchive" always;
+
+## Start of configuration add by letsencrypt container
+location ^~ /.well-known/acme-challenge/ {
+    auth_basic off;
+    auth_request off;
+    allow all;
+    root /usr/share/nginx/html;
+    try_files $uri =404;
+    break;
+}
+## End of configuration add by letsencrypt container
+```
+
+Replace `smc.yourSchool.org` with your actual SMC domain (i.e. `smc.<your-domain>`). Restart the gateway for the changes to take effect:
+
+```bash
+docker compose restart ope-gateway
 ```
 
 ## Troubleshooting
