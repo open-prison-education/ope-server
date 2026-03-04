@@ -11,9 +11,9 @@
             - "2224:2224"
             #- "8080"
         volumes:
-            - ../volumes/git/config:/etc/git:rw
-            - ../volumes/git/logs:/var/log/git:rw
-            - ../volumes/git/data:/var/opt/git:rw
+            - ./volumes/git/config:/etc/git:rw
+            - ./volumes/git/logs:/var/log/git:rw
+            - ./volumes/git/data:/var/opt/git:rw
         depends_on:
             - ope-gateway
             - ope-dns

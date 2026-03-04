@@ -8,7 +8,7 @@
             - "80"
         volumes:
             # Normal mounts, using rachel app included in the container, can leave on during dev
-            - ../volumes/rachel/modules:/var/www/html/modules:rw
+            - ./volumes/rachel/modules:/var/www/html/modules:rw
         depends_on:
             - ope-gateway
             - ope-dns

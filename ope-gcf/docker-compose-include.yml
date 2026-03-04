@@ -8,7 +8,7 @@
             - "80"
         #labels:
         volumes:
-            - ../volumes/gcf/www:/usr/share/nginx/html:rw
+            - ./volumes/gcf/www:/usr/share/nginx/html:rw
         depends_on:
             - ope-gateway
             - ope-dns

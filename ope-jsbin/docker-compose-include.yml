@@ -7,7 +7,7 @@
         ports:
             - "80"
         volumes:
-            - ../volumes/jsbin/data:/data:rw
+            - ./volumes/jsbin/data:/data:rw
         depends_on:
             - ope-gateway
             - ope-dns

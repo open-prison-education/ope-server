@@ -11,19 +11,19 @@
             - "9418:9418"
         volumes:
             # Normal mounts, using smc app included in the container, can leave on during dev
-            - ../volumes/smc/git:/home/www-data/git:rw
-            - ../volumes/smc/cache:/home/www-data/smc/web2py/applications/smc/cache:rw
-            - ../volumes/smc/databases:/home/www-data/smc/web2py/applications/smc/databases:rw
-            - ../volumes/smc/errors:/home/www-data/smc/web2py/applications/smc/errors:rw
-            - ../volumes/smc/private:/home/www-data/smc/web2py/applications/smc/private:rw
-            - ../volumes/smc/media:/home/www-data/smc/web2py/applications/smc/static/media:rw
-            - ../volumes/smc/documents:/home/www-data/smc/web2py/applications/smc/static/documents:rw
-            - ../volumes/smc/uploads:/home/www-data/smc/web2py/applications/smc/uploads:rw
-            - ../volumes/smc/sessions:/home/www-data/smc/web2py/applications/smc/sessions:rw
+            - ./volumes/smc/git:/home/www-data/git:rw
+            - ./volumes/smc/cache:/home/www-data/smc/web2py/applications/smc/cache:rw
+            - ./volumes/smc/databases:/home/www-data/smc/web2py/applications/smc/databases:rw
+            - ./volumes/smc/errors:/home/www-data/smc/web2py/applications/smc/errors:rw
+            - ./volumes/smc/private:/home/www-data/smc/web2py/applications/smc/private:rw
+            - ./volumes/smc/media:/home/www-data/smc/web2py/applications/smc/static/media:rw
+            - ./volumes/smc/documents:/home/www-data/smc/web2py/applications/smc/static/documents:rw
+            - ./volumes/smc/uploads:/home/www-data/smc/web2py/applications/smc/uploads:rw
+            - ./volumes/smc/sessions:/home/www-data/smc/web2py/applications/smc/sessions:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            #- ../volumes/smc/src:/home/www-data/smc/web2py/applications/smc:rw
+            #- ./volumes/smc/src:/home/www-data/smc/web2py/applications/smc:rw
             # Expose ca.crt file for other services
-            - ../volumes/gateway/certs:/home/www-data/smc/web2py/applications/smc/static/certs:rw
+            - ./volumes/gateway/certs:/home/www-data/smc/web2py/applications/smc/static/certs:rw
         depends_on:
             - ope-gateway
             - ope-dns
