@@ -15,7 +15,7 @@ services:
   - ope-websites
 ```
 
-You may need to build the image locally as it's uploaded to the registry yet.
+You may need to build the image locally as it's not uploaded to the registry yet.
 
 ```bash
 ./scripts/rebuild.sh
