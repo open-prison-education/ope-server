@@ -1,0 +1,1302 @@
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Approved Websites for Incarcerated Students</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { margin: 0; font-size: 2.2em; font-weight: 300; }
+        .header p { margin: 10px 0 0 0; opacity: 0.9; }
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar-content {
+            padding: 20px;
+        }
+        .content {
+            margin-left: 280px;
+            padding: 30px;
+            width: calc(100% - 280px);
+        }
+        .search-section {
+            margin-bottom: 25px;
+        }
+        .search-section h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+        .search-section input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .categories-section {
+            margin-bottom: 20px;
+        }
+        .categories-section h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+        .category-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .category-item {
+            margin-bottom: 8px;
+        }
+        .category-link {
+            display: block;
+            padding: 12px 15px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .category-link:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            text-decoration: none;
+            color: #495057;
+        }
+        .category-link.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .category-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .category-count {
+            background: #6c757d;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            float: right;
+        }
+        .category-link.active .category-count {
+            background: rgba(255,255,255,0.3);
+        }
+        .site-list {
+            list-style: none;
+            padding: 0;
+        }
+        .site-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .site-item:hover {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .site-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+        .site-url {
+            color: #6c757d;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .site-description {
+            color: #495057;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #007bff;
+        }
+        .site-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .visit-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+        .visit-btn:hover {
+            background: #218838;
+            text-decoration: none;
+            color: white;
+        }
+        .category-section {
+            margin-bottom: 40px;
+        }
+        .category-title {
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 0 0 20px 0;
+            font-size: 1.5em;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .hidden { display: none; }
+    </style>
+    <script>
+        function filterSites() {
+            var input = document.getElementById("searchInput").value.toLowerCase();
+            var items = document.querySelectorAll(".site-item");
+            var hasResults = false;
+            
+            items.forEach(function(item) {
+                var text = item.textContent.toLowerCase();
+                if (text.includes(input)) {
+                    item.classList.remove("hidden");
+                    hasResults = true;
+                } else {
+                    item.classList.add("hidden");
+                }
+            });
+            
+            // Show/hide category sections based on results
+            var categories = document.querySelectorAll(".category-section");
+            categories.forEach(function(category) {
+                var visibleItems = category.querySelectorAll(".site-item:not(.hidden)");
+                if (visibleItems.length > 0 || input === "") {
+                    category.classList.remove("hidden");
+                } else {
+                    category.classList.add("hidden");
+                }
+            });
+        }
+        
+        function scrollToCategory(categoryId) {
+            var element = document.getElementById(categoryId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Update active category
+                var links = document.querySelectorAll(".category-link");
+                links.forEach(function(link) {
+                    link.classList.remove("active");
+                });
+                document.querySelector('a[href="#' + categoryId + '"]').classList.add("active");
+            }
+        }
+        
+        // Update active category on scroll
+        window.addEventListener('scroll', function() {
+            var categories = document.querySelectorAll(".category-section");
+            var scrollPos = window.scrollY + 100;
+            
+            categories.forEach(function(category) {
+                var categoryTop = category.offsetTop;
+                var categoryBottom = categoryTop + category.offsetHeight;
+                
+                if (scrollPos >= categoryTop && scrollPos < categoryBottom) {
+                    var categoryId = category.id;
+                    var links = document.querySelectorAll(".category-link");
+                    links.forEach(function(link) {
+                        link.classList.remove("active");
+                    });
+                    var activeLink = document.querySelector('a[href="#' + categoryId + '"]');
+                    if (activeLink) {
+                        activeLink.classList.add("active");
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Approved Websites</h1>
+            <p>For Incarcerated Students</p>
+        </div>
+        
+        <div class="layout">
+            <div class="sidebar">
+                <div class="sidebar-content">
+                    <div class="search-section">
+                        <h3>Search Websites</h3>
+                        <input type="text" id="searchInput" onkeyup="filterSites()" placeholder="Type to search websites..." />
+                    </div>
+                    
+                    <div class="categories-section">
+                        <h3>Categories</h3>
+                        <ul class="category-list">
+
+                            <li class="category-item">
+                                <a href="#Business" class="category-link" onclick="scrollToCategory('Business'); return false;">
+                                    <span class="category-name">Business</span>
+                                    <span class="category-count">2</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Education" class="category-link" onclick="scrollToCategory('Education'); return false;">
+                                    <span class="category-name">Education</span>
+                                    <span class="category-count">18</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Government" class="category-link" onclick="scrollToCategory('Government'); return false;">
+                                    <span class="category-name">Government</span>
+                                    <span class="category-count">19</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Language" class="category-link" onclick="scrollToCategory('Language'); return false;">
+                                    <span class="category-name">Language</span>
+                                    <span class="category-count">2</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Math" class="category-link" onclick="scrollToCategory('Math'); return false;">
+                                    <span class="category-name">Math</span>
+                                    <span class="category-count">3</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#News" class="category-link" onclick="scrollToCategory('News'); return false;">
+                                    <span class="category-name">News</span>
+                                    <span class="category-count">2</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Other" class="category-link" onclick="scrollToCategory('Other'); return false;">
+                                    <span class="category-name">Other</span>
+                                    <span class="category-count">51</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Science" class="category-link" onclick="scrollToCategory('Science'); return false;">
+                                    <span class="category-name">Science</span>
+                                    <span class="category-count">5</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Support" class="category-link" onclick="scrollToCategory('Support'); return false;">
+                                    <span class="category-name">Support</span>
+                                    <span class="category-count">1</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Technology" class="category-link" onclick="scrollToCategory('Technology'); return false;">
+                                    <span class="category-name">Technology</span>
+                                    <span class="category-count">5</span>
+                                </a>
+                            </li>
+                            <li class="category-item">
+                                <a href="#Testing" class="category-link" onclick="scrollToCategory('Testing'); return false;">
+                                    <span class="category-name">Testing</span>
+                                    <span class="category-count">2</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="stats">
+                        <strong>Total Websites:</strong> 110<br>
+                        <strong>Categories:</strong> 11<br>
+                        <strong>Last Updated:</strong> 2025-11-26 13:20
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content">
+
+                <div id="Business" class="category-section">
+                    <h2 class="category-title">Business</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">Seattle Business Magazine</div>
+                            <div class="site-url">https://seattlebusinessmag.com/</div>
+                            <div class="site-description">Educational website (seattlebusinessmag.com)</div>
+                            <div class="site-actions">
+                                <a href="https://seattlebusinessmag.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Worksource Washington</div>
+                            <div class="site-url">https://www.worksourcewa.com/</div>
+                            <div class="site-description">Educational website (www.worksourcewa.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.worksourcewa.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Education" class="category-section">
+                    <h2 class="category-title">Education</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">360Training - OSHA 10 hour Certificate</div>
+                            <div class="site-url">https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide</div>
+                            <div class="site-description">Educational website (www.360training.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">BoardworksEducation</div>
+                            <div class="site-url">https://app.boardworkseducation.com/</div>
+                            <div class="site-description">Educational website (app.boardworkseducation.com)</div>
+                            <div class="site-actions">
+                                <a href="https://app.boardworkseducation.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Centralia College</div>
+                            <div class="site-url">https://centralia.edu/</div>
+                            <div class="site-description">Educational website (centralia.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://centralia.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Epicgames.com</div>
+                            <div class="site-url">https://dev.epicgames.com/community/unreal-engine/learning</div>
+                            <div class="site-description">Educational website (dev.epicgames.com)</div>
+                            <div class="site-actions">
+                                <a href="https://dev.epicgames.com/community/unreal-engine/learning" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">G-W Learning Companion</div>
+                            <div class="site-url">https://www.g-wlearning.com/</div>
+                            <div class="site-description">Educational website (www.g-wlearning.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.g-wlearning.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Grays Harbor College</div>
+                            <div class="site-url">https://ghc.edu/</div>
+                            <div class="site-description">Educational website (ghc.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://ghc.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">IndoorPetOSU</div>
+                            <div class="site-url">https://indoorpet.osu.edu/</div>
+                            <div class="site-description">Educational website (indoorpet.osu.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://indoorpet.osu.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Khan Academy</div>
+                            <div class="site-url">https://khanacademy.org/</div>
+                            <div class="site-description">Educational website (khanacademy.org)</div>
+                            <div class="site-actions">
+                                <a href="https://khanacademy.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Magic School</div>
+                            <div class="site-url">https://magicschool.com/</div>
+                            <div class="site-description">Educational website (magicschool.com)</div>
+                            <div class="site-actions">
+                                <a href="https://magicschool.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Olympic College</div>
+                            <div class="site-url">https://olympic.edu/</div>
+                            <div class="site-description">Educational website (olympic.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://olympic.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">OwlPurdue</div>
+                            <div class="site-url">https://owl.purdue.edu/</div>
+                            <div class="site-description">Educational website (owl.purdue.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://owl.purdue.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Penn Foster Job Board</div>
+                            <div class="site-url">https://jobboard.pennfoster.edu/</div>
+                            <div class="site-description">Educational website (jobboard.pennfoster.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://jobboard.pennfoster.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Penn Foster Programs and Degrees</div>
+                            <div class="site-url">https://pennfoster.edu/</div>
+                            <div class="site-description">Educational website (pennfoster.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://pennfoster.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">PlatoStanford</div>
+                            <div class="site-url">https://plato.stanford.edu/</div>
+                            <div class="site-description">Educational website (plato.stanford.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://plato.stanford.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Portal 2 Learn</div>
+                            <div class="site-url">https://courses.portal2learn.com/</div>
+                            <div class="site-description">Educational website (courses.portal2learn.com)</div>
+                            <div class="site-actions">
+                                <a href="https://courses.portal2learn.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">SBCTC</div>
+                            <div class="site-url">https://support.corrections.sbctc.edu/</div>
+                            <div class="site-description">Educational website (support.corrections.sbctc.edu)</div>
+                            <div class="site-actions">
+                                <a href="https://support.corrections.sbctc.edu/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Study.com</div>
+                            <div class="site-url">https://study.com/</div>
+                            <div class="site-description">Educational website (study.com)</div>
+                            <div class="site-actions">
+                                <a href="https://study.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">W3 Schools</div>
+                            <div class="site-url">https://w3schools.com/</div>
+                            <div class="site-description">Educational website (w3schools.com)</div>
+                            <div class="site-actions">
+                                <a href="https://w3schools.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Government" class="category-section">
+                    <h2 class="category-title">Government</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">APHIS USDA</div>
+                            <div class="site-url">https://www.aphis.usda.gov/</div>
+                            <div class="site-description">Educational website (www.aphis.usda.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://www.aphis.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Bureau Of Labor Statistics</div>
+                            <div class="site-url">https://bls.gov/</div>
+                            <div class="site-description">Educational website (bls.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://bls.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Business WA</div>
+                            <div class="site-url">https://business.wa.gov/</div>
+                            <div class="site-description">Educational website (business.wa.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://business.wa.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">DEA</div>
+                            <div class="site-url">https://dea.gov/</div>
+                            <div class="site-description">Educational website (dea.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://dea.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Department of Labor</div>
+                            <div class="site-url">https://dol.gov/</div>
+                            <div class="site-description">Educational website (dol.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://dol.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Drug Enforcement Act</div>
+                            <div class="site-url">https://deadiversion.usdoj.gov/</div>
+                            <div class="site-description">Educational website (deadiversion.usdoj.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://deadiversion.usdoj.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">EPA</div>
+                            <div class="site-url">https://epa.gov</div>
+                            <div class="site-description">Educational website (epa.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://epa.gov" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">EPA</div>
+                            <div class="site-url">https://epa.gov/</div>
+                            <div class="site-description">Educational website (epa.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://epa.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">FDA</div>
+                            <div class="site-url">https://fda.gov</div>
+                            <div class="site-description">Educational website (fda.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://fda.gov" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">FSIS USDA</div>
+                            <div class="site-url">https://www.fsis.usda.gov/</div>
+                            <div class="site-description">Educational website (www.fsis.usda.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://www.fsis.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">HHS</div>
+                            <div class="site-url">https://hhs.gov/</div>
+                            <div class="site-description">Educational website (hhs.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://hhs.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">IRS</div>
+                            <div class="site-url">https://irs.gov</div>
+                            <div class="site-description">Educational website (irs.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://irs.gov" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">NCBI</div>
+                            <div class="site-url">https://ncbi.nlm.nih.gov/</div>
+                            <div class="site-description">Educational website (ncbi.nlm.nih.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://ncbi.nlm.nih.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">OSHA</div>
+                            <div class="site-url">https://osha.gov/</div>
+                            <div class="site-description">Educational website (osha.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://osha.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Securities and Exchange Commision</div>
+                            <div class="site-url">https://sec.gov/</div>
+                            <div class="site-description">Educational website (sec.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://sec.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Small Business Administration</div>
+                            <div class="site-url">https://sba.gov</div>
+                            <div class="site-description">Educational website (sba.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://sba.gov" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Student Aid.Gov</div>
+                            <div class="site-url">https://studentaid.gov/</div>
+                            <div class="site-description">Educational website (studentaid.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://studentaid.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">US Census Bureau</div>
+                            <div class="site-url">https://census.gov/</div>
+                            <div class="site-description">Educational website (census.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://census.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">USDA</div>
+                            <div class="site-url">https://www.usda.gov/</div>
+                            <div class="site-description">Educational website (www.usda.gov)</div>
+                            <div class="site-actions">
+                                <a href="https://www.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Language" class="category-section">
+                    <h2 class="category-title">Language</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">American Rhetoric</div>
+                            <div class="site-url">https://americanrhetoric.com/</div>
+                            <div class="site-description">Educational website (americanrhetoric.com)</div>
+                            <div class="site-actions">
+                                <a href="https://americanrhetoric.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Rosettastone</div>
+                            <div class="site-url">https://rosettastone.com/</div>
+                            <div class="site-description">Educational website (rosettastone.com)</div>
+                            <div class="site-actions">
+                                <a href="https://rosettastone.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Math" class="category-section">
+                    <h2 class="category-title">Math</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">Get Sum Math</div>
+                            <div class="site-url">https://www.getsummath.com/</div>
+                            <div class="site-description">Educational website (www.getsummath.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.getsummath.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Prison Math Project</div>
+                            <div class="site-url">https://prisonmathproject.org/</div>
+                            <div class="site-description">Educational website (prisonmathproject.org)</div>
+                            <div class="site-actions">
+                                <a href="https://prisonmathproject.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">wamap.org</div>
+                            <div class="site-url">https://wamap.org/</div>
+                            <div class="site-description">Educational website (wamap.org)</div>
+                            <div class="site-actions">
+                                <a href="https://wamap.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="News" class="category-section">
+                    <h2 class="category-title">News</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">Associated Press News</div>
+                            <div class="site-url">https://apnews.com/</div>
+                            <div class="site-description">Educational website (apnews.com)</div>
+                            <div class="site-actions">
+                                <a href="https://apnews.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">The Journalist's Recource</div>
+                            <div class="site-url">https://journalistsresource.org/</div>
+                            <div class="site-description">Educational website (journalistsresource.org)</div>
+                            <div class="site-actions">
+                                <a href="https://journalistsresource.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Other" class="category-section">
+                    <h2 class="category-title">Other</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">American Battlefield Trust</div>
+                            <div class="site-url">https://battlefields.org/</div>
+                            <div class="site-description">Educational website (battlefields.org)</div>
+                            <div class="site-actions">
+                                <a href="https://battlefields.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AVDT</div>
+                            <div class="site-url">https://avdt.us/</div>
+                            <div class="site-description">Educational website (avdt.us)</div>
+                            <div class="site-actions">
+                                <a href="https://avdt.us/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AVECCT</div>
+                            <div class="site-url">https://avecct.org/</div>
+                            <div class="site-description">Educational website (avecct.org)</div>
+                            <div class="site-actions">
+                                <a href="https://avecct.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AVMA</div>
+                            <div class="site-url">https://avma.org/</div>
+                            <div class="site-description">Educational website (avma.org)</div>
+                            <div class="site-actions">
+                                <a href="https://avma.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AVTAA</div>
+                            <div class="site-url">https://www.avtaa-vts.org/</div>
+                            <div class="site-description">Educational website (www.avtaa-vts.org)</div>
+                            <div class="site-actions">
+                                <a href="https://www.avtaa-vts.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AztecSoftware</div>
+                            <div class="site-url">https://plus.aztecsoftware.com/</div>
+                            <div class="site-description">Educational website (plus.aztecsoftware.com)</div>
+                            <div class="site-actions">
+                                <a href="https://plus.aztecsoftware.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AZVT</div>
+                            <div class="site-url">https://azvt.org/</div>
+                            <div class="site-description">Educational website (azvt.org)</div>
+                            <div class="site-actions">
+                                <a href="https://azvt.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">CareerCruising</div>
+                            <div class="site-url">https://careercruising.com</div>
+                            <div class="site-description">Educational website (careercruising.com)</div>
+                            <div class="site-actions">
+                                <a href="https://careercruising.com" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">CatVets</div>
+                            <div class="site-url">https://catvets.com/</div>
+                            <div class="site-description">Educational website (catvets.com)</div>
+                            <div class="site-actions">
+                                <a href="https://catvets.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Certified Professional Horticulturist Progress Certificates</div>
+                            <div class="site-url">https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6</div>
+                            <div class="site-description">Educational website (us06web.zoom.us)</div>
+                            <div class="site-actions">
+                                <a href="https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Clash of Code</div>
+                            <div class="site-url">https://www.codingame.com/</div>
+                            <div class="site-description">Educational website (www.codingame.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.codingame.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Coderbyte</div>
+                            <div class="site-url">https://www.coderbyte.com/</div>
+                            <div class="site-description">Educational website (www.coderbyte.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.coderbyte.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Colombia Journalism Review</div>
+                            <div class="site-url">https://cjr.org/</div>
+                            <div class="site-description">Educational website (cjr.org)</div>
+                            <div class="site-actions">
+                                <a href="https://cjr.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Color Palettes for Designers</div>
+                            <div class="site-url">https://colorhunt.co/</div>
+                            <div class="site-description">Educational website (colorhunt.co)</div>
+                            <div class="site-actions">
+                                <a href="https://colorhunt.co/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Correction SED</div>
+                            <div class="site-url">https://dl.correctionsed.com</div>
+                            <div class="site-description">Educational website (dl.correctionsed.com)</div>
+                            <div class="site-actions">
+                                <a href="https://dl.correctionsed.com" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Corrections ED (Canvas)</div>
+                            <div class="site-url">https://correctionsed.com/</div>
+                            <div class="site-description">Educational website (correctionsed.com)</div>
+                            <div class="site-actions">
+                                <a href="https://correctionsed.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">DrMartyBecker</div>
+                            <div class="site-url">https://drmartybecker.com/</div>
+                            <div class="site-description">Educational website (drmartybecker.com)</div>
+                            <div class="site-actions">
+                                <a href="https://drmartybecker.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">EBSCO</div>
+                            <div class="site-url">https://www.ebsco.com/</div>
+                            <div class="site-description">Educational website (www.ebsco.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.ebsco.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Ecasas</div>
+                            <div class="site-url">https://ecasas.org/</div>
+                            <div class="site-description">Educational website (ecasas.org)</div>
+                            <div class="site-actions">
+                                <a href="https://ecasas.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Exchange</div>
+                            <div class="site-url">https://exchange.parchment.com/</div>
+                            <div class="site-description">Educational website (exchange.parchment.com)</div>
+                            <div class="site-actions">
+                                <a href="https://exchange.parchment.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Express - Node.js</div>
+                            <div class="site-url">https://expressjs.com/</div>
+                            <div class="site-description">Educational website (expressjs.com)</div>
+                            <div class="site-actions">
+                                <a href="https://expressjs.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">fonts.google</div>
+                            <div class="site-url">https://fonts.google.com/</div>
+                            <div class="site-description">Educational website (fonts.google.com)</div>
+                            <div class="site-actions">
+                                <a href="https://fonts.google.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Free Code Camp</div>
+                            <div class="site-url">https://freecodecamp.org/</div>
+                            <div class="site-description">Educational website (freecodecamp.org)</div>
+                            <div class="site-actions">
+                                <a href="https://freecodecamp.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">G-W Publisher</div>
+                            <div class="site-url">https://www.g-w.com/</div>
+                            <div class="site-description">Educational website (www.g-w.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.g-w.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">G-W Textbooks</div>
+                            <div class="site-url">https://g-wonlinetextbooks.com/</div>
+                            <div class="site-description">Educational website (g-wonlinetextbooks.com)</div>
+                            <div class="site-actions">
+                                <a href="https://g-wonlinetextbooks.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">GED</div>
+                            <div class="site-url">https://app.ged.com/managerLogin</div>
+                            <div class="site-description">Educational website (app.ged.com)</div>
+                            <div class="site-actions">
+                                <a href="https://app.ged.com/managerLogin" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Github</div>
+                            <div class="site-url">https://github.com/</div>
+                            <div class="site-description">Educational website (github.com)</div>
+                            <div class="site-actions">
+                                <a href="https://github.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Google Docs</div>
+                            <div class="site-url">https://docs.google.com/</div>
+                            <div class="site-description">Educational website (docs.google.com)</div>
+                            <div class="site-actions">
+                                <a href="https://docs.google.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">IncarWorkReleaseUsers Categories</div>
+                            <div class="site-url">https://Link is in place for mandatory entry... it is not a valid website.</div>
+                            <div class="site-description">Educational website (Link is in place for mandatory entry... it is not a valid website.)</div>
+                            <div class="site-actions">
+                                <a href="https://Link is in place for mandatory entry... it is not a valid website." target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Investigative Reporters and Editors</div>
+                            <div class="site-url">https://ire.org/</div>
+                            <div class="site-description">Educational website (ire.org)</div>
+                            <div class="site-actions">
+                                <a href="https://ire.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">JSTOR</div>
+                            <div class="site-url">https://pep.jstor.org/</div>
+                            <div class="site-description">Educational website (pep.jstor.org)</div>
+                            <div class="site-actions">
+                                <a href="https://pep.jstor.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Kerin Marketing</div>
+                            <div class="site-url">https://kerinmarketing.com/</div>
+                            <div class="site-description">Educational website (kerinmarketing.com)</div>
+                            <div class="site-actions">
+                                <a href="https://kerinmarketing.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Life Skills Reimagined</div>
+                            <div class="site-url">https://www.lifeskillsreimagined.com/</div>
+                            <div class="site-description">Educational website (www.lifeskillsreimagined.com)</div>
+                            <div class="site-actions">
+                                <a href="https://www.lifeskillsreimagined.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Living With Conviction</div>
+                            <div class="site-url">https://livingwithconviction.org/</div>
+                            <div class="site-description">Educational website (livingwithconviction.org)</div>
+                            <div class="site-actions">
+                                <a href="https://livingwithconviction.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Lumion</div>
+                            <div class="site-url">https://lumion3d.net/</div>
+                            <div class="site-description">Educational website (lumion3d.net)</div>
+                            <div class="site-actions">
+                                <a href="https://lumion3d.net/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">MerckVeterinaryManual</div>
+                            <div class="site-url">https://merckvetmanual.com/</div>
+                            <div class="site-description">Educational website (merckvetmanual.com)</div>
+                            <div class="site-actions">
+                                <a href="https://merckvetmanual.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Merriam-Webster</div>
+                            <div class="site-url">https://merriam-webster.com/</div>
+                            <div class="site-description">Educational website (merriam-webster.com)</div>
+                            <div class="site-actions">
+                                <a href="https://merriam-webster.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Mozilla Developer</div>
+                            <div class="site-url">https://developer.mozilla.org/</div>
+                            <div class="site-description">Educational website (developer.mozilla.org)</div>
+                            <div class="site-actions">
+                                <a href="https://developer.mozilla.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">NAVTA</div>
+                            <div class="site-url">https://navta.net/</div>
+                            <div class="site-description">Educational website (navta.net)</div>
+                            <div class="site-actions">
+                                <a href="https://navta.net/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Online Veterinary Anatomy</div>
+                            <div class="site-url">https://onlineveterinaryanatomy.net/</div>
+                            <div class="site-description">Educational website (onlineveterinaryanatomy.net)</div>
+                            <div class="site-actions">
+                                <a href="https://onlineveterinaryanatomy.net/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">OSI Bridge</div>
+                            <div class="site-url">https://osibridge.com</div>
+                            <div class="site-description">Educational website (osibridge.com)</div>
+                            <div class="site-actions">
+                                <a href="https://osibridge.com" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">PBS</div>
+                            <div class="site-url">https://pbs.org/</div>
+                            <div class="site-description">Educational website (pbs.org)</div>
+                            <div class="site-actions">
+                                <a href="https://pbs.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">PearsonVue</div>
+                            <div class="site-url">https://cct-pearsonvue.com/</div>
+                            <div class="site-description">Educational website (cct-pearsonvue.com)</div>
+                            <div class="site-actions">
+                                <a href="https://cct-pearsonvue.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Penn Foster Customer Help</div>
+                            <div class="site-url">https://pennfoster.custhelp.com/</div>
+                            <div class="site-description">Educational website (pennfoster.custhelp.com)</div>
+                            <div class="site-actions">
+                                <a href="https://pennfoster.custhelp.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Penn Foster Library App</div>
+                            <div class="site-url">https://pennfoster.libapps.com/</div>
+                            <div class="site-description">Educational website (pennfoster.libapps.com)</div>
+                            <div class="site-actions">
+                                <a href="https://pennfoster.libapps.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Pew Research</div>
+                            <div class="site-url">https://pewresearch.org/</div>
+                            <div class="site-description">Educational website (pewresearch.org)</div>
+                            <div class="site-actions">
+                                <a href="https://pewresearch.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Pirate Ipsum</div>
+                            <div class="site-url">https://pirateipsum.me/</div>
+                            <div class="site-description">Educational website (pirateipsum.me)</div>
+                            <div class="site-actions">
+                                <a href="https://pirateipsum.me/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Politifact</div>
+                            <div class="site-url">https://politifact.com/</div>
+                            <div class="site-description">Educational website (politifact.com)</div>
+                            <div class="site-actions">
+                                <a href="https://politifact.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Poynter</div>
+                            <div class="site-url">https://poynter.org/</div>
+                            <div class="site-description">Educational website (poynter.org)</div>
+                            <div class="site-actions">
+                                <a href="https://poynter.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Prison Journalism Project</div>
+                            <div class="site-url">https://prisonjournalismproject.org/</div>
+                            <div class="site-description">Educational website (prisonjournalismproject.org)</div>
+                            <div class="site-actions">
+                                <a href="https://prisonjournalismproject.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Washington State Nursery and Landscape Association</div>
+                            <div class="site-url">https://www.wsnla.org</div>
+                            <div class="site-description">Educational website (www.wsnla.org)</div>
+                            <div class="site-actions">
+                                <a href="https://www.wsnla.org" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Science" class="category-section">
+                    <h2 class="category-title">Science</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">AAALAC</div>
+                            <div class="site-url">https://www.aaalac.org/</div>
+                            <div class="site-description">Educational website (www.aaalac.org)</div>
+                            <div class="site-actions">
+                                <a href="https://www.aaalac.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AAHA</div>
+                            <div class="site-url">https://aaha.org/</div>
+                            <div class="site-description">Educational website (aaha.org)</div>
+                            <div class="site-actions">
+                                <a href="https://aaha.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">AALAS</div>
+                            <div class="site-url">https://www.aalas.org/</div>
+                            <div class="site-description">Educational website (www.aalas.org)</div>
+                            <div class="site-actions">
+                                <a href="https://www.aalas.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Animal Endocrine</div>
+                            <div class="site-url">https://animalendocrine.com/</div>
+                            <div class="site-description">Educational website (animalendocrine.com)</div>
+                            <div class="site-actions">
+                                <a href="https://animalendocrine.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">arXiv</div>
+                            <div class="site-url">https://arxiv.org/</div>
+                            <div class="site-description">Educational website (arxiv.org)</div>
+                            <div class="site-actions">
+                                <a href="https://arxiv.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Support" class="category-section">
+                    <h2 class="category-title">Support</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">VitalSource</div>
+                            <div class="site-url">https://online.vitalsource.com</div>
+                            <div class="site-description">Educational website (online.vitalsource.com)</div>
+                            <div class="site-actions">
+                                <a href="https://online.vitalsource.com" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Technology" class="category-section">
+                    <h2 class="category-title">Technology</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">Create React App</div>
+                            <div class="site-url">https://create-react-app.dev/</div>
+                            <div class="site-description">Educational website (create-react-app.dev)</div>
+                            <div class="site-actions">
+                                <a href="https://create-react-app.dev/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Reactjs</div>
+                            <div class="site-url">https://react.dev/</div>
+                            <div class="site-description">Educational website (react.dev)</div>
+                            <div class="site-actions">
+                                <a href="https://react.dev/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">SQLite</div>
+                            <div class="site-url">https://sqlite.org/</div>
+                            <div class="site-description">Educational website (sqlite.org)</div>
+                            <div class="site-actions">
+                                <a href="https://sqlite.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Stackoverflow Questions</div>
+                            <div class="site-url">https://stackoverflow.com/questions/tagged/javascript</div>
+                            <div class="site-description">Educational website (stackoverflow.com)</div>
+                            <div class="site-actions">
+                                <a href="https://stackoverflow.com/questions/tagged/javascript" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Unity</div>
+                            <div class="site-url">https://unity.com/learn</div>
+                            <div class="site-description">Educational website (unity.com)</div>
+                            <div class="site-actions">
+                                <a href="https://unity.com/learn" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div id="Testing" class="category-section">
+                    <h2 class="category-title">Testing</h2>
+                    <ul class="site-list">
+                        <li class="site-item">
+                            <div class="site-name">Accuplacer</div>
+                            <div class="site-url">https://accuplacer.org</div>
+                            <div class="site-description">Educational website (accuplacer.org)</div>
+                            <div class="site-actions">
+                                <a href="https://accuplacer.org" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Quizlet</div>
+                            <div class="site-url">https://quizlet.com/</div>
+                            <div class="site-description">Educational website (quizlet.com)</div>
+                            <div class="site-actions">
+                                <a href="https://quizlet.com/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+        </div>
+    </div>
+</body>
+</html>
