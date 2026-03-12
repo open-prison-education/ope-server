@@ -26,6 +26,7 @@ SERVICE_DEPS = {
     "ope-jsbin": ["ope-gateway", "ope-dns"],
     "ope-git": ["ope-gateway", "ope-dns"],
     "ope-rachel": ["ope-gateway", "ope-dns"],
+    "ope-websites": ["ope-gateway", "ope-dns"],
     "ope-ntp": [],
     "ope-letsencrypt": [],
     "ope-redis": ["ope-gateway", "ope-dns"],
@@ -79,6 +80,7 @@ SERVICE_CATALOG = [
             {"name": "ope-ntp", "description": "NTP Time Server"},
             {"name": "ope-letsencrypt", "description": "Let's Encrypt SSL"},
             {"name": "ope-fog", "description": "FOG Imaging"},
+            {"name": "ope-websites", "description": "OSN Approved Websites"},
         ],
     },
 ]
