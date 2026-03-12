@@ -80,7 +80,7 @@ SERVICE_CATALOG = [
             {"name": "ope-ntp", "description": "NTP Time Server"},
             {"name": "ope-letsencrypt", "description": "Let's Encrypt SSL"},
             {"name": "ope-fog", "description": "FOG Imaging"},
-            {"name": "ope-websites", "description": "Approved Websites"},
+            {"name": "ope-websites", "description": "OSNApproved Websites"},
         ],
     },
 ]
