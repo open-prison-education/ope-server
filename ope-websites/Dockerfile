@@ -5,7 +5,7 @@ LABEL version="0.1"
 
 LABEL build=1
 COPY start.sh /start.sh
-COPY approved_websites.html /defaults/index.html
+COPY index.html /defaults/index.html
 RUN chmod +x /start.sh
 
 VOLUME ["/usr/share/nginx/html"]
