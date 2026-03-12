@@ -50,6 +50,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
 | **ope-jsbin** | JS Bin code playground |
 | **ope-rachel** | RACHEL offline educational content |
 | **ope-git** | Git server for code repositories |
+| **ope-websites** | OSN approved websites |
 
 ## Prerequisites
 

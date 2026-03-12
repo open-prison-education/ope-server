@@ -26,6 +26,7 @@
 #   ope-ntp             NTP Time Server
 #   ope-letsencrypt     Let's Encrypt SSL
 #   ope-fog             FOG Imaging
+#   ope-websites        OSN Approved Websites
 
 services:
   - ope-canvas
@@ -40,6 +41,7 @@ services:
   # - ope-ntp
   # - ope-letsencrypt
   # - ope-fog
+  # - ope-websites
 
 # ----------------------------------------------------------------------------
 # Settings

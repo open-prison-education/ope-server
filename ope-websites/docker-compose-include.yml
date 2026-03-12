@@ -1,0 +1,22 @@
+    ope-websites:
+        build: ./ope-websites
+        image: operepo/ope-websites:release
+        container_name: ope-websites
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "80"
+        volumes:
+            - ./volumes/websites/www:/usr/share/nginx/html:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=websites.<DOMAIN>
+            - VIRTUAL_PORT=80
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=websites.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
