@@ -20,7 +20,7 @@ RUN apk update  \
     && update-ms-fonts \
     && fc-cache -f \
     && python -m pip install --upgrade pip \
-    && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
+    && python -m pip install --upgrade 'setuptools < 82' ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
         webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint uwsgitop pydantic pylti1p3
