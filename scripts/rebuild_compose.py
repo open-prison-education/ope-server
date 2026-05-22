@@ -37,13 +37,14 @@ ENV_FILE = os.path.join(BASE_DIR, ".env")
 DC_HEADER = """\
 ##### Open Prison Education - Docker Environment #####
 # NOTE - This file gets rebuilt, make changes to docker-compose-include.yml file
-#           in individual container directories and run rebuild_compose.py
+#           in individual container directories and run scripts/rebuild_compose.py directly
+#           or through scripts/rebuild.sh
 #
 # Start docker containers by running this command from the main folder:
-#        docker-compose up -d
+#        ./up.sh
 #
 # Stop containers by running this command from the main folder:
-#        docker-compose down
+#        ./down.sh
 #
 # START OF docker-compose.yml
 <VOLUMES>
