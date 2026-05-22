@@ -189,7 +189,6 @@ Your connection is still encrypted; the warning only means the certificate autho
 > **Important:** If you are using `.ed` domains with a hosts file (not a real public domain), **do not enable the `ope-letsencrypt` service**. The letsencrypt companion cannot issue certificates for `.ed` domains and will create empty certificate directories that interfere with the gateway's cert lookup (causing "INVALID CERT SETUP" errors). To disable it, remove `ope-letsencrypt` from the `services` list in `config.yml`, then run:
 > ```bash
 > ./up.sh
-> docker stop ope-letsencrypt
 > ```
 > Only enable `ope-letsencrypt` when using real public domains that resolve in DNS.
 

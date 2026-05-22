@@ -58,7 +58,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
 - Docker Engine 20.10+
 - Docker Compose v2+
 - Python 3.6+
-- Minimum 16GB RAM
+- Minimum 8GB RAM
 - 500GB+ storage (varies based on content)
 
 ## Quick Start
@@ -89,7 +89,7 @@ Core services (`ope-gateway`, `ope-dns`) and any dependencies (e.g.
 `ope-redis`, `ope-postgresql` for Canvas) are resolved automatically --
 you only need to list the services you actually want.
 
-3. **Start the services:**
+3. **Start enabled services:**
 
 ```bash
 ./up.sh
@@ -98,7 +98,7 @@ you only need to list the services you actually want.
 If `config.yml` does not exist yet, `up.sh` will launch the setup wizard
 automatically before starting containers.
 
-4. **Stop the services:**
+4. **Stop enabled services and remove containers:**
 
 ```bash
 ./down.sh
@@ -114,11 +114,11 @@ ope-server/
 ├── .env.template            # Environment variable template
 ├── setup.sh                 # Interactive setup wizard
 ├── up.sh                    # Rebuild compose & start services
-├── down.sh                  # Stop all services
+├── down.sh                  # Stop enabled services and remove containers
 ├── scripts/
 │   ├── setup.py             # Setup wizard logic
 │   ├── rebuild_compose.py   # Generates docker-compose.yml & .env
-│   ├── rebuild.sh           # Rebuild docker-compose.yml & .env only
+│   ├── rebuild.sh           # Script to generates docker-compose.yml & .env only, a wrapper for rebuild_compose.py
 │   ├── service_deps.py      # Service dependency map
 │   ├── ensure_venv.sh       # Python venv bootstrap (sourced by shell scripts)
 │   ├── requirements.txt     # Python dependencies
@@ -172,7 +172,7 @@ ope-myapp/
 
 3. Add it as a commented-out entry in `config.yml.example` so users can discover it.
 
-4. Enable the service in `config.yml` and run `./up.sh b` to build and start it.
+4. Enable the service in `config.yml` and run `./up.sh b` to build all enabled servies and stert them. Or run `docker compose build ope-myapp` to build only your app, then `up.sh` start services.
 
 ## Deployment
 
@@ -186,7 +186,9 @@ To work on individual services:
 
 1. Navigate to the service directory (e.g., `cd ope-smc`)
 2. Make changes to Dockerfile or configuration
-3. Rebuild with `./up.sh b`
+3. Rebuild with `./scripts/rebuild.sh`
+4. run `docker compose build ope-smc`
+5. run `up.sh`
 
 ## Contributing
 
