@@ -1,6 +1,5 @@
-FROM debian:jessie
-#FROM debian:stretch
-LABEL rebuild=22
+FROM debian:buster
+LABEL rebuild=23
 # ope-fog - Fogproject.org - System imaging server
 # Build with docker build -t ope-fog .
 
@@ -23,19 +22,25 @@ ENV TERM=xterm
 ENV LC_TYPE en_US.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Buster is EOL; use Debian archive mirrors and relaxed apt checks.
+RUN sed -i -e 's/deb\.debian\.org/archive.debian.org/g' \
+           -e 's/security\.debian\.org/archive.debian.org/g' \
+           /etc/apt/sources.list \
+    && sed -i '/buster-updates/d' /etc/apt/sources.list \
+    && printf 'Acquire::Check-Valid-Until "false";\nAcquire::AllowInsecureRepositories "true";\nAPT::Get::Allow-Unauthenticated "true";\n' > /etc/apt/apt.conf.d/99archive
+
 LABEL REBULID=13
 #RUN echo "deb http://ftp.us.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
 RUN apt-get update \
 && apt-get -y upgrade \
-&& apt-get install -y wget net-tools nano python-pip python-dev libmysqlclient-dev git \
-apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php5 libc6 libcurl3 \
-m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server php5 php5-cli php5-curl php5-fpm \ 
-php5-gd php5-json php5-mcrypt php5-mysqlnd php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa \
-unzip vsftpd wget xinetd zlib1g dos2unix supervisor iptables syslinux nfs-kernel-server netbase locales \
+&& apt-get install -y --allow-unauthenticated wget net-tools nano python-mysqldb git \
+apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php libc6 libcurl4 \
+m4 default-mysql-server net-tools nfs-kernel-server openssh-server php php-cli php-curl php-fpm \
+php-gd php-json php-mbstring php-mysql php-mysqlnd php-bcmath sysv-rc-conf tar tftpd-hpa tftp-hpa \
+unzip vsftpd xinetd zlib1g dos2unix supervisor iptables syslinux netbase locales \
 kmod genisoimage isolinux liblzma-dev \
-&& pip install MySQL-python \
 && apt-get clean \
-&& /usr/bin/mysql_install_db
+&& mysql_install_db --user=mysql
 # pimd?? Need to get multicast working?
 
 #RUN apt-get install -y wget nano python-pip python-dev git \
@@ -79,8 +84,8 @@ RUN cp /opt/fog/.fogsettings /
 # Pull current build from GIT
 RUN git clone https://github.com/FOGProject/fogproject.git /fog_src; \
 cd /fog_src; \
-git checkout dev-branch; \
-git pull origin dev-branch;
+git checkout stable; \
+git pull origin stable;
 
 # Copy in the project certs
 COPY snapins/ssl/* /opt/fog/snapins/ssl/
@@ -90,7 +95,9 @@ COPY other/ssl/* /var/www/fog/management/other/ssl/
 # copyup operation https://github.com/docker/for-linux/issues/72)
 RUN cd /fog_src/bin/ \
 && find /var/lib/mysql -exec touch -c -a {} + \
-&& ./installfog.sh -y
+&& service mysql start \
+&& service apache2 start \
+&& ./installfog.sh -y -X
 
 LABEL rebuild=63
 RUN mkdir -p /etc/nginx/conf.d
