@@ -31,7 +31,6 @@
             - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             - MONGOHQ_URL=mongodb://ope-freecodecamp-db:27017/freecodecamp?directConnection=true
-            - FREECODECAMP_NODE_ENV=production
             - HOST=0.0.0.0
             - LETSENCRYPT_HOST=freecodecamp.<DOMAIN>
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>

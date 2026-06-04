@@ -54,6 +54,8 @@ COPY --from=builder --chown=node:node /home/node/build/packages/ packages/
 COPY --from=deps --chown=node:node /home/node/build/node_modules/ node_modules/
 COPY --from=deps --chown=node:node /home/node/build/api/node_modules/ api/node_modules/
 
+COPY sample.env .env
+
 EXPOSE 3000
 
 CMD ["node", "api/src/server.js"]
