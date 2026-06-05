@@ -164,7 +164,8 @@ RUN cd ${APP_HOME} \
     && git remote add origin https://github.com/instructure/canvas-lms \
     && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
     #&& git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
-    && git checkout ${CANVAS_RELEASE}
+    && git checkout ${CANVAS_RELEASE} \
+    && sed -i 's/gem "i18nliner", "0.1.2", github: "instructure\/i18nliner", ref: "rails-61"/gem "i18nliner", "0.2.0", github: "instructure\/i18nliner", tag: "v0.2.0"/' Gemfile.d/app.rb
 
 
 LABEL rebuild=1
