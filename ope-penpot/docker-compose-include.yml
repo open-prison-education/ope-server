@@ -1,0 +1,122 @@
+    penpot-frontend:
+        image: "penpotapp/frontend:${PENPOT_VERSION:-2.15}"
+        container_name: penpot-frontend
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "8080"
+        volumes:
+            - penpot_assets:/opt/data/assets
+        depends_on:
+            - ope-gateway
+            - ope-dns
+            - penpot-backend
+            - penpot-exporter
+            - penpot-mcp
+        environment:
+            - VIRTUAL_HOST=penpot.<DOMAIN>
+            - VIRTUAL_PORT=8080
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=penpot.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+            - PENPOT_FLAGS=disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies enable-mcp
+            - PENPOT_HTTP_SERVER_MAX_BODY_SIZE=367001600
+            - PENPOT_HTTP_SERVER_MAX_MULTIPART_BODY_SIZE=367001600
+            - PENPOT_PUBLIC_URI=https://penpot.<DOMAIN>
+
+    penpot-backend:
+        image: "penpotapp/backend:${PENPOT_VERSION:-2.15}"
+        container_name: penpot-backend
+        network_mode: <NETWORK_MODE>
+        restart: always
+        volumes:
+            - penpot_assets:/opt/data/assets
+        depends_on:
+            penpot-postgres:
+                condition: service_healthy
+            penpot-valkey:
+                condition: service_healthy
+        environment:
+            - PENPOT_FLAGS=disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies enable-mcp
+            - PENPOT_PUBLIC_URI=https://penpot.<DOMAIN>
+            - PENPOT_HTTP_SERVER_MAX_BODY_SIZE=367001600
+            - PENPOT_HTTP_SERVER_MAX_MULTIPART_BODY_SIZE=367001600
+            - PENPOT_SECRET_KEY=<PENPOT_SECRET_KEY>
+            - PENPOT_DATABASE_URI=postgresql://penpot-postgres/penpot
+            - PENPOT_DATABASE_USERNAME=penpot
+            - PENPOT_DATABASE_PASSWORD=penpot
+            - PENPOT_REDIS_URI=redis://penpot-valkey/0
+            - PENPOT_OBJECTS_STORAGE_BACKEND=fs
+            - PENPOT_OBJECTS_STORAGE_FS_DIRECTORY=/opt/data/assets
+            - PENPOT_TELEMETRY_ENABLED=true
+            - PENPOT_TELEMETRY_REFERER=compose
+            - PENPOT_SMTP_DEFAULT_FROM=no-reply@example.com
+            - PENPOT_SMTP_DEFAULT_REPLY_TO=no-reply@example.com
+            - PENPOT_SMTP_HOST=penpot-mailcatch
+            - PENPOT_SMTP_PORT=1025
+            - PENPOT_SMTP_USERNAME=
+            - PENPOT_SMTP_PASSWORD=
+            - PENPOT_SMTP_TLS=false
+            - PENPOT_SMTP_SSL=false
+
+    penpot-mcp:
+        image: "penpotapp/mcp:${PENPOT_VERSION:-2.15}"
+        container_name: penpot-mcp
+        network_mode: <NETWORK_MODE>
+        restart: always
+
+    penpot-exporter:
+        image: "penpotapp/exporter:${PENPOT_VERSION:-2.15}"
+        container_name: penpot-exporter
+        network_mode: <NETWORK_MODE>
+        restart: always
+        depends_on:
+            penpot-valkey:
+                condition: service_healthy
+        environment:
+            - PENPOT_SECRET_KEY=<PENPOT_SECRET_KEY>
+            - PENPOT_PUBLIC_URI=http://penpot-frontend:8080
+            - PENPOT_REDIS_URI=redis://penpot-valkey/0
+
+    penpot-postgres:
+        image: "postgres:15"
+        container_name: penpot-postgres
+        network_mode: <NETWORK_MODE>
+        restart: always
+        stop_signal: SIGINT
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U penpot"]
+            interval: 2s
+            timeout: 10s
+            retries: 5
+            start_period: 2s
+        volumes:
+            - penpot_postgres_v15:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_INITDB_ARGS=--data-checksums
+            - POSTGRES_DB=penpot
+            - POSTGRES_USER=penpot
+            - POSTGRES_PASSWORD=penpot
+
+    penpot-valkey:
+        image: valkey/valkey:8.1
+        container_name: penpot-valkey
+        network_mode: <NETWORK_MODE>
+        restart: always
+        healthcheck:
+            test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
+            interval: 1s
+            timeout: 3s
+            retries: 5
+            start_period: 3s
+        environment:
+            - VALKEY_EXTRA_FLAGS=--maxmemory 128mb --maxmemory-policy volatile-lfu
+
+    penpot-mailcatch:
+        image: sj26/mailcatcher:latest
+        container_name: penpot-mailcatch
+        network_mode: <NETWORK_MODE>
+        restart: always
+        expose:
+            - '1025'
