@@ -63,6 +63,7 @@ The default domain suffix is `.ed` (configurable via the `domain` setting in `co
 | CodeCombat | `codecombat.ed` | Coding education game |
 | freeCodeCamp | `freecodecamp.ed` | freeCodeCamp offline content |
 | RACHEL | `rachel.ed` | RACHEL offline educational content |
+| Penpot | `penpot.ed` | Penpot open-source design platform |
 
 **Note:** Only services listed in `config.yml` (and their automatically resolved dependencies) will be active. See the [Deployment Guide](DEPLOYMENT.md#2-configure-the-server) for details.
 

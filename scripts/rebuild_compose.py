@@ -18,6 +18,7 @@ from service_deps import (
     detect_ip,
     generate_secret,
     generate_secret_32,
+    generate_penpot_secret,
 )
 
 # ---------------------------------------------------------------------------
@@ -85,6 +86,9 @@ def load_or_create_secrets():
     if not secrets.get("canvas_sign_secret"):
         secrets["canvas_sign_secret"] = generate_secret_32()
         changed = True
+    if not secrets.get("penpot_secret_key"):
+        secrets["penpot_secret_key"] = generate_penpot_secret()
+        changed = True
 
     if changed:
         fd = os.open(SECRETS_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -131,6 +135,7 @@ def build_replacement_values(settings, secrets):
         "<NTP_SERVERS>": fallback(settings.get("ntp_servers"), "time.windows.com"),
         "<ALERT_EMAIL>": fallback(settings.get("alert_email"), "alert@correctionsed.com"),
         "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
+        "<PENPOT_SECRET_KEY>": fallback(secrets.get("penpot_secret_key"), ""),
     }
     return values
 

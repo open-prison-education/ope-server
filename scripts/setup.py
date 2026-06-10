@@ -19,6 +19,7 @@ from service_deps import (
     detect_ip,
     generate_secret,
     generate_secret_32,
+    generate_penpot_secret,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -197,6 +198,8 @@ def ensure_secrets(existing_secrets):
         secrets["canvas_enc_secret"] = generate_secret_32()
     if not secrets.get("canvas_sign_secret"):
         secrets["canvas_sign_secret"] = generate_secret_32()
+    if not secrets.get("penpot_secret_key"):
+        secrets["penpot_secret_key"] = generate_penpot_secret()
     return secrets
 
 

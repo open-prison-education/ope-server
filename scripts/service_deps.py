@@ -31,6 +31,7 @@ SERVICE_DEPS = {
     "ope-letsencrypt": [],
     "ope-redis": ["ope-gateway", "ope-dns"],
     "ope-postgresql": ["ope-gateway", "ope-dns"],
+    "ope-penpot": ["ope-gateway", "ope-dns"],
 }
 
 # Services shown in the setup wizard, grouped by category.
@@ -72,6 +73,7 @@ SERVICE_CATALOG = [
         "services": [
             {"name": "ope-jsbin", "description": "JS Bin"},
             {"name": "ope-git", "description": "Git Server (GitLab)"},
+            {"name": "ope-penpot", "description": "PenPot"},
         ],
     },
     {
@@ -101,6 +103,7 @@ def resolve_services(selected):
                 queue.append(dep)
     return resolved
 
+import secrets as _secrets
 import uuid
 import socket
 import subprocess
@@ -128,3 +131,8 @@ def generate_secret():
 
 def generate_secret_32():
     return (str(uuid.uuid4()) + "000")[:32]
+
+
+def generate_penpot_secret():
+    """Generate a 512-bit URL-safe base64 secret key for Penpot."""
+    return _secrets.token_urlsafe(64)
