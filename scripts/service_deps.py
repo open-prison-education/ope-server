@@ -5,6 +5,10 @@ Shared by setup.py (wizard) and rebuild_compose.py (compose generator).
 Dependencies are derived from `depends_on` and `links` in each service's
 docker-compose-include.yml.
 """
+import secrets as _secrets
+import uuid
+import socket
+import subprocess
 
 CORE_SERVICES = ["ope-gateway", "ope-dns"]
 
@@ -102,11 +106,6 @@ def resolve_services(selected):
             if dep not in resolved:
                 queue.append(dep)
     return resolved
-
-import secrets as _secrets
-import uuid
-import socket
-import subprocess
 
 # Helper functions used in setup.py and rebuild_compose.py
 def detect_ip():

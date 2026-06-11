@@ -75,4 +75,16 @@ fi
 echo "Bringing up containers..."
 $compose up -d --no-build --remove-orphans
 
+# Connect ope-gateway to project's custom bridge networks for proxy routing.
+# ope-gateway runs on Docker's default bridge (network_mode: bridge) and cannot
+# resolve or reach containers on user-defined networks. Services like Penpot use
+# internal networks for DNS resolution; the gateway needs to join those networks
+# to proxy traffic to their frontend containers.
+project_name=$(basename "$BASEDIR")
+for net in $(docker network ls --format '{{.Name}}' --filter driver=bridge 2>/dev/null); do
+    case "$net" in
+        "${project_name}_"*) docker network connect "$net" ope-gateway 2>/dev/null || true ;;
+    esac
+done
+
 echo "Done!"

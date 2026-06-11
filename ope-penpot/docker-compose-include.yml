@@ -1,7 +1,6 @@
     penpot-frontend:
         image: "penpotapp/frontend:${PENPOT_VERSION:-2.15}"
         container_name: penpot-frontend
-        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "8080"
@@ -13,6 +12,8 @@
             - penpot-backend
             - penpot-exporter
             - penpot-mcp
+        networks:
+            - penpot
         environment:
             - VIRTUAL_HOST=penpot.<DOMAIN>
             - VIRTUAL_PORT=8080
@@ -28,7 +29,6 @@
     penpot-backend:
         image: "penpotapp/backend:${PENPOT_VERSION:-2.15}"
         container_name: penpot-backend
-        network_mode: <NETWORK_MODE>
         restart: always
         volumes:
             - penpot_assets:/opt/data/assets
@@ -37,6 +37,8 @@
                 condition: service_healthy
             penpot-valkey:
                 condition: service_healthy
+        networks:
+            - penpot
         environment:
             - PENPOT_FLAGS=disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies enable-mcp
             - PENPOT_PUBLIC_URI=https://penpot.<DOMAIN>
@@ -63,17 +65,19 @@
     penpot-mcp:
         image: "penpotapp/mcp:${PENPOT_VERSION:-2.15}"
         container_name: penpot-mcp
-        network_mode: <NETWORK_MODE>
         restart: always
+        networks:
+            - penpot
 
     penpot-exporter:
         image: "penpotapp/exporter:${PENPOT_VERSION:-2.15}"
         container_name: penpot-exporter
-        network_mode: <NETWORK_MODE>
         restart: always
         depends_on:
             penpot-valkey:
                 condition: service_healthy
+        networks:
+            - penpot
         environment:
             - PENPOT_SECRET_KEY=<PENPOT_SECRET_KEY>
             - PENPOT_PUBLIC_URI=http://penpot-frontend:8080
@@ -82,7 +86,6 @@
     penpot-postgres:
         image: "postgres:15"
         container_name: penpot-postgres
-        network_mode: <NETWORK_MODE>
         restart: always
         stop_signal: SIGINT
         healthcheck:
@@ -93,6 +96,8 @@
             start_period: 2s
         volumes:
             - penpot_postgres_v15:/var/lib/postgresql/data
+        networks:
+            - penpot
         environment:
             - POSTGRES_INITDB_ARGS=--data-checksums
             - POSTGRES_DB=penpot
@@ -102,7 +107,6 @@
     penpot-valkey:
         image: valkey/valkey:8.1
         container_name: penpot-valkey
-        network_mode: <NETWORK_MODE>
         restart: always
         healthcheck:
             test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
@@ -110,13 +114,16 @@
             timeout: 3s
             retries: 5
             start_period: 3s
+        networks:
+            - penpot
         environment:
             - VALKEY_EXTRA_FLAGS=--maxmemory 128mb --maxmemory-policy volatile-lfu
 
     penpot-mailcatch:
         image: sj26/mailcatcher:latest
         container_name: penpot-mailcatch
-        network_mode: <NETWORK_MODE>
         restart: always
+        networks:
+            - penpot
         expose:
             - '1025'
