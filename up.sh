@@ -75,4 +75,28 @@ fi
 echo "Bringing up containers..."
 $compose up -d --no-build --remove-orphans
 
+# Connect ope-gateway to project's custom bridge networks for proxy routing.
+# ope-gateway runs on Docker's default bridge (network_mode: bridge) and cannot
+# resolve or reach containers on user-defined networks. Services like Penpot use
+# internal networks for DNS resolution; the gateway needs to join those networks
+# to reach their frontend containers.
+project_name=$(basename "$BASEDIR")
+connected_nets=0
+for net in $(docker network ls --format '{{.Name}}' --filter driver=bridge 2>/dev/null); do
+    case "$net" in
+        "${project_name}_"*)
+            docker network connect "$net" ope-gateway 2>/dev/null && connected_nets=$((connected_nets + 1)) || true
+            ;;
+    esac
+done
+
+# If we connected ope-gateway to new networks, docker-gen's existing config has
+# stale "Cannot connect to network" entries. Trigger a regeneration by restarting
+# ope-gateway container.
+if [ "$connected_nets" -gt 0 ]; then
+    echo "Restarting ope-gateway to trigger proxy config regeneration..."
+    docker restart ope-gateway >/dev/null 2>&1 || true
+    sleep 2
+fi
+
 echo "Done!"

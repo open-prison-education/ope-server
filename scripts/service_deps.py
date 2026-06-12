@@ -5,6 +5,10 @@ Shared by setup.py (wizard) and rebuild_compose.py (compose generator).
 Dependencies are derived from `depends_on` and `links` in each service's
 docker-compose-include.yml.
 """
+import secrets as _secrets
+import uuid
+import socket
+import subprocess
 
 CORE_SERVICES = ["ope-gateway", "ope-dns"]
 
@@ -31,6 +35,7 @@ SERVICE_DEPS = {
     "ope-letsencrypt": [],
     "ope-redis": ["ope-gateway", "ope-dns"],
     "ope-postgresql": ["ope-gateway", "ope-dns"],
+    "ope-penpot": ["ope-gateway", "ope-dns"],
 }
 
 # Services shown in the setup wizard, grouped by category.
@@ -72,6 +77,7 @@ SERVICE_CATALOG = [
         "services": [
             {"name": "ope-jsbin", "description": "JS Bin"},
             {"name": "ope-git", "description": "Git Server (GitLab)"},
+            {"name": "ope-penpot", "description": "PenPot"},
         ],
     },
     {
@@ -101,10 +107,6 @@ def resolve_services(selected):
                 queue.append(dep)
     return resolved
 
-import uuid
-import socket
-import subprocess
-
 # Helper functions used in setup.py and rebuild_compose.py
 def detect_ip():
     """Auto-detect the local IP address."""
@@ -128,3 +130,8 @@ def generate_secret():
 
 def generate_secret_32():
     return (str(uuid.uuid4()) + "000")[:32]
+
+
+def generate_penpot_secret():
+    """Generate a 512-bit URL-safe base64 secret key for Penpot."""
+    return _secrets.token_urlsafe(64)

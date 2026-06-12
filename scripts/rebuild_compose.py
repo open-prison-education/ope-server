@@ -18,6 +18,7 @@ from service_deps import (
     detect_ip,
     generate_secret,
     generate_secret_32,
+    generate_penpot_secret,
 )
 
 # ---------------------------------------------------------------------------
@@ -49,6 +50,7 @@ DC_HEADER = """\
 # START OF docker-compose.yml
 <VOLUMES>
 
+<NETWORKS>
 
 services:
 
@@ -84,6 +86,9 @@ def load_or_create_secrets():
         changed = True
     if not secrets.get("canvas_sign_secret"):
         secrets["canvas_sign_secret"] = generate_secret_32()
+        changed = True
+    if not secrets.get("penpot_secret_key"):
+        secrets["penpot_secret_key"] = generate_penpot_secret()
         changed = True
 
     if changed:
@@ -131,27 +136,31 @@ def build_replacement_values(settings, secrets):
         "<NTP_SERVERS>": fallback(settings.get("ntp_servers"), "time.windows.com"),
         "<ALERT_EMAIL>": fallback(settings.get("alert_email"), "alert@correctionsed.com"),
         "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
+        "<PENPOT_SECRET_KEY>": fallback(secrets.get("penpot_secret_key"), ""),
+        "<NETWORKS>": "",
     }
     return values
 
 
 def process_service_folder(service_dir):
-    """Read docker-compose-include.yml and volumes-include.yml for a service.
-    Returns (compose_fragment, volume_names)."""
+    """Read docker-compose-include.yml, volumes-include.yml, and
+    networks-include.yml for a service.
+    Returns (compose_fragment, volume_names, network_names)."""
     compose_fragment = ""
     volume_names = []
+    network_names = ""
 
     dc_path = os.path.join(service_dir, "docker-compose-include.yml")
     if not os.path.isfile(dc_path):
         print(f"  WARNING: No docker-compose-include.yml in {service_dir}")
-        return compose_fragment, volume_names
+        return compose_fragment, volume_names, network_names
 
     try:
         with open(dc_path, "r") as f:
             compose_fragment = f.read()
     except Exception as e:
         print(f"  ERROR reading {dc_path}: {e}")
-        return compose_fragment, volume_names
+        return compose_fragment, volume_names, network_names
 
     compose_fragment += "\n\n"
 
@@ -169,7 +178,15 @@ def process_service_folder(service_dir):
         except Exception as e:
             print(f"  ERROR reading {vol_path}: {e}")
 
-    return compose_fragment, volume_names
+    net_path = os.path.join(service_dir, "networks-include.yml")
+    if os.path.isfile(net_path):
+        try:
+            with open(net_path, "r") as f:
+                network_names = f.read()
+        except Exception as e:
+            print(f"  ERROR reading {net_path}: {e}")
+
+    return compose_fragment, volume_names, network_names
 
 
 def rebuild_env(replacement_values):
@@ -209,6 +226,7 @@ def main():
 
     dc_out = DC_HEADER
     volume_list = []
+    network_list = []
 
     for service_name in sorted(resolved):
         service_dir = os.path.join(BASE_DIR, service_name)
@@ -217,18 +235,29 @@ def main():
             continue
 
         print(f"  Processing {service_name}")
-        fragment, volumes = process_service_folder(service_dir)
+        fragment, volumes, networks = process_service_folder(service_dir)
         dc_out += fragment
         for vol in volumes:
             if vol not in volume_list:
-                print(f"    Volume: {vol}")
+                print(f"    Adding volume: {vol[:-1]} from {service_name} ")
                 volume_list.append(vol)
+        if networks.strip():
+            print(f"    Adding networks: {networks.strip()[:-1]} from {service_name}")
+            network_list.append(networks)
 
     if volume_list:
         vol_section = "volumes:\n"
         for vol in volume_list:
             vol_section += f"    {vol}\n"
         replacement_values["<VOLUMES>"] = vol_section
+
+    if network_list:
+        networks = "networks:\n"
+        for network in network_list:
+            networks += f"    {network}"
+            if not network.endswith("\n"):
+                networks += "\n"
+        replacement_values["<NETWORKS>"] = networks
 
     for key, value in replacement_values.items():
         dc_out = dc_out.replace(key, value)

@@ -23,6 +23,7 @@
 #   ope-rachel          RACHEL
 #   ope-jsbin           JS Bin
 #   ope-git             Git Server (GitLab)
+#   ope-penpot          Penpot design platform
 #   ope-ntp             NTP Time Server
 #   ope-letsencrypt     Let's Encrypt SSL
 #   ope-fog             FOG Imaging
@@ -38,6 +39,7 @@ services:
   # - ope-rachel
   # - ope-jsbin
   # - ope-git
+  # - ope-penpot
   # - ope-ntp
   # - ope-letsencrypt
   # - ope-fog
