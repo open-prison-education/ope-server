@@ -47,7 +47,7 @@
             - PENPOT_SECRET_KEY=<PENPOT_SECRET_KEY>
             - PENPOT_DATABASE_URI=postgresql://penpot-postgres/penpot
             - PENPOT_DATABASE_USERNAME=penpot
-            - PENPOT_DATABASE_PASSWORD=penpot
+            - PENPOT_DATABASE_PASSWORD=${IT_PW}
             - PENPOT_REDIS_URI=redis://penpot-valkey/0
             - PENPOT_OBJECTS_STORAGE_BACKEND=fs
             - PENPOT_OBJECTS_STORAGE_FS_DIRECTORY=/opt/data/assets
@@ -102,7 +102,7 @@
             - POSTGRES_INITDB_ARGS=--data-checksums
             - POSTGRES_DB=penpot
             - POSTGRES_USER=penpot
-            - POSTGRES_PASSWORD=penpot
+            - POSTGRES_PASSWORD=${IT_PW}
 
     penpot-valkey:
         image: valkey/valkey:8.1
