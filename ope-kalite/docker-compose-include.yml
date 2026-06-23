@@ -1,6 +1,6 @@
     ope-kalite:
         build: ./ope-kalite
-        image: operepo/ope-kalite:release
+        image: ghcr.io/open-prison-education/ope-kalite:release
         container_name: ope-kalite
         network_mode: <NETWORK_MODE>
         restart: always

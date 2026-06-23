@@ -1,6 +1,6 @@
     ope-canvas:
         build: ./ope-canvas
-        image: operepo/ope-canvas:release
+        image: ghcr.io/open-prison-education/ope-canvas:release
         container_name: ope-canvas
         network_mode: <NETWORK_MODE>
         restart: always

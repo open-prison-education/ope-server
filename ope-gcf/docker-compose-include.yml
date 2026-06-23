@@ -1,6 +1,6 @@
     ope-gcf:
         build: ./ope-gcf
-        image: operepo/ope-gcf:release
+        image: ghcr.io/open-prison-education/ope-gcf:release
         container_name: ope-gcf
         network_mode: <NETWORK_MODE>
         restart: always

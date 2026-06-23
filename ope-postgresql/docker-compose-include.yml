@@ -1,6 +1,6 @@
     ope-postgresql:
         build: ./ope-postgresql
-        image: operepo/ope-postgresql:release
+        image: ghcr.io/open-prison-education/ope-postgresql:release
         container_name: ope-postgresql
         network_mode: <NETWORK_MODE>
         restart: always

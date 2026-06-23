@@ -1,6 +1,6 @@
     ope-codecombat:
         build: ./ope-codecombat
-        image: operepo/ope-codecombat:release
+        image: ghcr.io/open-prison-education/ope-codecombat:release
         container_name: ope-codecombat
         restart: always
         network_mode: <NETWORK_MODE>

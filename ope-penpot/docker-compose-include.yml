@@ -1,5 +1,5 @@
     penpot-frontend:
-        image: "penpotapp/frontend:${PENPOT_VERSION:-2.15}"
+        image: "ghcr.io/open-prison-education/penpot-frontend:${PENPOT_VERSION:-2.15}"
         container_name: penpot-frontend
         restart: always
         ports:
@@ -27,7 +27,7 @@
             - PENPOT_PUBLIC_URI=https://penpot.<DOMAIN>
 
     penpot-backend:
-        image: "penpotapp/backend:${PENPOT_VERSION:-2.15}"
+        image: "ghcr.io/open-prison-education/penpot-backend:${PENPOT_VERSION:-2.15}"
         container_name: penpot-backend
         restart: always
         volumes:
@@ -63,14 +63,14 @@
             - PENPOT_SMTP_SSL=false
 
     penpot-mcp:
-        image: "penpotapp/mcp:${PENPOT_VERSION:-2.15}"
+        image: "ghcr.io/open-prison-education/penpot-mcp:${PENPOT_VERSION:-2.15}"
         container_name: penpot-mcp
         restart: always
         networks:
             - penpot
 
     penpot-exporter:
-        image: "penpotapp/exporter:${PENPOT_VERSION:-2.15}"
+        image: "ghcr.io/open-prison-education/penpot-exporter:${PENPOT_VERSION:-2.15}"
         container_name: penpot-exporter
         restart: always
         depends_on:
@@ -84,7 +84,7 @@
             - PENPOT_REDIS_URI=redis://penpot-valkey/0
 
     penpot-postgres:
-        image: "postgres:15"
+        image: "ghcr.io/open-prison-education/postgres:15"
         container_name: penpot-postgres
         restart: always
         stop_signal: SIGINT
@@ -105,7 +105,7 @@
             - POSTGRES_PASSWORD=${IT_PW}
 
     penpot-valkey:
-        image: valkey/valkey:8.1
+        image: ghcr.io/open-prison-education/valkey:8.1
         container_name: penpot-valkey
         restart: always
         healthcheck:
@@ -120,7 +120,7 @@
             - VALKEY_EXTRA_FLAGS=--maxmemory 128mb --maxmemory-policy volatile-lfu
 
     penpot-mailcatch:
-        image: sj26/mailcatcher:latest
+        image: ghcr.io/open-prison-education/mailcatcher:latest
         container_name: penpot-mailcatch
         restart: always
         networks:

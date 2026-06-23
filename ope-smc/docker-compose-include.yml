@@ -1,6 +1,6 @@
     ope-smc:
         build: ./ope-smc
-        image: operepo/ope-smc:release
+        image: ghcr.io/open-prison-education/ope-smc:release
         container_name: ope-smc
         network_mode: <NETWORK_MODE>
         restart: always

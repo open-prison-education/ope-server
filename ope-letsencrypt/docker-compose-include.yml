@@ -1,6 +1,6 @@
     ope-letsencrypt:
         build: ./ope-letsencrypt
-        image: operepo/ope-letsencrypt:release
+        image: ghcr.io/open-prison-education/ope-letsencrypt:release
         container_name: ope-letsencrypt
         restart: always
         network_mode: <NETWORK_MODE>

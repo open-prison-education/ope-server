@@ -1,6 +1,6 @@
     ope-canvas-mathman:
         build: ./ope-canvas-mathman
-        image: operepo/ope-canvas-mathman:release
+        image: ghcr.io/open-prison-education/ope-canvas-mathman:release
         container_name: ope-canvas-mathman
         network_mode: <NETWORK_MODE>
         restart: always

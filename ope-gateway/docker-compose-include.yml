@@ -1,6 +1,6 @@
     ope-gateway:
         build: ./ope-gateway
-        image: operepo/ope-gateway:release
+        image: ghcr.io/open-prison-education/ope-gateway:release
         container_name: ope-gateway
         restart: always
         network_mode: <NETWORK_MODE>

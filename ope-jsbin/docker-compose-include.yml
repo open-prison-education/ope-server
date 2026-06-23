@@ -1,6 +1,6 @@
     ope-jsbin:
         build: ./ope-jsbin
-        image: operepo/ope-jsbin:release
+        image: ghcr.io/open-prison-education/ope-jsbin:release
         container_name: ope-jsbin
         network_mode: <NETWORK_MODE>
         restart: always

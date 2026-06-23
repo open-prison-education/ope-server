@@ -1,6 +1,6 @@
     ope-dns:
         build: ./ope-dns
-        image: operepo/ope-dns:release
+        image: ghcr.io/open-prison-education/ope-dns:release
         container_name: ope-dns
         restart: always
         network_mode: <NETWORK_MODE>

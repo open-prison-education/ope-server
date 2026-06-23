@@ -1,6 +1,6 @@
     ope-git:
         build: ./ope-git
-        image: operepo/ope-git:release
+        image: ghcr.io/open-prison-education/ope-git:release
         container_name: ope-git
         restart: always
         network_mode: <NETWORK_MODE>

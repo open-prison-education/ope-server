@@ -1,6 +1,6 @@
     ope-redis:
         build: ./ope-redis
-        image: operepo/ope-redis:release
+        image: ghcr.io/open-prison-education/ope-redis:release
         container_name: ope-redis
         network_mode: <NETWORK_MODE>
         restart: always

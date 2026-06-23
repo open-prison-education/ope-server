@@ -1,6 +1,6 @@
     ope-rachel:
         build: ./ope-rachel
-        image: operepo/ope-rachel
+        image: ghcr.io/open-prison-education/ope-rachel
         container_name: ope-rachel
         network_mode: <NETWORK_MODE>
         restart: always

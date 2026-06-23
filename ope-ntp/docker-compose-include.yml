@@ -1,6 +1,6 @@
     ope-ntp:
         build: ./ope-ntp
-        image: operepo/ope-ntp:release
+        image: ghcr.io/open-prison-education/ope-ntp:release
         container_name: ope-ntp
         restart: always
         network_mode: <NETWORK_MODE>

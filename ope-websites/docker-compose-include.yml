@@ -1,6 +1,6 @@
     ope-websites:
         build: ./ope-websites
-        image: operepo/ope-websites:release
+        image: ghcr.io/open-prison-education/ope-websites:release
         container_name: ope-websites
         network_mode: <NETWORK_MODE>
         restart: always

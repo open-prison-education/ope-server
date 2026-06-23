@@ -1,7 +1,7 @@
 
     ope-fog:
         build: ./ope-fog
-        image: operepo/ope-fog:release
+        image: ghcr.io/open-prison-education/ope-fog:release
         container_name: ope-fog
         #network_mode: none
         #network_mode: host
