@@ -31,6 +31,7 @@ SERVICE_DEPS = {
     "ope-git": ["ope-gateway", "ope-dns"],
     "ope-rachel": ["ope-gateway", "ope-dns"],
     "ope-websites": ["ope-gateway", "ope-dns"],
+    "ope-dl": ["ope-gateway", "ope-dns"],
     "ope-ntp": [],
     "ope-letsencrypt": [],
     "ope-redis": ["ope-gateway", "ope-dns"],
@@ -70,6 +71,12 @@ SERVICE_CATALOG = [
             {"name": "ope-freecodecamp", "description": "freeCodeCamp"},
             {"name": "ope-codecombat", "description": "CodeCombat"},
             {"name": "ope-rachel", "description": "RACHEL"},
+        ],
+    },
+    {
+        "group": "Downloads",
+        "services": [
+            {"name": "ope-dl", "description": "Download site (apps and docker images)"},
         ],
     },
     {

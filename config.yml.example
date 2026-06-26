@@ -28,6 +28,7 @@
 #   ope-letsencrypt     Let's Encrypt SSL
 #   ope-fog             FOG Imaging
 #   ope-websites        OSN Approved Websites
+#   ope-dl              Download site (Apache autoindex, apps and docker images)
 
 services:
   - ope-canvas
@@ -44,6 +45,7 @@ services:
   # - ope-letsencrypt
   # - ope-fog
   # - ope-websites
+  # - ope-dl
 
 # ----------------------------------------------------------------------------
 # Settings

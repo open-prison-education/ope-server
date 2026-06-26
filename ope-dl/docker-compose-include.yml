@@ -1,0 +1,19 @@
+    ope-dl:
+        build: ./ope-dl
+        image: ghcr.io/open-prison-education/ope-dl:release
+        container_name: ope-dl
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "80"
+        volumes:
+            - ./volumes/dl:/downloads:ro
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=dl.<DOMAIN>
+            - LETSENCRYPT_HOST=dl.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+            - VIRTUAL_PORT=80
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - HTTPS_METHOD=redirect
