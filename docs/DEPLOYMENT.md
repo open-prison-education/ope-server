@@ -13,7 +13,9 @@ This guide covers the complete deployment process for the Open Prison Education 
 - [Public Deployment: Preventing Search Engine Crawling](#public-deployment-preventing-search-engine-crawling)
 - [Troubleshooting](#troubleshooting)
 
-**Related:** [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+**Related:**
+- [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+- [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) - Bundling OPE Server for air-gapped machines with no internet
 
 ## System Requirements
 
@@ -29,8 +31,11 @@ This guide covers the complete deployment process for the Open Prison Education 
 - **Operating System:** Ubuntu 20.04 LTS or later (recommended)
 - **Docker Engine:** 20.10 or later
 - **Docker Compose:** v2.0 or later
-- **Python:** 3.6 or later
-- **Git:** 2.x or later
+- **Python:** 3.6 or later (skip for for air-gapped target machine)
+- **Git:** 2.x or later (skip for for air-gapped target machine)
+
+Note: Python and Git are only necessary for build machine, air-gapped target machine uses 
+tar ball release instead of direct source code which includes python dependecies.
 
 ## Pre-Installation
 
@@ -68,7 +73,7 @@ sudo apt install docker-compose-plugin
 docker compose version
 ```
 
-### 4. Install Python 3
+### 4. Install Python 3 (skip for for air-gapped target machine)
 
 ```bash
 sudo apt install python3 python3-pip -y
@@ -76,7 +81,7 @@ sudo apt install python3 python3-pip -y
 
 ## Installation
 
-### 1. Clone Repository
+### 1. Clone Repository (skip for for air-gapped target machine)
 
 ```bash
 git clone https://github.com/open-prison-education/ope-server
