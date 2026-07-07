@@ -158,9 +158,13 @@ tar czf "$TARBALL_OUT" \
     --exclude="${PROJECT_NAME}/config.yml" \
     --exclude="${PROJECT_NAME}/docker-compose.yml" \
     --exclude="${PROJECT_NAME}/.env" \
-    --warning=no-file-changed \
     --ignore-failed-read \
-    "${PROJECT_NAME}/"
+    "${PROJECT_NAME}/" || TAR_RC=$?
+
+if [ $TAR_RC -gt 1 ]; then
+    echo "ERROR: tar failed with exit code $TAR_RC."
+    exit 1
+fi
 
 echo "=== Offline tarball created ==="
 echo "  File: $TARBALL_OUT"
