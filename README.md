@@ -49,15 +49,18 @@ OPE Server is a collection of Docker containers that work together to provide a 
 | **ope-freecodecamp** | freeCodeCamp offline content |
 | **ope-jsbin** | JS Bin code playground |
 | **ope-rachel** | RACHEL offline educational content |
-| **ope-git** | Git server for code repositories |
+| **ope-git** | Git Server (GitLab) |
+| **ope-penpot** | Penpot open-source design platform |
 | **ope-websites** | OSN approved websites |
+| **ope-dl** | Download site (Apache autoindex for apps and Docker images) |
+| **ope-letsencrypt** | Let's Encrypt SSL certificate automation |
 
 ## Prerequisites
 
 - Linux server (Ubuntu 20.04+ recommended)
 - Docker Engine 20.10+
 - Docker Compose v2+
-- Python 3.6+
+- Python 3.6+ (not required on air-gapped targets -- see [Offline Deployment](docs/OFFLINE_DEPLOYMENT.md))
 - Minimum 8GB RAM
 - 500GB+ storage (varies based on content)
 
@@ -120,8 +123,10 @@ ope-server/
 │   ├── rebuild_compose.py   # Generates docker-compose.yml & .env
 │   ├── rebuild.sh           # Script to generates docker-compose.yml & .env only, a wrapper for rebuild_compose.py
 │   ├── service_deps.py      # Service dependency map
-│   ├── ensure_venv.sh       # Python venv bootstrap (sourced by shell scripts)
+│   ├── ensure_venv.sh       # Python bootstrap (bundled runtime or system venv)
 │   ├── requirements.txt     # Python dependencies
+│   ├── bundle_runtime.sh    # Build offline ope-server tarball with bundled Python
+│   ├── retag_images.sh      # Retag Docker images from operepo/* to ghcr.io/open-prison-education/*
 │   ├── push_images.py       # Push images to registry
 │   ├── export_databases.sh  # Backup PostgreSQL and MySQL databases
 │   ├── flush_redis_keys.sh  # Clear Redis cache
@@ -141,6 +146,8 @@ ope-server/
 | `./scripts/rebuild.sh` | Regenerate `docker-compose.yml` and `.env` without starting containers |
 | `./scripts/export_databases.sh` | Backup PostgreSQL and MySQL databases |
 | `./scripts/flush_redis_keys.sh` | Clear Redis cache |
+| `./scripts/bundle_runtime.sh` | Build an offline ope-server tarball with bundled Python for air-gapped deployment |
+| `./scripts/retag_images.sh` | Retag local Docker images from the old `operepo/*` namespace to `ghcr.io/open-prison-education/*` |
 
 ## Configuration
 
@@ -172,21 +179,26 @@ ope-myapp/
 
 3. Add it as a commented-out entry in `config.yml.example` so users can discover it.
 
-4. Enable the service in `config.yml` and run `./up.sh b` to build all enabled servies and stert them. Or run `docker compose build ope-myapp` to build only your app, then `up.sh` start services.
+4. Enable the service in `config.yml` and run `./up.sh b` to build all enabled services and start them. Or run `docker compose build ope-myapp` to build only your service, then `./up.sh` to start everything.
 
 ## Deployment
 
 For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
+Deploying on an air-gapped machine with no internet? If you already have the
+pre-built files (`ope-server-offline.tar.gz` and `ope-images.tar.gz`), see the
+**[Offline Deployment Guide](docs/OFFLINE_DEPLOYMENT.md)**. To build those
+files, see the **[Offline Distribution Guide](docs/OFFLINE_DISTRIBUTION.md)**.
+
 Once services are running, the **[Accessing Services Guide](docs/ACCESSING_SERVICES.md)** covers how to reach Canvas, SMC, and other applications -- including DNS setup for air-gapped environments and remote access via public IP.
 
-To work on individual services:
+To work on an individual service:
 
 1. Navigate to the service directory (e.g., `cd ope-smc`)
 2. Make changes to Dockerfile or configuration
-3. Rebuild with `./scripts/rebuild.sh`
-4. run `docker compose build ope-smc`
-5. run `up.sh`
+3. Rebuild the compose files: `./scripts/rebuild.sh`
+4. Build the service image: `docker compose build ope-smc`
+5. Start services: `./up.sh`
 
 ## Contributing
 

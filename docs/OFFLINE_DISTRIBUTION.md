@@ -1,9 +1,15 @@
-# Offline Distribution Guide
+# Offline Distribution Guide (Building the Bundle)
 
-This guide explains how to prepare OPE Server for deployment on an **air-gapped
-Debian/Ubuntu machine** with no internet access.
+This guide is for **developers and IT staff** who need to prepare OPE Server
+files for deployment on an air-gapped machine.
 
-**Related:** [Deployment Guide](DEPLOYMENT.md) - Full deployment instructions (assumes internet access)
+If you are the **site operator** who already has `ope-server-offline.tar.gz`
+and `ope-images.tar.gz`, skip this guide and go straight to the
+**[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**.
+
+**Related:**
+- [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) -- For site operators: installing from the pre-built files
+- [Deployment Guide](DEPLOYMENT.md) -- Full deployment instructions (assumes internet access)
 
 The approach bundles a standalone CPython interpreter with all dependencies
 pre-installed, so the target machine needs **no Python, no pip, and no network**.
@@ -16,12 +22,26 @@ pre-installed, so the target machine needs **no Python, no pip, and no network**
 ┌─────────────────────────────────┐        ┌─────────────────────────────────┐
 │  BUILD MACHINE (has internet)   │        │  TARGET MACHINE (air-gapped)    │
 │                                 │        │                                 │
-│  1. Clone/copy this repo        │  USB   │  1. Extract tarball             │
-│  2. Run bundle_runtime.sh       │ ─────► │  2. Run ./setup.sh              │
-│  3. Get ope-server-offline.tar  │  or    │     (uses bundled Python,       │
-│                                 │  SCP   │      no internet needed)        │
+│  1. Clone repo                  │  USB   │  1. Extract tarball             │
+│  2. Run bundle_runtime.sh       │ ─────► │  2. Load Docker images          │
+│  3. Export Docker images        │  or    │  3. Run ./setup.sh              │
+│  4. Hand off files              │  SCP   │  4. Run ./up.sh                 │
+│                                 │        │                                 │
 └─────────────────────────────────┘        └─────────────────────────────────┘
 ```
+
+---
+
+## Prerequisites
+
+| Machine | Requirements |
+|---------|-------------|
+| **Build machine** (has internet) | `python3`, `tar`, `wget` or `curl`, Docker (to export images) |
+| **Target machine** (air-gapped) | Docker Engine 20.10+, Docker Compose v2+ |
+
+The build machine does not need to match the target's OS or architecture.
+See the [Deployment Guide](DEPLOYMENT.md#pre-installation) for Docker
+installation instructions.
 
 ---
 
@@ -65,40 +85,53 @@ This will:
 ./runtime/python/bin/python3 -c "import yaml; print(yaml.__version__)"
 ```
 
+### 1.4 Export Docker images (if needed)
+
+The tarball contains the scripts and bundled Python runtime but **not** the
+Docker images themselves. If the target machine has never pulled images, you
+need to export them on the build machine and transfer them separately:
+
+```bash
+# On the build machine, pull all images first
+./up.sh          # pulls images for all enabled services, then Ctrl-C or run ./down.sh
+
+# Save the images to a file (this can be large, 10-30 GB+)
+docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep ghcr.io/open-prison-education) \
+  | gzip > ope-images.tar.gz
+```
+
+> **Tip:** You can also save images selectively. For example, to export only
+> Canvas and its dependencies:
+> ```bash
+> docker save ghcr.io/open-prison-education/ope-canvas:release \
+>             ghcr.io/open-prison-education/ope-gateway:release \
+>             ghcr.io/open-prison-education/ope-dns:release \
+>             ghcr.io/open-prison-education/ope-redis:release \
+>             ghcr.io/open-prison-education/ope-postgresql:release \
+>             ghcr.io/open-prison-education/ope-canvas-rce:release \
+>             ghcr.io/open-prison-education/ope-canvas-mathman:release \
+>   | gzip > ope-images.tar.gz
+> ```
+
 ---
 
 ## Step 2: Transfer to the Air-Gapped Machine
 
-Copy `ope-server-offline.tar.gz` to the target via:
-- USB drive
-- SCP through a jump host
-- Shared network drive
-- Any other method
+Copy the following files to the target via USB drive, SCP through a jump host,
+shared network drive, or any other method:
+
+- `ope-server-offline.tar.gz` (scripts + bundled Python runtime)
+- `ope-images.tar.gz` (Docker images, if exported in step 1.4)
 
 ---
 
-## Step 3: Install on the Target Machine
+## Step 3: Hand Off to the Site Operator
 
-On the air-gapped Debian/Ubuntu machine:
+Give the site operator these two files along with the
+**[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**, which walks them through
+extracting, loading images, running the setup wizard, and starting services.
 
-```bash
-# Extract the tarball
-tar -xzf ope-server-offline.tar.gz
-cd ope-server
-
-# Run setup (uses the bundled Python automatically)
-./setup.sh
-```
-
-That's it. The `ensure_venv.sh` script detects `runtime/python/` and uses it
-directly — no system Python, no venv creation, no pip install, no network
-required.
-
-### Verify manually (optional)
-
-```bash
-./runtime/python/bin/python3 -c "import yaml; print('OK:', yaml.__version__)"
-```
+If you are also the person deploying, follow that guide now.
 
 ---
 
