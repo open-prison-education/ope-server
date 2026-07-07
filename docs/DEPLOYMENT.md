@@ -11,9 +11,13 @@ This guide covers the complete deployment process for the Open Prison Education 
 - [Service Management](#service-management)
 - [Backup and Restore](#backup-and-restore)
 - [Public Deployment: Preventing Search Engine Crawling](#public-deployment-preventing-search-engine-crawling)
+- [Migrating Docker Images from Old Registry](#migrating-docker-images-from-old-registry)
 - [Troubleshooting](#troubleshooting)
 
-**Related:** [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+**Related:**
+- [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+- [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) - For site operators: deploying from pre-built files on an air-gapped machine
+- [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) - For developers: building the offline bundle
 
 ## System Requirements
 
@@ -29,8 +33,12 @@ This guide covers the complete deployment process for the Open Prison Education 
 - **Operating System:** Ubuntu 20.04 LTS or later (recommended)
 - **Docker Engine:** 20.10 or later
 - **Docker Compose:** v2.0 or later
-- **Python:** 3.6 or later
-- **Git:** 2.x or later
+- **Python:** 3.6 or later (not required on air-gapped targets)
+- **Git:** 2.x or later (not required on air-gapped targets)
+
+Note: Python and Git are only needed on the build machine. Air-gapped targets use a
+pre-built tarball that includes a bundled Python runtime and all dependencies -- see the
+[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md).
 
 ## Pre-Installation
 
@@ -68,7 +76,7 @@ sudo apt install docker-compose-plugin
 docker compose version
 ```
 
-### 4. Install Python 3
+### 4. Install Python 3 (not required on air-gapped targets)
 
 ```bash
 sudo apt install python3 python3-pip -y
@@ -76,7 +84,7 @@ sudo apt install python3 python3-pip -y
 
 ## Installation
 
-### 1. Clone Repository
+### 1. Clone Repository (not required on air-gapped targets)
 
 ```bash
 git clone https://github.com/open-prison-education/ope-server
@@ -288,6 +296,26 @@ Replace `smc.yourSchool.org` with your actual SMC domain (i.e. `smc.<your-domain
 ```bash
 docker compose restart ope-gateway
 ```
+
+## Migrating Docker Images from Old Registry
+
+If you have an existing deployment with Docker images cached under the old
+`operepo/*` Docker Hub namespace, you can retag them to the current
+`ghcr.io/open-prison-education/*` registry without re-downloading:
+
+```bash
+# Preview what would be retagged (no changes made)
+./scripts/retag_images.sh --dry-run
+
+# Retag all operepo/* images to ghcr.io/open-prison-education/*
+./scripts/retag_images.sh
+
+# Retag and remove the old operepo/* tags
+./scripts/retag_images.sh --remove-old
+```
+
+This is especially useful on air-gapped machines where re-pulling images from
+the internet is not possible.
 
 ## Troubleshooting
 

@@ -8,3 +8,5 @@
 __pycache__/
 *.pyc
 /volumes/
+/runtime/
+ope-server-offline.tar.gz
