@@ -162,7 +162,7 @@ Then navigate to `https://canvas.ed` in your local machine's browser. For air-ga
 
 SSL certificates are automatically generated on first run. For custom certificates:
 
-1. Place certificates in `volumes/gateway/certs/`
+1. Place certificates in `<volumes_root>/gateway/certs/` (default: `./volumes/gateway/certs/`)
 2. Update `ope-gateway/docker-compose-include.yml`
 
 ### DNS Configuration
@@ -267,7 +267,7 @@ When deploying OPE Server on a public-facing network, you should prevent search 
 
 ### Add Nginx Virtual Host Configuration
 
-Create a file under `volumes/gateway/vhost.d/` named after your SMC domain. For example, if your domain is `smc.yourSchool.org`:
+Create a file under `<volumes_root>/gateway/vhost.d/` (default: `./volumes/gateway/vhost.d/`) named after your SMC domain. For example, if your domain is `smc.yourSchool.org`:
 
 ```bash
 nano volumes/gateway/vhost.d/smc.yourSchool.org
@@ -344,7 +344,7 @@ docker compose restart ope-postgresql ope-redis
 #### Permission Issues
 
 ```bash
-# Fix volume permissions
+# Fix volume permissions (adjust path if you configured a custom volumes_root)
 sudo chown -R 1000:1000 volumes/
 ```
 

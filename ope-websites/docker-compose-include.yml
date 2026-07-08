@@ -7,7 +7,7 @@
         ports:
             - "80"
         volumes:
-            - ./volumes/websites/www:/usr/share/nginx/html:rw
+            - <VOLUMES_ROOT>/websites/www:/usr/share/nginx/html:rw
         depends_on:
             - ope-gateway
             - ope-dns

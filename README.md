@@ -160,6 +160,17 @@ The system is configured through:
 
 To reconfigure the server, either edit `config.yml` directly or re-run `./setup.sh`.
 
+### Custom volumes path
+
+By default, persistent service data is stored in `./volumes/` relative to the project root. To use a different location (e.g. a dedicated data partition), set `volumes_root` in `config.yml`:
+
+```yaml
+settings:
+  volumes_root: "/mnt/data/ope-volumes"
+```
+
+Both absolute paths and paths relative to the project root are supported. If unset, it defaults to `./volumes`.
+
 ## Adding a New Service
 
 To add a new service (e.g. `ope-myapp`):

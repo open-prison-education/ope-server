@@ -187,7 +187,7 @@ Your connection is still encrypted; the warning only means the certificate autho
 ### When you get a trusted certificate (no warning)
 
 - **Real domain + Let's Encrypt:** Use [Option 2: Use a real domain](#option-2-use-a-real-domain) so that `canvas.myschool.org`, `smc.myschool.org`, etc. point to your server. Then Let's Encrypt can issue trusted certificates for those names.
-- **Your own certificates:** Install your own trusted certificates in `volumes/gateway/certs/` and configure the gateway to use them.
+- **Your own certificates:** Install your own trusted certificates in `<volumes_root>/gateway/certs/` (default: `volumes/gateway/certs/`) and configure the gateway to use them.
 
 > **Important:** If you are using `.ed` domains with a hosts file (not a real public domain), **do not enable the `ope-letsencrypt` service**. The letsencrypt companion cannot issue certificates for `.ed` domains and will create empty certificate directories that interfere with the gateway's cert lookup (causing "INVALID CERT SETUP" errors). To disable it, remove `ope-letsencrypt` from the `services` list in `config.yml`, then run:
 > ```bash

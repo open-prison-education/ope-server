@@ -114,6 +114,7 @@ def build_replacement_values(settings, secrets):
         "<DOMAIN>": domain,
         "<IP>": ip,
         "<VOLUMES>": "",
+        "<VOLUMES_ROOT>": fallback(settings.get("volumes_root"), "./volumes"),
         "<NETWORK_MODE>": fallback(settings.get("network_mode"), "bridge"),
         "<CANVAS_SECRET>": fallback(secrets.get("canvas_secret"), ""),
         "<CANVAS_ENC_SECRET>": fallback(secrets.get("canvas_enc_secret"), ""),

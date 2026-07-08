@@ -41,6 +41,7 @@ DEFAULT_SETTINGS = {
     "cert_name": "default",
     "dns_extras": "",
     "network_mode": "bridge",
+    "volumes_root": "./volumes",
 }
 
 
@@ -134,6 +135,10 @@ def wizard_settings(defaults):
     settings["network_mode"] = prompt(
         "Docker network mode",
         defaults.get("network_mode", DEFAULT_SETTINGS["network_mode"]),
+    )
+    settings["volumes_root"] = prompt(
+        "Volumes root path (absolute or relative to project)",
+        defaults.get("volumes_root", DEFAULT_SETTINGS["volumes_root"]),
     )
 
     return settings

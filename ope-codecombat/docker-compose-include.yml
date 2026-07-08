@@ -9,7 +9,7 @@
         volumes:
             # Normal mounts
             - coco_mongo:/home/coco/codecombat/mongo:rw
-            - ./volumes/codecombat/data:/home/coco/codecombat/data:rw
+            - <VOLUMES_ROOT>/codecombat/data:/home/coco/codecombat/data:rw
         depends_on:
             - ope-gateway
             - ope-dns

@@ -8,11 +8,11 @@
             - "3000"
         volumes:
             # Normal mounts
-            - ./volumes/canvas/tmp:/usr/src/app/tmp:rw
-            - ./volumes/canvas/log:/usr/src/app/log:rw
-            - ./volumes/canvas/tmpfiles:/tmp:rw
-            - ./volumes/canvas/sendfile:/usr/src/app/sendfile:rw
-            - ./volumes/canvas/keys:/usr/src/app/keys:rw
+            - <VOLUMES_ROOT>/canvas/tmp:/usr/src/app/tmp:rw
+            - <VOLUMES_ROOT>/canvas/log:/usr/src/app/log:rw
+            - <VOLUMES_ROOT>/canvas/tmpfiles:/tmp:rw
+            - <VOLUMES_ROOT>/canvas/sendfile:/usr/src/app/sendfile:rw
+            - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
         depends_on:
             - ope-gateway
             - ope-dns

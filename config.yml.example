@@ -93,6 +93,11 @@ settings:
   # Docker network mode
   network_mode: "bridge"
 
+  # Path to the volumes directory for persistent service data.
+  # Can be an absolute path (e.g. /mnt/data/ope-volumes) or relative to the
+  # project root (e.g. ./volumes).  Defaults to ./volumes if not set.
+  volumes_root: "./volumes"
+
 # ----------------------------------------------------------------------------
 # Secrets  (stored separately in .secrets.yml, auto-generated on first run)
 # ----------------------------------------------------------------------------

@@ -9,10 +9,10 @@
             #- /var/run/docker.sock:/tmp/docker.sock
             - /var/run:/var/run:rw
             # /certs directory can be mapped if you put your certs in the volumes folder
-            - ./volumes/gateway/certs:/etc/nginx/certs:rw
-            - ./volumes/gateway/vhost.d:/etc/nginx/vhost.d:rw
+            - <VOLUMES_ROOT>/gateway/certs:/etc/nginx/certs:rw
+            - <VOLUMES_ROOT>/gateway/vhost.d:/etc/nginx/vhost.d:rw
             # Expose html folder so letsencrypt can do its thing
-            - ./volumes/gateway/html:/usr/share/nginx/html:rw
+            - <VOLUMES_ROOT>/gateway/html:/usr/share/nginx/html:rw
         environment:
             - PUBLIC_IP=${PUBLIC_IP}
             - IS_DOCKER=true

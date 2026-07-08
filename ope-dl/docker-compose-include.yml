@@ -7,7 +7,7 @@
         ports:
             - "80"
         volumes:
-            - ./volumes/dl:/downloads:ro
+            - <VOLUMES_ROOT>/dl:/downloads:ro
         env_file: .env
         environment:
             - VIRTUAL_HOST=dl.<DOMAIN>

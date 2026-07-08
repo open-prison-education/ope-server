@@ -46,12 +46,12 @@
         #labels:
         #    - fogproject="Open Source PC Imaging Server"
         volumes:
-            - ./volumes/fog/images:/images:rw
-            - ./volumes/fog/backup:/backup:rw
-            #- ./volumes/fog/tftpboot:/tftpboot:rw
-            #- ./volumes/fog/opt/fog:/opt/fog:rw
-            - ./volumes/fog/mysql/data:/var/lib/mysql:rw
-            - ./volumes/gateway/conf.d:/etc/nginx/conf.d:rw
+            - <VOLUMES_ROOT>/fog/images:/images:rw
+            - <VOLUMES_ROOT>/fog/backup:/backup:rw
+            #- <VOLUMES_ROOT>/fog/tftpboot:/tftpboot:rw
+            #- <VOLUMES_ROOT>/fog/opt/fog:/opt/fog:rw
+            - <VOLUMES_ROOT>/fog/mysql/data:/var/lib/mysql:rw
+            - <VOLUMES_ROOT>/gateway/conf.d:/etc/nginx/conf.d:rw
         depends_on:
             - ope-gateway
             - ope-dns
