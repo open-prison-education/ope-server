@@ -29,7 +29,17 @@
     penpot-backend:
         image: "ghcr.io/open-prison-education/penpot-backend:${PENPOT_VERSION:-2.15}"
         container_name: penpot-backend
-        restart: always
+        restart: "no"
+        deploy:
+            restart_policy:
+                condition: on-failure
+                delay: 10s
+                max_attempts: 5
+                window: 120s
+            resources:
+                limits:
+                    cpus: "2.0"
+                    memory: 2G
         volumes:
             - penpot_assets:/opt/data/assets
         depends_on:
@@ -89,11 +99,11 @@
         restart: always
         stop_signal: SIGINT
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U penpot"]
-            interval: 2s
+            test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER && PGPASSWORD=$POSTGRES_PASSWORD psql -U $POSTGRES_USER -d $POSTGRES_DB -c 'SELECT 1' -q -t"]
+            interval: 5s
             timeout: 10s
             retries: 5
-            start_period: 2s
+            start_period: 10s
         volumes:
             - penpot_postgres_v15:/var/lib/postgresql/data
         networks:
