@@ -5,7 +5,7 @@
         ports:
             - "8080"
         volumes:
-            - penpot_assets:/opt/data/assets
+            - <VOLUMES_ROOT>/penpot/assets:/opt/data/assets
         depends_on:
             - ope-gateway
             - ope-dns
@@ -41,7 +41,7 @@
                     cpus: "2.0"
                     memory: 2G
         volumes:
-            - penpot_assets:/opt/data/assets
+            - <VOLUMES_ROOT>/penpot/assets:/opt/data/assets
         depends_on:
             penpot-postgres:
                 condition: service_healthy
@@ -105,7 +105,7 @@
             retries: 5
             start_period: 10s
         volumes:
-            - penpot_postgres_v15:/var/lib/postgresql/data
+            - <VOLUMES_ROOT>/penpot/postgresql/data:/var/lib/postgresql/data
         networks:
             - penpot
         environment:
