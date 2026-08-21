@@ -11,3 +11,5 @@ __pycache__/
 /volumes/
 /runtime/
 ope-server-offline.tar.gz
+/exported_images/
+GeoLite2-City.mmdb

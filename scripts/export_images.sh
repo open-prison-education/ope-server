@@ -2,10 +2,11 @@
 # export_images.sh — Export Docker images to individual .tar.gz files.
 #
 # Groups:
-#   ope-canvas.tar.gz  — ope-canvas, ope-canvas-rce, ope-canvas-mathman
-#   ope-penpot.tar.gz  — penpot-mcp, penpot-exporter, penpot-frontend,
-#                        penpot-backend, valkey, mailcatcher, postgres:15
-#   All other images   — one .tar.gz each
+#   ope-canvas.tar.gz      — ope-canvas, ope-canvas-rce, ope-canvas-mathman
+#   ope-penpot.tar.gz      — penpot-mcp, penpot-exporter, penpot-frontend,
+#                            penpot-backend, valkey, mailcatcher, postgres:15
+#   ope-monitoring.tar.gz  — prometheus, loki, alloy, grafana, alertmanager
+#   All other images       — one .tar.gz each
 #
 # Usage:
 #   ./scripts/export_images.sh [--output-dir /path/to/dir]
@@ -52,7 +53,15 @@ export_images "ope-penpot.tar.gz" \
     "${REGISTRY}/mailcatcher:latest" \
     "${REGISTRY}/postgres:15"
 
-# Group 3: Individual images
+# Group 3: Monitoring
+export_images "ope-monitoring.tar.gz" \
+    "${REGISTRY}/prometheus:v3.14.0" \
+    "${REGISTRY}/loki:3.7.6" \
+    "${REGISTRY}/alloy:v1.18.1" \
+    "${REGISTRY}/grafana:13.2.0" \
+    "${REGISTRY}/alertmanager:v0.34.0"
+
+# Group 4: Individual images
 INDIVIDUAL_IMAGES=(
     "ope-dl:release"
     "ope-websites:release"

@@ -87,3 +87,32 @@ EOF
 fi
 
 echo "Monitoring data directories ready."
+
+# ---------------------------------------------------------------------------
+# GeoIP database installation
+# ---------------------------------------------------------------------------
+# If GeoLite2-City.mmdb exists at the project root (bundled for air-gap) or
+# is passed as the second argument, copy it into the geoip data directory.
+# The Alloy container mounts <MONITORING_DATA_ROOT>/geoip → /etc/alloy/geoip.
+GEOIP_SRC="${2:-}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR" 2>/dev/null || echo "$SCRIPT_DIR")"
+
+if [ -z "$GEOIP_SRC" ] && [ -f "${PROJECT_ROOT}/GeoLite2-City.mmdb" ]; then
+    GEOIP_SRC="${PROJECT_ROOT}/GeoLite2-City.mmdb"
+fi
+
+GEOIP_DEST="${DATA_ROOT}/geoip/GeoLite2-City.mmdb"
+
+if [ -n "$GEOIP_SRC" ] && [ -f "$GEOIP_SRC" ]; then
+    if $SUDO cp "$GEOIP_SRC" "$GEOIP_DEST" 2>/dev/null || cp "$GEOIP_SRC" "$GEOIP_DEST" 2>/dev/null; then
+        $SUDO chmod 644 "$GEOIP_DEST" 2>/dev/null || chmod 644 "$GEOIP_DEST" 2>/dev/null || true
+        echo "GeoIP database installed: ${GEOIP_DEST}"
+    else
+        echo "WARNING: could not copy GeoIP database to ${GEOIP_DEST}" >&2
+    fi
+elif [ ! -f "$GEOIP_DEST" ]; then
+    echo "NOTE: No GeoLite2-City.mmdb found. GeoIP lookups will be unavailable."
+    echo "      Place the database at ${PROJECT_ROOT}/GeoLite2-City.mmdb and re-run,"
+    echo "      or download it from https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
+fi

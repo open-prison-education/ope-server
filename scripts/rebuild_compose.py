@@ -202,7 +202,10 @@ def render_monitoring_templates(replacement_values):
     """Render ope-monitoring/templates/* into ope-monitoring/generated/,
     applying the same placeholder substitution used for compose files.
     Scoped to templates/ so it doesn't clobber files that other services
-    render inside their containers at startup."""
+    render inside their containers at startup.
+
+    Also deploys the monitoring vhost override to the gateway volume so
+    nginx serves X-Robots-Tag on the Grafana subdomain."""
     templates_dir = os.path.join(BASE_DIR, "ope-monitoring", "templates")
     generated_dir = os.path.join(BASE_DIR, "ope-monitoring", "generated")
 
@@ -210,6 +213,9 @@ def render_monitoring_templates(replacement_values):
         return
 
     os.makedirs(generated_dir, exist_ok=True)
+
+    domain = replacement_values.get("<DOMAIN>", "ed")
+    volumes_root = replacement_values.get("<VOLUMES_ROOT>", "./volumes")
 
     for src_path in _glob.glob(os.path.join(templates_dir, "*")):
         if not os.path.isfile(src_path):
@@ -223,6 +229,18 @@ def render_monitoring_templates(replacement_values):
         with open(dst_path, "w") as f:
             f.write(content)
         print(f"  Rendered ope-monitoring/generated/{filename}")
+
+    # Deploy the monitoring vhost override into the gateway volume so
+    # nginx picks it up without manual intervention.
+    vhost_src = os.path.join(generated_dir, "monitoring-vhost.conf")
+    if os.path.isfile(vhost_src):
+        vhost_dir = os.path.join(BASE_DIR, volumes_root, "gateway", "vhost.d")
+        if os.path.isabs(volumes_root):
+            vhost_dir = os.path.join(volumes_root, "gateway", "vhost.d")
+        os.makedirs(vhost_dir, exist_ok=True)
+        vhost_dst = os.path.join(vhost_dir, f"monitoring.{domain}")
+        shutil.copy(vhost_src, vhost_dst)
+        print(f"  Deployed vhost override → {vhost_dst}")
 
 
 def rebuild_env(replacement_values):
