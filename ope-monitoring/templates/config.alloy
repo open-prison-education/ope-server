@@ -1,0 +1,102 @@
+// =============================================================================
+// Prometheus remote-write destination
+// Requires --web.enable-remote-write-receiver on the Prometheus container.
+// =============================================================================
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// =============================================================================
+// Loki write destination
+// tenant_id is inert while Loki runs with auth_enabled: false (everything lands
+// in the "fake" tenant). It is set now so Phase 4 centralization needs no
+// pipeline change.
+// =============================================================================
+loki.write "default" {
+  endpoint {
+    url       = "http://loki:3100/loki/api/v1/push"
+    tenant_id = "<FACILITY_ID>"
+  }
+  external_labels = {
+    facility = "<FACILITY_ID>",
+  }
+}
+
+// =============================================================================
+// Host metrics via built-in node_exporter
+// =============================================================================
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+
+  disable_collectors = [
+    "arp", "bonding", "infiniband", "ipvs",
+    "nfs", "nfsd", "tapestats", "wifi", "zfs",
+  ]
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// Container metrics via built-in cAdvisor
+// =============================================================================
+prometheus.exporter.cadvisor "containers" {
+  docker_host            = "unix:///var/run/docker.sock"
+  store_container_labels = false
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// HTTP probes for each virtual host.
+// NOTE: each target's `name` becomes its `job` label, so alerts and dashboards
+// select on the `probe_*` metric names rather than on job="blackbox".
+// =============================================================================
+prometheus.exporter.blackbox "vhosts" {
+  config = "{ modules: { http_2xx: { prober: http, timeout: 10s, http: { fail_if_not_ssl: false, preferred_ip_protocol: ip4, valid_status_codes: [], tls_config: { insecure_skip_verify: true } } } } }"
+
+  target {
+    name    = "canvas"
+    address = "https://canvas.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "smc"
+    address = "https://smc.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "penpot"
+    address = "https://penpot.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "monitoring"
+    address = "https://monitoring.<DOMAIN>"
+    module  = "http_2xx"
+  }
+}
+
+prometheus.scrape "vhosts" {
+  targets         = prometheus.exporter.blackbox.vhosts.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "60s"
+}

@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  # Applied to metrics this Prometheus scrapes itself. Metrics arriving via
+  # remote_write carry their own facility labels, stamped by Alloy.
+  external_labels:
+    facility: "<FACILITY_ID>"
+    facility_name: "<FACILITY_NAME>"
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy:12345"]
+
+  - job_name: loki
+    static_configs:
+      - targets: ["loki:3100"]

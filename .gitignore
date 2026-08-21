@@ -5,6 +5,7 @@
 /.secrets.yml
 .venv/
 /docker-compose.yml
+/ope-monitoring/generated/
 __pycache__/
 *.pyc
 /volumes/

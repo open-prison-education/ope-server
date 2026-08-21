@@ -1,0 +1,32 @@
+apiVersion: 1
+
+# Explicit UIDs are required: the provisioned dashboards reference these values,
+# and without them Grafana assigns random UIDs and every panel fails with
+# "datasource not found".
+datasources:
+  - name: Prometheus
+    uid: ope-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: Loki
+    uid: ope-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+
+  - name: Alertmanager
+    uid: ope-alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false

@@ -13,6 +13,8 @@ import shutil
 
 import yaml
 
+import glob as _glob
+
 from service_deps import (
     resolve_services,
     detect_ip,
@@ -139,6 +141,12 @@ def build_replacement_values(settings, secrets):
         "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
         "<PENPOT_SECRET_KEY>": fallback(secrets.get("penpot_secret_key"), ""),
         "<NETWORKS>": "",
+        "<FACILITY_ID>": fallback(settings.get("facility_id"), "default"),
+        "<FACILITY_NAME>": fallback(settings.get("facility_name"), "Default Facility"),
+        "<GRAFANA_ADMIN_PW>": fallback(settings.get("grafana_admin_pw"), fallback(settings.get("it_pw"), "changeme")),
+        "<MONITORING_DATA_ROOT>": fallback(settings.get("monitoring_data_root"), "/ope/monitoring"),
+        "<PROMETHEUS_RETENTION>": fallback(settings.get("prometheus_retention"), "365d"),
+        "<LOKI_RETENTION>": fallback(settings.get("loki_retention"), "720h"),
     }
     return values
 
@@ -188,6 +196,33 @@ def process_service_folder(service_dir):
             print(f"  ERROR reading {net_path}: {e}")
 
     return compose_fragment, volume_names, network_names
+
+
+def render_monitoring_templates(replacement_values):
+    """Render ope-monitoring/templates/* into ope-monitoring/generated/,
+    applying the same placeholder substitution used for compose files.
+    Scoped to templates/ so it doesn't clobber files that other services
+    render inside their containers at startup."""
+    templates_dir = os.path.join(BASE_DIR, "ope-monitoring", "templates")
+    generated_dir = os.path.join(BASE_DIR, "ope-monitoring", "generated")
+
+    if not os.path.isdir(templates_dir):
+        return
+
+    os.makedirs(generated_dir, exist_ok=True)
+
+    for src_path in _glob.glob(os.path.join(templates_dir, "*")):
+        if not os.path.isfile(src_path):
+            continue
+        filename = os.path.basename(src_path)
+        with open(src_path, "r") as f:
+            content = f.read()
+        for key, value in replacement_values.items():
+            content = content.replace(key, value)
+        dst_path = os.path.join(generated_dir, filename)
+        with open(dst_path, "w") as f:
+            f.write(content)
+        print(f"  Rendered ope-monitoring/generated/{filename}")
 
 
 def rebuild_env(replacement_values):
@@ -266,6 +301,10 @@ def main():
     compose_path = os.path.join(BASE_DIR, "docker-compose.yml")
     with open(compose_path, "w") as f:
         f.write(dc_out)
+
+    if "ope-monitoring" in resolved:
+        print("\nRendering monitoring templates...")
+        render_monitoring_templates(replacement_values)
 
     rebuild_env(replacement_values)
 
