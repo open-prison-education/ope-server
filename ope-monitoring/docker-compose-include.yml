@@ -72,6 +72,7 @@
             - /sys:/host/sys:ro
             - /:/host/root:ro
             - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:ro
+            - <MONITORING_DATA_ROOT>/geoip:/etc/alloy/geoip:ro
             - <MONITORING_DATA_ROOT>/alloy:/var/lib/alloy/data:rw
         depends_on:
             prometheus:

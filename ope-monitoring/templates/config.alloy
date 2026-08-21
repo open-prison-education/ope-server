@@ -100,3 +100,130 @@ prometheus.scrape "vhosts" {
   forward_to      = [prometheus.remote_write.default.receiver]
   scrape_interval = "60s"
 }
+
+// =============================================================================
+// Nginx access log pipeline — web analytics from gateway JSON logs
+//
+// Tails /var/log/nginx/access.json.log (the vhost_json format emitted by
+// ope-gateway). Extracts fields, sets low-cardinality Loki labels, stores
+// high-cardinality data as structured metadata, and emits Prometheus counters
+// for year-scale trend queries that survive Loki's 30-day retention.
+//
+// GeoIP: stage.geoip requires GeoLite2-City.mmdb at the path below.
+// Phase 3 bundles the DB for air-gapped distribution; for online deployments
+// download it from MaxMind (free account required) and place it in
+// <MONITORING_DATA_ROOT>/geoip/. Without the DB the nginx log pipeline will
+// be unhealthy — infrastructure monitoring is unaffected.
+// =============================================================================
+
+local.file_match "nginx_logs" {
+  path_targets = [{
+    __path__ = "/var/log/nginx/access.json.log",
+    job      = "nginx",
+  }]
+}
+
+loki.source.file "nginx" {
+  targets    = local.file_match.nginx_logs.targets
+  forward_to = [loki.process.nginx.receiver]
+}
+
+loki.process "nginx" {
+  stage.json {
+    expressions = {
+      time           = "time",
+      host           = "host",
+      remote_addr    = "remote_addr",
+      xff            = "xff",
+      method         = "method",
+      uri            = "uri",
+      request_uri    = "request_uri",
+      status         = "status",
+      bytes          = "bytes",
+      request_length = "request_length",
+      request_time   = "request_time",
+      upstream_time  = "upstream_time",
+      referer        = "referer",
+      user_agent     = "user_agent",
+      scheme         = "scheme",
+      ssl_protocol   = "ssl_protocol",
+      content_type   = "content_type",
+    }
+  }
+
+  stage.timestamp {
+    source = "time"
+    format = "2006-01-02T15:04:05-07:00"
+  }
+
+  stage.geoip {
+    source  = "remote_addr"
+    db      = "/etc/alloy/geoip/GeoLite2-City.mmdb"
+    db_type = "city"
+  }
+
+  // Low-cardinality labels only. host (~4 subdomains), method (~5 verbs),
+  // status (~15 codes) keeps the label set small and Loki performant.
+  stage.labels {
+    values = {
+      host   = "host",
+      status = "status",
+      method = "method",
+    }
+  }
+
+  // High-cardinality fields as structured metadata — queryable in Loki 3.x
+  // without contributing to stream cardinality.
+  stage.structured_metadata {
+    values = {
+      uri                    = "uri",
+      request_uri            = "request_uri",
+      remote_addr            = "remote_addr",
+      xff                    = "xff",
+      referer                = "referer",
+      user_agent             = "user_agent",
+      bytes                  = "bytes",
+      request_time           = "request_time",
+      upstream_time          = "upstream_time",
+      scheme                 = "scheme",
+      ssl_protocol           = "ssl_protocol",
+      content_type           = "content_type",
+      geoip_country_name     = "",
+      geoip_country_code     = "",
+      geoip_city_name        = "",
+      geoip_continent_code   = "",
+      geoip_subdivision_name = "",
+    }
+  }
+
+  // Derive a flag for HTML-only page views. Produces "1" when content_type
+  // starts with text/html, empty otherwise.
+  stage.template {
+    source   = "is_page"
+    template = "{{ if .content_type }}{{ if ne (TrimPrefix .content_type \"text/html\") .content_type }}1{{ end }}{{ end }}"
+  }
+
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_requests_total"
+      description       = "Total nginx requests by host, method, and status"
+      prefix            = ""
+      action            = "inc"
+      match_all         = true
+      max_idle_duration = "24h"
+    }
+  }
+
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_pageviews_total"
+      description       = "HTML page views (text/html responses only)"
+      prefix            = ""
+      source            = "is_page"
+      action            = "inc"
+      max_idle_duration = "24h"
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}

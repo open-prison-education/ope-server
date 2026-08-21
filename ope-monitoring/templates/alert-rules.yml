@@ -123,8 +123,6 @@ groups:
           summary: "{{ $labels.instance }} responding slowly"
           description: "{{ $labels.instance }} took {{ printf \"%.1f\" $value }}s to respond."
 
-  # Inert until Phase 2 creates nginx_requests_total from the gateway JSON log.
-  # Kept here so the rule name and metric name are settled up front.
   - name: traffic_alerts
     rules:
       - alert: HighErrorRate

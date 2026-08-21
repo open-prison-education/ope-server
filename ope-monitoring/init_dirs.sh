@@ -25,6 +25,7 @@ alertmanager:65534:65534
 loki:10001:10001
 grafana:472:472
 alloy:0:0
+geoip:0:0
 "
 
 # chown needs root; fall back to passwordless sudo when available.
@@ -75,11 +76,11 @@ ERROR: could not prepare monitoring data directories:${failed}
 These containers run as non-root and will crash-loop on a permission error.
 Re-run as root, or prepare the directories manually:
 
-  sudo mkdir -p ${DATA_ROOT}/{prometheus,alertmanager,loki,grafana,alloy}
+  sudo mkdir -p ${DATA_ROOT}/{prometheus,alertmanager,loki,grafana,alloy,geoip}
   sudo chown 65534:65534 ${DATA_ROOT}/prometheus ${DATA_ROOT}/alertmanager
   sudo chown 10001:10001 ${DATA_ROOT}/loki
   sudo chown 472:472     ${DATA_ROOT}/grafana
-  sudo chown 0:0         ${DATA_ROOT}/alloy
+  sudo chown 0:0         ${DATA_ROOT}/alloy ${DATA_ROOT}/geoip
 
 EOF
     exit 1
