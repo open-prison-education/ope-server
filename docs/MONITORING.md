@@ -191,6 +191,82 @@ retention. Adjust retention in `config.yml` and run `./scripts/rebuild.sh`.
 
 ---
 
+## Centralization
+
+The stack is designed to either push metrics/logs to a central instance (when
+connected) or export daily aggregates for sneakernet import (when air-gapped).
+Both approaches preserve facility attribution via labels stamped at collection
+time.
+
+### Facility Labels
+
+Every metric and log entry is automatically stamped with:
+- `facility` — machine-readable ID (e.g. `corrections-dev`)
+- `facility_name` — human-readable label (e.g. `Corrections Dev`)
+
+These are configured in `config.yml` under `facility_id` and `facility_name`.
+
+### Connected Mode (Remote Push)
+
+For facilities with network connectivity to a central monitoring instance, add
+these settings to `config.yml` and run `./scripts/rebuild.sh`:
+
+```yaml
+settings:
+  # Central Prometheus endpoint accepting remote_write
+  central_metrics_url: https://central-prometheus.example.com/api/v1/write
+  # Central Loki endpoint accepting push
+  central_loki_url: https://central-loki.example.com/loki/api/v1/push
+```
+
+When configured, Alloy will push to **both** local and central destinations.
+The central Loki receives logs with `X-Scope-OrgID` set to the `facility_id`,
+enabling multi-tenant partitioning. Local retention is unaffected — the facility
+retains full self-contained monitoring even while pushing upstream.
+
+To disable central push, remove (or empty) the URLs and rebuild. No data is
+lost locally.
+
+### Air-Gapped Mode (Sneakernet Export)
+
+For facilities that cannot reach a central instance, use the export script to
+produce daily per-vhost aggregate files:
+
+```bash
+# Export yesterday's aggregates (default)
+./ope-monitoring/scripts/export_aggregates.sh
+
+# Export the last 7 days
+./ope-monitoring/scripts/export_aggregates.sh --days 7
+
+# Custom output directory and format
+./ope-monitoring/scripts/export_aggregates.sh \
+  --output-dir /media/usb/exports \
+  --format csv \
+  --days 30
+```
+
+Output files are named `<facility_id>_<date>.{csv,json}` and contain per-vhost
+daily totals: requests, page views, and status code breakdowns (2xx/3xx/4xx/5xx).
+
+**CSV columns:**
+`facility_id, date, host, requests, pageviews, status_2xx, status_3xx, status_4xx, status_5xx`
+
+These lightweight aggregates (~1 KB per facility per day) are designed for easy
+import into a central dashboard, spreadsheet, or data warehouse.
+
+### Central Import
+
+The exported files can be imported into a central Grafana instance using:
+- Direct CSV import into PostgreSQL/SQLite for a central dashboard
+- A script that posts the JSON records to a central API
+- Manual review in any spreadsheet application
+
+The export format is deliberately simple to avoid coupling the central system
+to a specific technology choice.
+
+---
+
 ## Dashboards
 
 | Dashboard          | Data Source | Purpose                                          |

@@ -12,6 +12,22 @@ prometheus.remote_write "default" {
   }
 }
 
+// #IF <CENTRAL_METRICS_URL>
+// =============================================================================
+// Central Prometheus remote-write — pushes all metrics to the central instance.
+// Activated by setting central_metrics_url in config.yml.
+// =============================================================================
+prometheus.remote_write "central" {
+  endpoint {
+    url = "<CENTRAL_METRICS_URL>"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// #ENDIF <CENTRAL_METRICS_URL>
 // =============================================================================
 // Loki write destination
 // tenant_id is inert while Loki runs with auth_enabled: false (everything lands
@@ -27,6 +43,25 @@ loki.write "default" {
     facility = "<FACILITY_ID>",
   }
 }
+
+// #IF <CENTRAL_LOKI_URL>
+// =============================================================================
+// Central Loki write — pushes logs to the central aggregation instance.
+// Uses X-Scope-OrgID (tenant_id) so the central Loki can partition by facility.
+// Activated by setting central_loki_url in config.yml.
+// =============================================================================
+loki.write "central" {
+  endpoint {
+    url       = "<CENTRAL_LOKI_URL>"
+    tenant_id = "<FACILITY_ID>"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// #ENDIF <CENTRAL_LOKI_URL>
 
 // =============================================================================
 // Host metrics via built-in node_exporter
@@ -44,7 +79,11 @@ prometheus.exporter.unix "host" {
 
 prometheus.scrape "host" {
   targets         = prometheus.exporter.unix.host.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
   forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
   scrape_interval = "30s"
 }
 
@@ -58,7 +97,11 @@ prometheus.exporter.cadvisor "containers" {
 
 prometheus.scrape "containers" {
   targets         = prometheus.exporter.cadvisor.containers.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
   forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
   scrape_interval = "30s"
 }
 
@@ -97,7 +140,11 @@ prometheus.exporter.blackbox "vhosts" {
 
 prometheus.scrape "vhosts" {
   targets         = prometheus.exporter.blackbox.vhosts.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
   forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
   scrape_interval = "60s"
 }
 
@@ -225,5 +272,9 @@ loki.process "nginx" {
     }
   }
 
+// #IF <CENTRAL_LOKI_URL>
+  forward_to = [loki.write.default.receiver, loki.write.central.receiver]
+// #ELSE
   forward_to = [loki.write.default.receiver]
+// #ENDIF <CENTRAL_LOKI_URL>
 }
