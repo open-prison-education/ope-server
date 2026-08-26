@@ -14,7 +14,7 @@ def on_changes_detected(changes):
 def main():
     public_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app/public')
     sendfile_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app/sendfile')
-    rsync_cmd = f"""rsync -av --delete "{public_folder}" "{sendfile_folder}"  """
+    rsync_cmd = f"""rsync -avL --delete "{public_folder}" "{sendfile_folder}"  """
 
     print(f"Watching for file changes in {public_folder}.")
     runs = run_process(
