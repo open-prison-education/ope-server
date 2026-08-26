@@ -8,14 +8,20 @@ re_quote() {
 BUNDLE=$GEM_HOME/bin/bundle
 #BUNDLE=/usr/local/bin/bundle
 
+APP_DIR=/usr/src/app
+
 echo "=== RUNNING start.sh ==="
+
+# Remove broken symlinks in the sendfile volume before chown runs.
+# rsync copies relative symlinks from public/ into sendfile/ where their
+# targets (../../node_modules/...) don't exist, causing chown to fail
+# with "cannot dereference" and crashing startup under set -e.
+echo "== Cleaning broken symlinks in sendfile =="
+find $APP_DIR/sendfile -type l ! -exec test -e {} \; -delete 2>/dev/null || true
 
 # Make sure this is all owned by the correct user
 echo "== Setting Folder Permissions =="
-#chown -R docker:docker $APP_DIR
-#chown -R docker:docker $APP_DIR/tmp
-#chown -R docker:docker $APP_DIR/log
-find $APP_DIR -not -user docker -exec chown docker:docker {} \+
+find $APP_DIR -not -user docker -exec chown -h docker:docker {} \+
 chown -R docker:docker /tmp
 
 
@@ -28,8 +34,6 @@ if [ -f /usr/src/app/log/app_starting ]; then
 fi
 
 touch /usr/src/app/log/app_init
-
-APP_DIR=/usr/src/app
 
 # Make sure tmp folder exists
 mkdir -p /tmp/attachment_fu
