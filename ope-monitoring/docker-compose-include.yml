@@ -70,7 +70,9 @@
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /proc:/host/proc:ro
             - /sys:/host/sys:ro
+            - /sys/fs/cgroup:/sys/fs/cgroup:ro
             - /:/host/root:ro
+            - /ope/docker:/ope/docker:ro
             - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:ro
             - <MONITORING_DATA_ROOT>/geoip:/etc/alloy/geoip:ro
             - <MONITORING_DATA_ROOT>/alloy:/var/lib/alloy/data:rw

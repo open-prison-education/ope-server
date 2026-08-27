@@ -28,7 +28,7 @@
       },
       "targets": [
         {
-          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "CPU Usage",
           "refId": "A"
         }
@@ -48,48 +48,86 @@
       },
       "targets": [
         {
-          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "expr": "sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)",
           "legendFormat": "Used",
           "refId": "A"
         },
         {
-          "expr": "node_memory_MemAvailable_bytes",
+          "expr": "sum(node_memory_MemAvailable_bytes)",
           "legendFormat": "Available",
           "refId": "B"
         },
         {
-          "expr": "node_memory_MemTotal_bytes",
+          "expr": "sum(node_memory_MemTotal_bytes)",
           "legendFormat": "Total",
           "refId": "C"
         }
       ]
     },
     {
-      "title": "Memory Usage %",
-      "type": "gauge",
+      "title": "Memory",
+      "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "red", "value": 90 }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Used %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Total" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Used" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Available" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
       },
       "targets": [
         {
-          "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
-          "legendFormat": "Memory %",
-          "refId": "A"
+          "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))",
+          "legendFormat": "Used %",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_memory_MemTotal_bytes)",
+          "legendFormat": "Total",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)",
+          "legendFormat": "Used",
+          "refId": "C",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_memory_MemAvailable_bytes)",
+          "legendFormat": "Available",
+          "refId": "D",
+          "instant": true
         }
       ]
     },
@@ -99,69 +137,149 @@
       "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }
+      },
       "targets": [
         {
-          "expr": "count(node_cpu_seconds_total{mode=\"idle\"})",
+          "expr": "count(count by (cpu) (node_cpu_seconds_total{mode=\"idle\"}))",
           "legendFormat": "CPUs",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ]
     },
     {
-      "title": "Disk Usage (/ root)",
-      "type": "gauge",
+      "title": "Disk / (root)",
+      "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "red", "value": 80 }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Used %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 80 }] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Total" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Used" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Available" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
       },
       "targets": [
         {
-          "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} * 100)",
-          "legendFormat": "/ used %",
-          "refId": "A"
+          "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100)",
+          "legendFormat": "Used %",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Total",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) - sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Used",
+          "refId": "C",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Available",
+          "refId": "D",
+          "instant": true
         }
       ]
     },
     {
-      "title": "Disk Usage (/ope data)",
-      "type": "gauge",
+      "title": "Disk /ope (data)",
+      "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "red", "value": 80 }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Used %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 80 }] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Total" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Used" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Available" },
+            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
       },
       "targets": [
         {
-          "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"} * 100)",
-          "legendFormat": "/ope used %",
-          "refId": "A"
+          "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) * 100)",
+          "legendFormat": "Used %",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Total",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) - sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Used",
+          "refId": "C",
+          "instant": true
+        },
+        {
+          "expr": "sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
+          "legendFormat": "Available",
+          "refId": "D",
+          "instant": true
         }
       ]
     },
@@ -173,12 +291,12 @@
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
       "targets": [
         {
-          "expr": "rate(node_disk_read_bytes_total{device=~\"xvd.*\"}[5m])",
+          "expr": "sum by (device) (rate(node_disk_read_bytes_total{device=~\"xvd.*\"}[5m]))",
           "legendFormat": "Read {{device}}",
           "refId": "A"
         },
         {
-          "expr": "rate(node_disk_written_bytes_total{device=~\"xvd.*\"}[5m])",
+          "expr": "sum by (device) (rate(node_disk_written_bytes_total{device=~\"xvd.*\"}[5m]))",
           "legendFormat": "Write {{device}}",
           "refId": "B"
         }
@@ -192,12 +310,12 @@
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m])",
+          "expr": "sum by (device) (rate(node_network_receive_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m]))",
           "legendFormat": "RX {{device}}",
           "refId": "A"
         },
         {
-          "expr": "rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m])",
+          "expr": "sum by (device) (rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m]))",
           "legendFormat": "TX {{device}}",
           "refId": "B"
         }
@@ -211,17 +329,17 @@
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "targets": [
         {
-          "expr": "node_load1",
+          "expr": "sum(node_load1)",
           "legendFormat": "1m",
           "refId": "A"
         },
         {
-          "expr": "node_load5",
+          "expr": "sum(node_load5)",
           "legendFormat": "5m",
           "refId": "B"
         },
         {
-          "expr": "node_load15",
+          "expr": "sum(node_load15)",
           "legendFormat": "15m",
           "refId": "C"
         }
@@ -232,12 +350,28 @@
       "type": "stat",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
-      "fieldConfig": { "defaults": { "unit": "dtdurations" }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
       "targets": [
         {
-          "expr": "time() - node_boot_time_seconds",
+          "expr": "time() - max(node_boot_time_seconds)",
           "legendFormat": "Uptime",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ]
     }
