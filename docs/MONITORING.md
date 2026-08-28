@@ -48,7 +48,6 @@ service groups:
 
 ```bash
 # On the build machine (has internet):
-./scripts/push_to_ghcr.sh          # Mirror upstream → GHCR
 ./scripts/export_images.sh         # Creates exported_images/ope-monitoring.tar.gz
 ```
 
@@ -72,13 +71,6 @@ lookups. This ~60 MB file must be present for the analytics pipeline to start
 cleanly. Infrastructure monitoring (metrics, alerts) is unaffected by its
 absence.
 
-**Bundling for air-gap transfer:**
-
-```bash
-# On the build machine, with GeoLite2-City.mmdb at the project root:
-./scripts/bundle_geoip.sh
-# → exported_images/GeoLite2-City.mmdb
-```
 
 **Installing on the target:**
 
@@ -122,12 +114,12 @@ location or to "unknown." Refresh quarterly at minimum.
 
 ### Procedure
 
-1. **Sign in** to your free MaxMind account:
+1. **Download** GeoLite2 City in MMDB format (not CSV):
    https://www.maxmind.com/en/accounts/current/geoip/downloads
+   or https://github.com/P3TERX/GeoLite.mmdb (no sign up needed)
 
-2. **Download** GeoLite2 City in MMDB format (not CSV).
 
-3. **Deploy** to the server:
+2. **Deploy** to the server:
    ```bash
    # Copy the new file into the geoip directory
    sudo cp GeoLite2-City.mmdb /ope/monitoring/geoip/GeoLite2-City.mmdb
@@ -137,16 +129,8 @@ location or to "unknown." Refresh quarterly at minimum.
    docker compose restart alloy
    ```
 
-4. **Verify** in Grafana → Traffic by Site dashboard that geographic panels
+3. **Verify** in Grafana → Traffic by Site dashboard that geographic panels
    show data.
-
-### Creating a MaxMind Account
-
-1. Go to https://www.maxmind.com/en/geolite2/signup
-2. Complete registration (free, no payment required)
-3. Under Account → GeoIP Downloads, download "GeoLite2 City" → MMDB format
-4. Optionally generate a license key for automated downloads (not needed for
-   manual refresh on air-gapped sites)
 
 ---
 

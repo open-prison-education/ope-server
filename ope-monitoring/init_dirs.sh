@@ -13,6 +13,8 @@
 #
 # Fails loudly rather than letting the stack come up half-broken, since a
 # permission error here surfaces later only as an opaque container crash loop.
+# It's also being used to copy GeoLite2-City.mmdb from project root directory 
+# or if passed as a second argument to geoip data directory.
 
 set -u
 
@@ -114,5 +116,5 @@ if [ -n "$GEOIP_SRC" ] && [ -f "$GEOIP_SRC" ]; then
 elif [ ! -f "$GEOIP_DEST" ]; then
     echo "NOTE: No GeoLite2-City.mmdb found. GeoIP lookups will be unavailable."
     echo "      Place the database at ${PROJECT_ROOT}/GeoLite2-City.mmdb and re-run,"
-    echo "      or download it from https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
+    echo "      or download it from https://github.com/P3TERX/GeoLite.mmdb or https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
 fi

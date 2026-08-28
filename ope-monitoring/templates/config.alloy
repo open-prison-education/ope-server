@@ -92,7 +92,8 @@ prometheus.scrape "host" {
 // =============================================================================
 prometheus.exporter.cadvisor "containers" {
   docker_host            = "unix:///var/run/docker.sock"
-  store_container_labels = false
+  docker_only            = true
+  store_container_labels = true
 }
 
 prometheus.scrape "containers" {

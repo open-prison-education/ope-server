@@ -38,7 +38,48 @@
       "type": "table",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": false }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Container" },
+            "properties": [
+              { "id": "custom.width", "value": 250 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Memory Usage" },
+            "properties": [
+              { "id": "unit", "value": "bytes" },
+              { "id": "custom.width", "value": 150 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Memory Limit" },
+            "properties": [
+              { "id": "unit", "value": "bytes" },
+              { "id": "custom.width", "value": 150 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Usage %" },
+            "properties": [
+              { "id": "unit", "value": "percentunit" },
+              { "id": "decimals", "value": 1 },
+              { "id": "custom.width", "value": 100 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] } },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Usage %", "desc": true }],
+        "footer": { "show": false }
+      },
       "targets": [
         {
           "expr": "container_memory_usage_bytes{name!=\"\"}",
@@ -46,14 +87,90 @@
           "refId": "A",
           "format": "table",
           "instant": true
+        },
+        {
+          "expr": "container_spec_memory_limit_bytes{name!=\"\"}",
+          "legendFormat": "{{name}}",
+          "refId": "B",
+          "format": "table",
+          "instant": true
         }
       ],
       "transformations": [
         {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "name"
+          }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true },
-            "renameByName": { "name": "Container", "Value": "Memory Usage" }
+            "excludeByName": {
+              "Time 1": true,
+              "Time 2": true,
+              "Time": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "instance": true,
+              "instance 1": true,
+              "instance 2": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true,
+              "id": true,
+              "id 1": true,
+              "id 2": true,
+              "image": true,
+              "image 1": true,
+              "image 2": true
+            },
+            "indexByName": {
+              "name": 0,
+              "Value #A": 1,
+              "Value #B": 2
+            },
+            "renameByName": {
+              "name": "Container",
+              "Value #A": "Memory Usage",
+              "Value #B": "Memory Limit"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "type": "include",
+            "filters": [
+              {
+                "fieldName": "Container",
+                "config": {
+                  "id": "isNotNull"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Usage %",
+            "mode": "binary",
+            "binary": {
+              "left": "Memory Usage",
+              "operator": "/",
+              "right": "Memory Limit"
+            },
+            "reduce": { "reducer": "sum" }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": ["Container", "Memory Usage", "Memory Limit", "Usage %"]
+            }
           }
         }
       ]
@@ -87,31 +204,51 @@
       ]
     },
     {
-      "title": "Container Restarts",
-      "type": "stat",
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 34 },
+      "title": "Container Restarts (Last Hour)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+          "custom": { "align": "auto", "filterable": true }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Container" },
+            "properties": [
+              { "id": "custom.width", "value": 300 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Restarts" },
+            "properties": [
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
-      "options": { "colorMode": "background" },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Restarts", "desc": true }],
+        "footer": { "show": false }
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "id": true, "image": true },
+            "renameByName": { "name": "Container", "Value": "Restarts" }
+          }
+        }
+      ],
       "targets": [
         {
           "expr": "changes(container_start_time_seconds{name!=\"\"}[1h])",
           "legendFormat": "{{name}}",
           "refId": "A",
-          "instant": true
+          "instant": true,
+          "format": "table"
         }
       ]
     }

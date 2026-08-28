@@ -1,6 +1,6 @@
 {
   "annotations": { "list": [] },
-  "description": "Web analytics from nginx gateway logs: per-subdomain traffic, top pages, referrers, user agents, and geographic breakdown.",
+  "description": "Web analytics from nginx gateway logs: per-subdomain traffic, top sites, referrers, user agents, and geographic breakdown.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -206,69 +206,105 @@
     },
     {
       "type": "table",
-      "title": "Top Pages",
-      "description": "Most-requested HTML pages (GET requests with text/html content type).",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "title": "Top Sites by Requests",
+      "description": "Total requests per site (subdomain) in the selected time range.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
       "id": 10,
-      "datasource": { "type": "loki", "uid": "ope-loki" },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "custom": { "align": "auto", "filterable": false }
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Value" },
-            "properties": [{ "id": "displayName", "value": "Requests" }]
+            "matcher": { "id": "byName", "options": "Site" },
+            "properties": [
+              { "id": "custom.width", "value": 400 }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "uri" },
-            "properties": [{ "id": "displayName", "value": "Page" }]
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "decimals", "value": 0 }
+            ]
           }
         ]
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Requests", "desc": true }]
+        "sortBy": [{ "displayName": "Requests", "desc": true }],
+        "footer": { "show": false }
       },
       "transformations": [
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": {
+              "host": "Site",
+              "Value": "Requests"
+            }
+          }
+        }
       ],
       "targets": [
         {
-          "expr": "topk(20, sum by (uri) (count_over_time({job=\"nginx\", host=~\"$host\", method=\"GET\"} | json | content_type =~ `text/html.*` | uri != `` | __error__=`` [$__range])))",
-          "queryType": "instant",
-          "refId": "A"
+          "expr": "topk(20, sum by (host) (increase(nginx_requests_total{host=~\"$host\"}[$__range])))",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
         }
       ]
     },
     {
       "type": "table",
-      "title": "Top Referrers",
-      "description": "External sources driving traffic to the site.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "title": "Top Referrer Domains",
+      "description": "External domains driving traffic to the site, aggregated by domain.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
       "id": 11,
       "datasource": { "type": "loki", "uid": "ope-loki" },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "custom": { "align": "auto", "filterable": false }
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Value" },
-            "properties": [{ "id": "displayName", "value": "Requests" }]
+            "matcher": { "id": "byName", "options": "Referrer Domain" },
+            "properties": [
+              { "id": "custom.width", "value": 450 }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "referer" },
-            "properties": [{ "id": "displayName", "value": "Referrer" }]
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "decimals", "value": 0 }
+            ]
           }
         ]
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Requests", "desc": true }]
+        "sortBy": [{ "displayName": "Requests", "desc": true }],
+        "footer": { "show": false }
       },
       "transformations": [
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": {
+              "referer_domain": "Referrer Domain",
+              "Value": "Requests"
+            }
+          }
+        }
       ],
       "targets": [
         {
-          "expr": "topk(20, sum by (referer) (count_over_time({job=\"nginx\", host=~\"$host\"} | json | referer != `` | referer != `-` | __error__=`` [$__range])))",
+          "expr": "topk(20, sum by (referer_domain) (count_over_time({job=\"nginx\", host=~\"$host\"} | json | referer != `` | referer != `-` | referer !~ `https?://\\d+\\.\\d+\\.\\d+\\.\\d+` | line_format `{{.referer}}` | regexp `https?://(?P<referer_domain>[^/]+)` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -277,7 +313,7 @@
     {
       "type": "row",
       "title": "Client Analysis",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
       "id": 12,
       "collapsed": false,
       "panels": []
@@ -286,7 +322,7 @@
       "type": "piechart",
       "title": "HTTP Status Codes",
       "description": "Distribution of HTTP response status codes.",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
       "id": 13,
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
@@ -313,34 +349,51 @@
     },
     {
       "type": "table",
-      "title": "Top User Agents",
-      "description": "Most common user agent strings. Long strings indicate real browsers; short or unusual ones may be bots.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "title": "Top User Agents (Real Users)",
+      "description": "Most common user agent strings from real visitors. Internal monitoring agents (Blackbox Exporter, Prometheus, etc.) are excluded.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
       "id": 14,
       "datasource": { "type": "loki", "uid": "ope-loki" },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "custom": { "align": "auto", "filterable": false }
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Value" },
-            "properties": [{ "id": "displayName", "value": "Requests" }]
+            "matcher": { "id": "byName", "options": "User Agent" },
+            "properties": [
+              { "id": "custom.width", "value": 500 }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "user_agent" },
-            "properties": [{ "id": "displayName", "value": "User Agent" }]
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "decimals", "value": 0 }
+            ]
           }
         ]
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Requests", "desc": true }]
+        "sortBy": [{ "displayName": "Requests", "desc": true }],
+        "footer": { "show": false }
       },
       "transformations": [
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": {
+              "user_agent": "User Agent",
+              "Value": "Requests"
+            }
+          }
+        }
       ],
       "targets": [
         {
-          "expr": "topk(15, sum by (user_agent) (count_over_time({job=\"nginx\", host=~\"$host\"} | json | user_agent != `` | __error__=`` [$__range])))",
+          "expr": "topk(15, sum by (user_agent) (count_over_time({job=\"nginx\", host=~\"$host\"} | json | user_agent != `` | user_agent !~ `(?i)(blackbox.exporter|prometheus|grafana|alloy|healthcheck|kube-probe)` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -349,21 +402,22 @@
     {
       "type": "row",
       "title": "Hourly Traffic",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
       "id": 15,
       "collapsed": false,
       "panels": []
     },
     {
       "type": "timeseries",
-      "title": "Hourly Traffic Pattern",
-      "description": "Request rate at 1-hour granularity, showing daily usage patterns (peaks during active hours, valleys overnight).",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
+      "title": "Hourly Traffic Pattern (req/min)",
+      "description": "Request rate per minute at 1-hour granularity, showing daily usage patterns.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 41 },
       "id": 16,
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "none",
+          "displayName": "${__field.labels.host}",
           "custom": {
             "drawStyle": "bars",
             "lineWidth": 1,
@@ -372,18 +426,23 @@
             "showPoints": "never",
             "stacking": { "mode": "normal" },
             "barAlignment": 0
-          }
+          },
+          "decimals": 1
         },
         "overrides": []
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "sum"] }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "sum"]
+        }
       },
       "interval": "1h",
       "targets": [
         {
-          "expr": "sum by (host) (rate(nginx_requests_total{host=~\"$host\"}[$__rate_interval]))",
+          "expr": "sum by (host) (rate(nginx_requests_total{host=~\"$host\", host!=\"\"}[$__rate_interval])) * 60",
           "legendFormat": "{{host}}",
           "refId": "A"
         }
@@ -392,7 +451,7 @@
     {
       "type": "row",
       "title": "Geographic Breakdown",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 },
       "id": 17,
       "collapsed": false,
       "panels": []
@@ -400,33 +459,50 @@
     {
       "type": "table",
       "title": "Requests by Country",
-      "description": "Geographic distribution of requests. Requires GeoLite2-City.mmdb (bundled in Phase 3). A table is used instead of a geomap because the geomap panel fetches basemap tiles from the internet and renders blank when air-gapped.",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "description": "Geographic distribution of requests over the selected time range.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 52 },
       "id": 18,
       "datasource": { "type": "loki", "uid": "ope-loki" },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "custom": { "align": "auto", "filterable": false }
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Value" },
-            "properties": [{ "id": "displayName", "value": "Requests" }]
+            "matcher": { "id": "byName", "options": "Country" },
+            "properties": [
+              { "id": "custom.width", "value": 300 }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "geoip_country_name" },
-            "properties": [{ "id": "displayName", "value": "Country" }]
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "decimals", "value": 0 }
+            ]
           }
         ]
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Requests", "desc": true }]
+        "sortBy": [{ "displayName": "Requests", "desc": true }],
+        "footer": { "show": false }
       },
       "transformations": [
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": {
+              "geoip_country_name": "Country",
+              "Value": "Requests"
+            }
+          }
+        }
       ],
       "targets": [
         {
-          "expr": "topk(30, sum by (geoip_country_name) (count_over_time({job=\"nginx\", host=~\"$host\"} | geoip_country_name != `` [$__range])))",
+          "expr": "topk(30, sum by (geoip_country_name) (count_over_time({job=\"nginx\", host=~\"$host\"} | json | geoip_country_name != `` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }

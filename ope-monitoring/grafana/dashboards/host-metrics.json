@@ -66,67 +66,37 @@
     },
     {
       "title": "Memory",
-      "type": "stat",
+      "type": "gauge",
       "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
           }
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Used %" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Total" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Used" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Available" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto"
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
       },
       "targets": [
         {
           "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))",
-          "legendFormat": "Used %",
-          "refId": "A",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_memory_MemTotal_bytes)",
-          "legendFormat": "Total",
-          "refId": "B",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)",
           "legendFormat": "Used",
-          "refId": "C",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_memory_MemAvailable_bytes)",
-          "legendFormat": "Available",
-          "refId": "D",
+          "refId": "A",
           "instant": true
         }
       ]
@@ -151,134 +121,74 @@
     },
     {
       "title": "Disk / (root)",
-      "type": "stat",
+      "type": "gauge",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 80 }
+            ]
           }
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Used %" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 80 }] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Total" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Used" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Available" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto"
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
       },
       "targets": [
         {
           "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100)",
-          "legendFormat": "Used %",
-          "refId": "A",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
-          "legendFormat": "Total",
-          "refId": "B",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) - sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
           "legendFormat": "Used",
-          "refId": "C",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})",
-          "legendFormat": "Available",
-          "refId": "D",
+          "refId": "A",
           "instant": true
         }
       ]
     },
     {
       "title": "Disk /ope (data)",
-      "type": "stat",
+      "type": "gauge",
       "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 80 }
+            ]
           }
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Used %" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 80 }] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Total" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "text", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Used" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Available" },
-            "properties": [{ "id": "unit", "value": "bytes" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto"
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
       },
       "targets": [
         {
           "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) * 100)",
-          "legendFormat": "Used %",
-          "refId": "A",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
-          "legendFormat": "Total",
-          "refId": "B",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) - sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
           "legendFormat": "Used",
-          "refId": "C",
-          "instant": true
-        },
-        {
-          "expr": "sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"})",
-          "legendFormat": "Available",
-          "refId": "D",
+          "refId": "A",
           "instant": true
         }
       ]
