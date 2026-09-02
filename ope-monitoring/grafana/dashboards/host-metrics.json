@@ -194,9 +194,133 @@
       ]
     },
     {
+      "title": "Disk / Used",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} - node_filesystem_free_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk / Total",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Total",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk /ope Used",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"} - node_filesystem_free_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk /ope Total",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Total",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
       "title": "Disk I/O",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
       "targets": [
@@ -215,7 +339,7 @@
     {
       "title": "Network Traffic",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
       "targets": [
@@ -234,7 +358,7 @@
     {
       "title": "System Load (1m / 5m / 15m)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "targets": [
@@ -258,7 +382,7 @@
     {
       "title": "System Uptime",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {

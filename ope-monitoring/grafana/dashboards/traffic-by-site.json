@@ -213,7 +213,7 @@
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "filterable": false }
+          "custom": { "align": "left", "filterable": false }
         },
         "overrides": [
           {
@@ -267,7 +267,7 @@
       "datasource": { "type": "loki", "uid": "ope-loki" },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "filterable": false }
+          "custom": { "align": "laft", "filterable": false }
         },
         "overrides": [
           {

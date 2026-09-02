@@ -210,7 +210,7 @@
       "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "filterable": true }
+          "custom": { "align": "left", "filterable": true }
         },
         "overrides": [
           {
@@ -244,7 +244,7 @@
       ],
       "targets": [
         {
-          "expr": "changes(container_start_time_seconds{name!=\"\"}[1h])",
+          "expr": "sum by (name) (changes(container_start_time_seconds{name!=\"\"}[1h]))",
           "legendFormat": "{{name}}",
           "refId": "A",
           "instant": true,

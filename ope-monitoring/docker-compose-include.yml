@@ -13,7 +13,7 @@
             resources:
                 limits:
                     cpus: "0.5"
-                    memory: 512M
+                    memory: 1024M
         volumes:
             - <MONITORING_DATA_ROOT>/prometheus:/prometheus:rw
             - ./ope-monitoring/generated/prometheus.yml:/etc/prometheus/prometheus.yml:ro
