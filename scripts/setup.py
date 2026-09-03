@@ -44,9 +44,7 @@ DEFAULT_SETTINGS = {
     "volumes_root": "./volumes",
     "facility_id": "default",
     "facility_name": "Default Facility",
-    "monitoring_data_root": "/ope/monitoring",
 }
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -152,10 +150,6 @@ def wizard_settings(defaults):
     settings["facility_name"] = prompt(
         "Facility display name",
         defaults.get("facility_name", DEFAULT_SETTINGS["facility_name"]),
-    )
-    settings["monitoring_data_root"] = prompt(
-        "Monitoring data root (use the large data disk)",
-        defaults.get("monitoring_data_root", DEFAULT_SETTINGS["monitoring_data_root"]),
     )
 
     return settings

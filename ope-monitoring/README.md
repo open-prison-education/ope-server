@@ -50,7 +50,7 @@ ope-monitoring/
 #    (it is included by default)
 
 # 2. Create data directories (requires root or sudo)
-sudo ./ope-monitoring/init_dirs.sh /ope/monitoring
+sudo ./ope-monitoring/init_dirs.sh <volumes_root>/monitoring
 
 # 3. Rebuild config to render templates
 ./scripts/rebuild.sh
@@ -69,7 +69,6 @@ All settings are in `config.yml` under `settings:`:
 |-----------------------|-----------------------|--------------------------------------|
 | `facility_id`         | `default`             | Machine-readable facility identifier |
 | `facility_name`       | `Default Facility`    | Human-readable facility name         |
-| `monitoring_data_root`| `/ope/monitoring`     | Data directory for all services      |
 | `grafana_admin_pw`    | (falls back to it_pw) | Grafana admin password               |
 | `prometheus_retention`| `365d`                | Prometheus TSDB retention period     |
 | `loki_retention`      | `720h`                | Loki log retention (30 days)         |
@@ -81,7 +80,7 @@ After changing settings, run `./scripts/rebuild.sh` and restart the stack.
 
 ## Data Directories
 
-Created by `init_dirs.sh` under `<monitoring_data_root>` (default `/ope/monitoring`):
+Created by `init_dirs.sh` under `<volumes_root>/monitoring`:
 
 | Directory      | UID:GID      | Service      |
 |---------------|--------------|--------------|
@@ -143,7 +142,7 @@ lookups. Without it, infrastructure monitoring still works but geographic panels
 show "Unknown."
 
 Place the database at the project root and `init_dirs.sh` will install it, or
-copy it directly to `<monitoring_data_root>/geoip/GeoLite2-City.mmdb`.
+copy it directly to `<volumes_root>/monitoring/geoip/GeoLite2-City.mmdb`.
 
 Refresh quarterly from https://github.com/P3TERX/GeoLite.mmdb or https://www.maxmind.com/en/geolite2/signup (free).
 

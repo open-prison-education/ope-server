@@ -160,7 +160,7 @@ prometheus.scrape "vhosts" {
 // GeoIP: stage.geoip requires GeoLite2-City.mmdb at the path below.
 // Phase 3 bundles the DB for air-gapped distribution; for online deployments
 // download it from MaxMind (free account required) and place it in
-// <MONITORING_DATA_ROOT>/geoip/. Without the DB the nginx log pipeline will
+// <volumes_root>/monitoring/geoip/. Without the DB the nginx log pipeline will
 // be unhealthy — infrastructure monitoring is unaffected.
 // =============================================================================
 

@@ -77,14 +77,13 @@ absence.
 ```bash
 # Option A: init_dirs.sh auto-detects the file at the project root
 cp GeoLite2-City.mmdb /path/to/ope-server/
-./ope-monitoring/init_dirs.sh /ope/monitoring
+./ope-monitoring/init_dirs.sh <volumes_root>/monitoring
 
 # Option B: pass the path explicitly
-./ope-monitoring/init_dirs.sh /ope/monitoring /path/to/GeoLite2-City.mmdb
+./ope-monitoring/init_dirs.sh <volumes_root>/monitoring /path/to/GeoLite2-City.mmdb
 ```
 
-The database is installed at `<MONITORING_DATA_ROOT>/geoip/GeoLite2-City.mmdb`
-(default: `/ope/monitoring/geoip/GeoLite2-City.mmdb`).
+The database is installed at `<volumes_root>/monitoring/geoip/GeoLite2-City.mmdb`
 
 ### Grafana Phone-Home Disabled
 
@@ -122,8 +121,8 @@ location or to "unknown." Refresh quarterly at minimum.
 2. **Deploy** to the server:
    ```bash
    # Copy the new file into the geoip directory
-   sudo cp GeoLite2-City.mmdb /ope/monitoring/geoip/GeoLite2-City.mmdb
-   sudo chmod 644 /ope/monitoring/geoip/GeoLite2-City.mmdb
+   sudo cp GeoLite2-City.mmdb <volumes_root>/monitoring/geoip/GeoLite2-City.mmdb
+   sudo chmod 644 <volumes_root>/monitoring/geoip/GeoLite2-City.mmdb
 
    # Restart Alloy to pick up the new database
    docker compose restart alloy

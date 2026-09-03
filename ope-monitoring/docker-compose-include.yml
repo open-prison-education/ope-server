@@ -13,9 +13,9 @@
             resources:
                 limits:
                     cpus: "0.5"
-                    memory: 1024M
+                    memory: 512M
         volumes:
-            - <MONITORING_DATA_ROOT>/prometheus:/prometheus:rw
+            - <VOLUMES_ROOT>/monitoring/prometheus:/prometheus:rw
             - ./ope-monitoring/generated/prometheus.yml:/etc/prometheus/prometheus.yml:ro
             - ./ope-monitoring/generated/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
         depends_on:
@@ -42,7 +42,7 @@
                     cpus: "0.5"
                     memory: 512M
         volumes:
-            - <MONITORING_DATA_ROOT>/loki:/loki:rw
+            - <VOLUMES_ROOT>/monitoring/loki:/loki:rw
             - ./ope-monitoring/generated/loki-config.yml:/etc/loki/loki-config.yml:ro
         depends_on:
             - ope-gateway
@@ -74,8 +74,8 @@
             - /:/host/root:ro
             - /ope/docker:/ope/docker:ro
             - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:ro
-            - <MONITORING_DATA_ROOT>/geoip:/etc/alloy/geoip:ro
-            - <MONITORING_DATA_ROOT>/alloy:/var/lib/alloy/data:rw
+            - <VOLUMES_ROOT>/monitoring/geoip:/etc/alloy/geoip:ro
+            - <VOLUMES_ROOT>/monitoring/alloy:/var/lib/alloy/data:rw
         depends_on:
             prometheus:
                 condition: service_healthy
@@ -92,9 +92,9 @@
             resources:
                 limits:
                     cpus: "0.5"
-                    memory: 512M
+                    memory: 1G
         volumes:
-            - <MONITORING_DATA_ROOT>/grafana:/var/lib/grafana:rw
+            - <VOLUMES_ROOT>/monitoring/grafana:/var/lib/grafana:rw
             - ./ope-monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
             - ./ope-monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
         depends_on:
@@ -134,7 +134,7 @@
                     cpus: "0.25"
                     memory: 128M
         volumes:
-            - <MONITORING_DATA_ROOT>/alertmanager:/alertmanager:rw
+            - <VOLUMES_ROOT>/monitoring/alertmanager:/alertmanager:rw
             - ./ope-monitoring/generated/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
         depends_on:
             - ope-gateway

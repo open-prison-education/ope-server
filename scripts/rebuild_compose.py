@@ -144,7 +144,6 @@ def build_replacement_values(settings, secrets):
         "<FACILITY_ID>": fallback(settings.get("facility_id"), "default"),
         "<FACILITY_NAME>": fallback(settings.get("facility_name"), "Default Facility"),
         "<GRAFANA_ADMIN_PW>": fallback(settings.get("grafana_admin_pw"), fallback(settings.get("it_pw"), "changeme")),
-        "<MONITORING_DATA_ROOT>": fallback(settings.get("monitoring_data_root"), "/ope/monitoring"),
         "<PROMETHEUS_RETENTION>": fallback(settings.get("prometheus_retention"), "365d"),
         "<LOKI_RETENTION>": fallback(settings.get("loki_retention"), "720h"),
         "<CENTRAL_METRICS_URL>": fallback(settings.get("central_metrics_url"), ""),

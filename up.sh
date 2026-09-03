@@ -83,8 +83,8 @@ except Exception:
 ")
 
 if [ "$MONITORING_ENABLED" = "1" ] && [ -f "$BASEDIR/ope-monitoring/init_dirs.sh" ]; then
-    MONITORING_DATA_ROOT=$(grep -E '^MONITORING_DATA_ROOT=' "$BASEDIR/.env" 2>/dev/null | cut -d= -f2-)
-    if ! bash "$BASEDIR/ope-monitoring/init_dirs.sh" "${MONITORING_DATA_ROOT:-/ope/monitoring}"; then
+    VOLUMES_ROOT=$(grep -E '^VOLUMES_ROOT=' "$BASEDIR/.env" 2>/dev/null | cut -d= -f2-)
+    if ! bash "$BASEDIR/ope-monitoring/init_dirs.sh" "${VOLUMES_ROOT}/monitoring"; then
         echo "Aborting: monitoring data directories are not usable." >&2
         exit 1
     fi

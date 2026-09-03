@@ -18,7 +18,10 @@
 
 set -u
 
-DATA_ROOT="${1:-/ope/monitoring}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR" 2>/dev/null || echo "$SCRIPT_DIR")"
+VOLUMES_ROOT=$(grep -E '^VOLUMES_ROOT=' "${PROJECT_ROOT}/.env" 2>/dev/null | cut -d= -f2-)
+DATA_ROOT="${1:-${VOLUMES_ROOT}/monitoring}"
 
 # dirname:uid:gid
 DIRS="
@@ -95,11 +98,8 @@ echo "Monitoring data directories ready."
 # ---------------------------------------------------------------------------
 # If GeoLite2-City.mmdb exists at the project root (bundled for air-gap) or
 # is passed as the second argument, copy it into the geoip data directory.
-# The Alloy container mounts <MONITORING_DATA_ROOT>/geoip → /etc/alloy/geoip.
+# The Alloy container mounts <VOLUMES_ROOT>/monitoring/geoip → /etc/alloy/geoip.
 GEOIP_SRC="${2:-}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR" 2>/dev/null || echo "$SCRIPT_DIR")"
-
 if [ -z "$GEOIP_SRC" ] && [ -f "${PROJECT_ROOT}/GeoLite2-City.mmdb" ]; then
     GEOIP_SRC="${PROJECT_ROOT}/GeoLite2-City.mmdb"
 fi
