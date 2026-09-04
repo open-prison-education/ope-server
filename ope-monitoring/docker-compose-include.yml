@@ -52,6 +52,7 @@
 
     alloy:
         image: "grafana/alloy:${ALLOY_VERSION:-v1.18.1}"
+        privileged: true
         container_name: alloy
         restart: always
         command:
@@ -68,11 +69,13 @@
         volumes:
             - ./ope-monitoring/generated/config.alloy:/etc/alloy/config.alloy:ro
             - /var/run/docker.sock:/var/run/docker.sock:ro
+            - /var/lib/docker:/var/lib/docker:ro
+            - /var/run:/var/run:ro
             - /proc:/host/proc:ro
             - /sys:/host/sys:ro
             - /sys/fs/cgroup:/sys/fs/cgroup:ro
             - /:/host/root:ro
-            - /ope/docker:/ope/docker:ro
+            - /:/rootfs:ro
             - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:ro
             - <VOLUMES_ROOT>/monitoring/geoip:/etc/alloy/geoip:ro
             - <VOLUMES_ROOT>/monitoring/alloy:/var/lib/alloy/data:rw
