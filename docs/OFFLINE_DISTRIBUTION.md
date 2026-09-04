@@ -1,6 +1,6 @@
 # Offline Distribution Guide (Building the Bundle)
 
-This guide is for ** OPE developers** who need to prepare OPE Server
+This guide is for **OPE developers** who need to prepare OPE Server
 files for deployment on an air-gapped machine.
 
 If you are the **site operator** who already has `ope-server-offline.tar.gz`
