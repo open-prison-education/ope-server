@@ -1,0 +1,152 @@
+    prometheus:
+        image: "prom/prometheus:${PROMETHEUS_VERSION:-v3.14.0}"
+        container_name: prometheus
+        restart: always
+        command:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-365d}"
+            - "--web.enable-lifecycle"
+            # Required for Alloy to push host/container/probe metrics; defaults to off.
+            - "--web.enable-remote-write-receiver"
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+        volumes:
+            - <VOLUMES_ROOT>/monitoring/prometheus:/prometheus:rw
+            - ./ope-monitoring/generated/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - ./ope-monitoring/generated/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        networks:
+            - monitoring
+        healthcheck:
+            test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+            interval: 15s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+
+    loki:
+        image: "grafana/loki:${LOKI_VERSION:-3.7.6}"
+        container_name: loki
+        restart: always
+        command:
+            - "-config.file=/etc/loki/loki-config.yml"
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+        volumes:
+            - <VOLUMES_ROOT>/monitoring/loki:/loki:rw
+            - ./ope-monitoring/generated/loki-config.yml:/etc/loki/loki-config.yml:ro
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        networks:
+            - monitoring
+
+    alloy:
+        image: "grafana/alloy:${ALLOY_VERSION:-v1.18.1}"
+        privileged: true
+        container_name: alloy
+        restart: always
+        command:
+            - "run"
+            - "/etc/alloy/config.alloy"
+            - "--storage.path=/var/lib/alloy/data"
+            # Alloy defaults to 127.0.0.1, which Prometheus cannot scrape.
+            - "--server.http.listen-addr=0.0.0.0:12345"
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+        volumes:
+            - ./ope-monitoring/generated/config.alloy:/etc/alloy/config.alloy:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - /var/lib/docker:/var/lib/docker:ro
+            - /var/run:/var/run:ro
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /sys/fs/cgroup:/sys/fs/cgroup:ro
+            - /:/host/root:ro
+            - /:/rootfs:ro
+            - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:ro
+            - <VOLUMES_ROOT>/monitoring/geoip:/etc/alloy/geoip:ro
+            - <VOLUMES_ROOT>/monitoring/alloy:/var/lib/alloy/data:rw
+        depends_on:
+            prometheus:
+                condition: service_healthy
+            loki:
+                condition: service_started
+        networks:
+            - monitoring
+
+    grafana:
+        image: "grafana/grafana:${GRAFANA_VERSION:-13.2.0}"
+        container_name: grafana
+        restart: always
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 1G
+        volumes:
+            - <VOLUMES_ROOT>/monitoring/grafana:/var/lib/grafana:rw
+            - ./ope-monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+            - ./ope-monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+        depends_on:
+            prometheus:
+                condition: service_healthy
+            loki:
+                condition: service_started
+        networks:
+            - monitoring
+        environment:
+            - VIRTUAL_HOST=monitoring.<DOMAIN>
+            - VIRTUAL_PORT=3000
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=monitoring.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+            - GF_SERVER_ROOT_URL=https://monitoring.<DOMAIN>
+            - GF_SERVER_SERVE_FROM_SUB_PATH=false
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=<GRAFANA_ADMIN_PW>
+            - GF_USERS_ALLOW_SIGN_UP=false
+            - GF_ANALYTICS_REPORTING_ENABLED=false
+            - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+            - GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+            - GF_NEWS_NEWS_FEED_ENABLED=false
+
+    alertmanager:
+        image: "prom/alertmanager:${ALERTMANAGER_VERSION:-v0.34.0}"
+        container_name: alertmanager
+        restart: always
+        command:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.25"
+                    memory: 128M
+        volumes:
+            - <VOLUMES_ROOT>/monitoring/alertmanager:/alertmanager:rw
+            - ./ope-monitoring/generated/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        networks:
+            - monitoring
+        healthcheck:
+            test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+            interval: 15s
+            timeout: 5s
+            retries: 3
+            start_period: 15s

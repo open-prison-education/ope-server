@@ -1,0 +1,422 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "CPU Usage %",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU Usage",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)",
+          "legendFormat": "Used",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(node_memory_MemAvailable_bytes)",
+          "legendFormat": "Available",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(node_memory_MemTotal_bytes)",
+          "legendFormat": "Total",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Memory",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "CPU Count",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }
+      },
+      "targets": [
+        {
+          "expr": "count(count by (cpu) (node_cpu_seconds_total{mode=\"idle\"}))",
+          "legendFormat": "CPUs",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk / (root)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100)",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk /ope (data)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 70 },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "expr": "100 - (sum(node_filesystem_avail_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) / sum(node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}) * 100)",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk / Used",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} - node_filesystem_free_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk / Total",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Total",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk /ope Used",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"} - node_filesystem_free_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk /ope Total",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/ope\",fstype!=\"tmpfs\"}",
+          "legendFormat": "Total",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Disk I/O",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (device) (rate(node_disk_read_bytes_total{device=~\"xvd.*\"}[5m]))",
+          "legendFormat": "Read {{device}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (device) (rate(node_disk_written_bytes_total{device=~\"xvd.*\"}[5m]))",
+          "legendFormat": "Write {{device}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Network Traffic",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (device) (rate(node_network_receive_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m]))",
+          "legendFormat": "RX {{device}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (device) (rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|br-.*|docker.*\"}[5m]))",
+          "legendFormat": "TX {{device}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "System Load (1m / 5m / 15m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(node_load1)",
+          "legendFormat": "1m",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(node_load5)",
+          "legendFormat": "5m",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(node_load15)",
+          "legendFormat": "15m",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "System Uptime",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "time() - max(node_boot_time_seconds)",
+          "legendFormat": "Uptime",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["ope", "host"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Host Metrics",
+  "uid": "ope-host-metrics",
+  "version": 1
+}

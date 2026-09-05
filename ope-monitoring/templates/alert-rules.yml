@@ -1,0 +1,139 @@
+groups:
+  - name: container_alerts
+    rules:
+      # changes() operates on a series that still exists, so this correctly
+      # reports the specific container that is flapping.
+      - alert: ContainerRestartLoop
+        expr: changes(container_start_time_seconds{name!=""}[15m]) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} is restart-looping"
+          description: "Container {{ $labels.name }} restarted {{ $value }} times in the last 15 minutes."
+
+      # Per-container staleness check. Deliberately NOT absent() over a regex:
+      # absent() only returns a value when *no* series in the set match, so a
+      # single dead container among healthy ones would never fire.
+      - alert: ContainerStopped
+        expr: time() - container_last_seen{name!=""} > 180
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} has stopped reporting"
+          description: "Container {{ $labels.name }} has not reported to cAdvisor for over 3 minutes."
+
+      # ope-gateway is present in every deployment, so a bare absent() here is
+      # safe and acts as a canary for the whole collection pipeline.
+      - alert: GatewayContainerMissing
+        expr: absent(container_last_seen{name="ope-gateway"})
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ope-gateway container is missing"
+          description: "No cAdvisor data for ope-gateway. Either the gateway is down or the Alloy collection pipeline has failed."
+
+  - name: host_alerts
+    rules:
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Memory usage above 90%"
+          description: "Host memory usage is {{ printf \"%.1f\" $value }}%. This host has no swap, so OOM kills are imminent."
+
+      - alert: HighMemoryWarning
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage above 80%"
+          description: "Host memory usage is {{ printf \"%.1f\" $value }}%."
+
+      - alert: DiskSpaceCritical
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} above 90%"
+          description: "Disk usage on {{ $labels.mountpoint }} is {{ printf \"%.1f\" $value }}%."
+
+      - alert: DiskSpaceWarning
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) * 100 > 80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} above 80%"
+          description: "Disk usage on {{ $labels.mountpoint }} is {{ printf \"%.1f\" $value }}%."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage above 90%"
+          description: "Host CPU usage is {{ printf \"%.1f\" $value }}% for 10+ minutes."
+
+  - name: service_alerts
+    rules:
+      # probe_* metrics only come from the blackbox exporter, so no job filter
+      # is needed. Alloy sets the job label from each target's name (canvas,
+      # smc, penpot, monitoring), not to "blackbox".
+      - alert: ServiceDown
+        expr: probe_success == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP probe failed for {{ $labels.instance }}"
+          description: "{{ $labels.instance }} has been unreachable for 3+ minutes."
+
+      - alert: TLSCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 21
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS cert for {{ $labels.instance }} expires in {{ printf \"%.0f\" $value }} days"
+          description: "The TLS certificate expires within 21 days. Renew or replace it."
+
+      - alert: TLSCertExpiryCritical
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TLS cert for {{ $labels.instance }} expires in {{ printf \"%.0f\" $value }} days"
+          description: "The TLS certificate expires within 7 days. Immediate action required."
+
+      - alert: SlowResponse
+        expr: probe_duration_seconds > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} responding slowly"
+          description: "{{ $labels.instance }} took {{ printf \"%.1f\" $value }}s to respond."
+
+  - name: traffic_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: >
+          sum by (host) (rate(nginx_requests_total{status=~"5.."}[10m]))
+          /
+          sum by (host) (rate(nginx_requests_total[10m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "5xx error rate above 5% for {{ $labels.host }}"
+          description: "The 5xx error rate on {{ $labels.host }} is {{ printf \"%.1f\" $value }}%."

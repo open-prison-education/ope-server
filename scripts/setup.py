@@ -42,8 +42,9 @@ DEFAULT_SETTINGS = {
     "dns_extras": "",
     "network_mode": "bridge",
     "volumes_root": "./volumes",
+    "facility_id": "default",
+    "facility_name": "Default Facility",
 }
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -139,6 +140,16 @@ def wizard_settings(defaults):
     settings["volumes_root"] = prompt(
         "Volumes root path (absolute or relative to project)",
         defaults.get("volumes_root", DEFAULT_SETTINGS["volumes_root"]),
+    )
+
+    print("\nMonitoring (Enter to keep defaults):")
+    settings["facility_id"] = prompt(
+        "Facility ID (lowercase, no spaces -- labels all metrics and logs)",
+        defaults.get("facility_id", DEFAULT_SETTINGS["facility_id"]),
+    )
+    settings["facility_name"] = prompt(
+        "Facility display name",
+        defaults.get("facility_name", DEFAULT_SETTINGS["facility_name"]),
     )
 
     return settings

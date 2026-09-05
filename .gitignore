@@ -5,8 +5,11 @@
 /.secrets.yml
 .venv/
 /docker-compose.yml
+/ope-monitoring/generated/
 __pycache__/
 *.pyc
 /volumes/
 /runtime/
 ope-server-offline.tar.gz
+/exported_images/
+GeoLite2-City.mmdb

@@ -1,0 +1,151 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "Service Availability",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.95 },
+              { "color": "green", "value": 0.99 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "avg_over_time(probe_success[24h])",
+          "legendFormat": "{{instance}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "HTTP Probe Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "probe_duration_seconds",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "HTTP Status Code",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 200 },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 400 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "probe_http_status_code",
+          "legendFormat": "{{instance}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "TLS Certificate Expiry (days)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 14 },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "(probe_ssl_earliest_cert_expiry - time()) / 86400",
+          "legendFormat": "{{instance}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Probe Success History",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "ope-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "probe_success",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["ope", "uptime"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Service Uptime",
+  "uid": "ope-service-uptime",
+  "version": 1
+}

@@ -37,6 +37,7 @@ SERVICE_DEPS = {
     "ope-redis": ["ope-gateway", "ope-dns"],
     "ope-postgresql": ["ope-gateway", "ope-dns"],
     "ope-penpot": ["ope-gateway", "ope-dns"],
+    "ope-monitoring": ["ope-gateway", "ope-dns"],
 }
 
 # Services shown in the setup wizard, grouped by category.
@@ -94,6 +95,10 @@ SERVICE_CATALOG = [
             {"name": "ope-letsencrypt", "description": "Let's Encrypt SSL"},
             {"name": "ope-fog", "description": "FOG Imaging"},
             {"name": "ope-websites", "description": "OSN Approved Websites"},
+            {
+                "name": "ope-monitoring",
+                "description": "Monitoring & Analytics (Grafana + Prometheus + Loki)",
+            },
         ],
     },
 ]

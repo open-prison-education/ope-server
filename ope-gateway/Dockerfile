@@ -2,7 +2,7 @@ FROM jwilder/nginx-proxy:alpine
 
 LABEL description="Web Gateway for Open Prison Education"
 
-RUN apk add nano openssl
+RUN apk add nano openssl logrotate
 
 
 COPY docker-entrypoint.sh /app/
@@ -15,6 +15,7 @@ COPY nginx.conf /app/nginx.conf
 COPY proxy.conf /app/
 COPY index.html /app/
 COPY 502.html /app/
+COPY logrotate-nginx /etc/logrotate.d/nginx
 
 WORKDIR /app/
 
