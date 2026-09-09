@@ -1,5 +1,5 @@
     prometheus:
-        image: "prom/prometheus:${PROMETHEUS_VERSION:-v3.14.0}"
+        image: "ghcr.io/open-prison-education/prometheus:${PROMETHEUS_VERSION:-v3.14.0}"
         container_name: prometheus
         restart: always
         command:
@@ -31,7 +31,7 @@
             start_period: 30s
 
     loki:
-        image: "grafana/loki:${LOKI_VERSION:-3.7.6}"
+        image: "ghcr.io/open-prison-education/loki:${LOKI_VERSION:-3.7.6}"
         container_name: loki
         restart: always
         command:
@@ -51,7 +51,7 @@
             - monitoring
 
     alloy:
-        image: "grafana/alloy:${ALLOY_VERSION:-v1.18.1}"
+        image: "ghcr.io/open-prison-education/alloy:${ALLOY_VERSION:-v1.18.1}"
         privileged: true
         container_name: alloy
         restart: always
@@ -88,7 +88,7 @@
             - monitoring
 
     grafana:
-        image: "grafana/grafana:${GRAFANA_VERSION:-13.2.0}"
+        image: "ghcr.io/open-prison-education/grafana:${GRAFANA_VERSION:-13.2.0}"
         container_name: grafana
         restart: always
         deploy:
@@ -125,7 +125,7 @@
             - GF_NEWS_NEWS_FEED_ENABLED=false
 
     alertmanager:
-        image: "prom/alertmanager:${ALERTMANAGER_VERSION:-v0.34.0}"
+        image: "ghcr.io/open-prison-education/alertmanager:${ALERTMANAGER_VERSION:-v0.34.0}"
         container_name: alertmanager
         restart: always
         command:

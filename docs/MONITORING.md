@@ -26,16 +26,17 @@ Grafana ◄── Prometheus + Loki
   (monitoring.<DOMAIN>)
 ```
 
-| Component    | Image                         | Purpose                            |
-|-------------|-------------------------------|------------------------------------|
-| Prometheus  | `prom/prometheus:v3.14.0`     | Metrics storage (TSDB)             |
-| Loki        | `grafana/loki:3.7.6`          | Log aggregation                    |
-| Alloy       | `grafana/alloy:v1.18.1`       | Collection agent (metrics + logs)  |
-| Grafana     | `grafana/grafana:13.2.0`      | Dashboards and alerting UI         |
-| Alertmanager| `prom/alertmanager:v0.34.0`   | Alert routing and deduplication    |
+| Component    | Image                                                | Purpose                            |
+|-------------|------------------------------------------------------|------------------------------------|
+| Prometheus  | `ghcr.io/open-prison-education/prometheus:v3.14.0`   | Metrics storage (TSDB)             |
+| Loki        | `ghcr.io/open-prison-education/loki:3.7.6`           | Log aggregation                    |
+| Alloy       | `ghcr.io/open-prison-education/alloy:v1.18.1`        | Collection agent (metrics + logs)  |
+| Grafana     | `ghcr.io/open-prison-education/grafana:13.2.0`       | Dashboards and alerting UI         |
+| Alertmanager| `ghcr.io/open-prison-education/alertmanager:v0.34.0` | Alert routing and deduplication    |
 
-All five images are pinned to explicit versions and mirrored to
-`ghcr.io/open-prison-education/` for air-gapped deployments.
+All five images are pinned to explicit versions and mirrored from upstream
+(`prom/*`, `grafana/*`) to `ghcr.io/open-prison-education/` for air-gapped
+deployments.
 
 ---
 
@@ -48,6 +49,10 @@ service groups:
 
 ```bash
 # On the build machine (has internet):
+# 1. Mirror upstream images to GHCR (once, or when bumping versions)
+./ope-monitoring/update_monitoring_images.sh
+
+# 2. Export for offline distribution
 ./scripts/export_images.sh         # Creates exported_images/ope-monitoring.tar.gz
 ```
 
@@ -57,11 +62,17 @@ On the target machine:
 docker load < exported_images/ope-monitoring.tar.gz
 ```
 
-If the target has images cached under the upstream names (`prom/*`,
-`grafana/*`), retag them:
+If the target still has images cached under the upstream names (`prom/*`,
+`grafana/*`), retag them locally to match compose (same names `export_images.sh`
+expects):
 
 ```bash
-./scripts/retag_images.sh          # Retags to ghcr.io/open-prison-education/*
+REGISTRY=ghcr.io/open-prison-education
+docker tag prom/prometheus:v3.14.0      ${REGISTRY}/prometheus:v3.14.0
+docker tag grafana/loki:3.7.6           ${REGISTRY}/loki:3.7.6
+docker tag grafana/alloy:v1.18.1        ${REGISTRY}/alloy:v1.18.1
+docker tag grafana/grafana:13.2.0       ${REGISTRY}/grafana:13.2.0
+docker tag prom/alertmanager:v0.34.0    ${REGISTRY}/alertmanager:v0.34.0
 ```
 
 ### GeoIP Database

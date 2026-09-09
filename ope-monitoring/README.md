@@ -6,13 +6,13 @@ access logs and monitors host/container health, with full air-gap support.
 
 ## Components
 
-| Service      | Image                        | Port  | Purpose                           |
-|-------------|------------------------------|-------|-----------------------------------|
-| Prometheus  | `prom/prometheus:v3.14.0`    | 9090  | Metrics storage (TSDB, 1yr)       |
-| Loki        | `grafana/loki:3.7.6`         | 3100  | Log aggregation (30 days)         |
-| Alloy       | `grafana/alloy:v1.18.1`     | 12345 | Collection agent (metrics + logs) |
-| Grafana     | `grafana/grafana:13.2.0`     | 3000  | Dashboards and alerting UI        |
-| Alertmanager| `prom/alertmanager:v0.34.0`  | 9093  | Alert routing and deduplication   |
+| Service      | Image                                                | Port  | Purpose                           |
+|--------------|------------------------------------------------------|-------|-----------------------------------|
+| Prometheus  | `ghcr.io/open-prison-education/prometheus:v3.14.0`   | 9090  | Metrics storage (TSDB, 1yr)       |
+| Loki        | `ghcr.io/open-prison-education/loki:3.7.6`           | 3100  | Log aggregation (30 days)         |
+| Alloy       | `ghcr.io/open-prison-education/alloy:v1.18.1`        | 12345 | Collection agent (metrics + logs) |
+| Grafana     | `ghcr.io/open-prison-education/grafana:13.2.0`       | 3000  | Dashboards and alerting UI        |
+| Alertmanager| `ghcr.io/open-prison-education/alertmanager:v0.34.0` | 9093  | Alert routing and deduplication   |
 
 ## Directory Structure
 
@@ -21,6 +21,7 @@ ope-monitoring/
 ├── docker-compose-include.yml    # Compose fragment (5 services)
 ├── networks-include.yml          # Defines 'monitoring' network
 ├── init_dirs.sh                  # Creates data dirs with correct ownership
+├── update_monitoring_images.sh   # Pull upstream, retag, push to GHCR
 ├── templates/                    # Source configs with <PLACEHOLDER> tokens
 │   ├── prometheus.yml
 │   ├── config.alloy
@@ -43,6 +44,28 @@ ope-monitoring/
         └── dashboards/dashboards.yml
 ```
 
+## Mirroring images to GHCR
+
+Compose and `scripts/export_images.sh` expect the five monitoring images under
+`ghcr.io/open-prison-education/`. On a machine with internet and GHCR push
+access:
+
+```bash
+# Log in first (PAT with write:packages)
+echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
+
+# Pull upstream, retag, and push (uses default pinned versions)
+./ope-monitoring/update_monitoring_images.sh
+
+# Optional: retag only, or preview
+./ope-monitoring/update_monitoring_images.sh --no-push
+./ope-monitoring/update_monitoring_images.sh --dry-run
+
+# Optional: bump a version before push
+GRAFANA_VERSION=13.3.0 ./ope-monitoring/update_monitoring_images.sh
+```
+
+Then export for air-gap packaging with `./scripts/export_images.sh`.
 ## Quick Start
 
 ```bash
