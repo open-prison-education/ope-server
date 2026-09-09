@@ -37,6 +37,10 @@ DEFAULT_SETTINGS = {
     "canvas_login_prompt": "Student ID (default is s + DOC number - s113412)",
     "ntp_servers": "time.windows.com",
     "alert_email": "alert@correctionsed.com",
+    "alert_smtp_smarthost": "",
+    "alert_smtp_from": "",
+    "alert_smtp_require_tls": True,
+    "alert_smtp_username": "",
     "acme_auth_code": "ZZZZ",
     "cert_name": "default",
     "dns_extras": "",
@@ -116,6 +120,22 @@ def wizard_settings(defaults):
     settings["alert_email"] = prompt(
         "Alert email",
         defaults.get("alert_email", DEFAULT_SETTINGS["alert_email"]),
+    )
+    settings["alert_smtp_smarthost"] = prompt(
+        "Alert SMTP relay (host:port, blank disables email)",
+        defaults.get("alert_smtp_smarthost", DEFAULT_SETTINGS["alert_smtp_smarthost"]),
+    )
+    settings["alert_smtp_from"] = prompt(
+        "Alert sender address (blank=alertmanager@domain)",
+        defaults.get("alert_smtp_from", DEFAULT_SETTINGS["alert_smtp_from"]),
+    )
+    settings["alert_smtp_require_tls"] = prompt(
+        "Alert SMTP requires STARTTLS (true/false)",
+        defaults.get("alert_smtp_require_tls", DEFAULT_SETTINGS["alert_smtp_require_tls"]),
+    ).lower() not in ("0", "false", "no", "off")
+    settings["alert_smtp_username"] = prompt(
+        "Alert SMTP username (blank=no authentication)",
+        defaults.get("alert_smtp_username", DEFAULT_SETTINGS["alert_smtp_username"]),
     )
     settings["ntp_servers"] = prompt(
         "NTP servers",

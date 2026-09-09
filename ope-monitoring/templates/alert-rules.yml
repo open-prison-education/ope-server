@@ -12,17 +12,30 @@ groups:
           summary: "Container {{ $labels.name }} is restart-looping"
           description: "Container {{ $labels.name }} restarted {{ $value }} times in the last 15 minutes."
 
-      # Per-container staleness check. Deliberately NOT absent() over a regex:
-      # absent() only returns a value when *no* series in the set match, so a
-      # single dead container among healthy ones would never fire.
+      # cAdvisor removes a stopped container's live series, so retain its last
+      # sample over a bounded window. Aggregate by Compose container name to
+      # avoid keeping an old container ID firing after a successful recreate.
+      # One-off Compose jobs are excluded because they are expected to exit.
       - alert: ContainerStopped
-        expr: time() - container_last_seen{name!=""} > 180
+        expr: >
+          time()
+          -
+          max by (name, facility, facility_name) (
+            max_over_time(
+              container_last_seen{
+                name!="",
+                container_label_com_docker_compose_project!="",
+                container_label_com_docker_compose_oneoff="False"
+              }[24h]
+            )
+          )
+          > 60
         for: 1m
         labels:
           severity: critical
         annotations:
           summary: "Container {{ $labels.name }} has stopped reporting"
-          description: "Container {{ $labels.name }} has not reported to cAdvisor for over 3 minutes."
+          description: "Container {{ $labels.name }} has not reported to cAdvisor for over 1 minute. It is stopped, removed, or its metrics are unavailable."
 
       # ope-gateway is present in every deployment, so a bare absent() here is
       # safe and acts as a canary for the whole collection pipeline.
@@ -127,10 +140,13 @@ groups:
     rules:
       - alert: HighErrorRate
         expr: >
-          sum by (host) (rate(nginx_requests_total{status=~"5.."}[10m]))
-          /
-          sum by (host) (rate(nginx_requests_total[10m]))
-          > 0.05
+          (
+            sum by (host) (rate(nginx_requests_total{status=~"5.."}[10m]))
+            /
+            sum by (host) (rate(nginx_requests_total[10m]))
+          )
+          * 100
+          > 5
         for: 5m
         labels:
           severity: warning

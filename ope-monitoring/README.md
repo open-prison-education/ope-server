@@ -73,8 +73,18 @@ All settings are in `config.yml` under `settings:`:
 | `prometheus_retention`| `365d`                | Prometheus TSDB retention period     |
 | `loki_retention`      | `720h`                | Loki log retention (30 days)         |
 | `alert_email`         | (required)            | Email for alert notifications        |
+| `alert_smtp_smarthost`| (empty, disabled)     | Reachable SMTP relay as `host:port`  |
+| `alert_smtp_from`     | `alertmanager@<domain>` | Envelope/from address              |
+| `alert_smtp_require_tls` | `true`             | Require STARTTLS from the relay      |
+| `alert_smtp_username` | (empty)               | SMTP username; empty means no auth   |
 | `central_metrics_url` | (empty, disabled)     | Central Prometheus remote_write URL  |
 | `central_loki_url`    | (empty, disabled)     | Central Loki push URL                |
+
+When SMTP authentication is required, put `alert_smtp_password` in
+`.secrets.yml`; do not put the password in `config.yml`. Email notification is
+disabled when `alert_smtp_smarthost` is empty. The relay must be reachable from
+the Alertmanager container—`localhost:25` refers to the container itself and is
+not a host mail server.
 
 After changing settings, run `./scripts/rebuild.sh` and restart the stack.
 
@@ -134,6 +144,14 @@ Configured in `templates/alert-rules.yml`:
 - 5xx error rate spikes
 
 Alerts route to `alert_email` via Alertmanager and are visible in the Grafana UI.
+Both warning and critical alerts are emailed when SMTP is configured; critical
+alerts repeat hourly and warnings repeat every four hours.
+
+`ContainerStopped` keeps the last cAdvisor sample for each non-one-off Compose
+container so that the alert still has the container name after cAdvisor removes
+the stopped container's live series. With 30-second evaluations, a one-minute
+threshold, a one-minute pending period, and Alertmanager's 30-second group wait,
+expect the first notification roughly 2.5–3 minutes after `docker stop`.
 
 ## GeoIP
 

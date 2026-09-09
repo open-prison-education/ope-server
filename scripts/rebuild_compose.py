@@ -107,6 +107,15 @@ def fallback(val, default=""):
     return str(val) if val is not None else str(default)
 
 
+def yaml_bool(val, default=True):
+    """Render common config values as a lowercase YAML boolean."""
+    if val is None:
+        val = default
+    if isinstance(val, str):
+        val = val.strip().lower() not in ("", "0", "false", "no", "off")
+    return "true" if bool(val) else "false"
+
+
 def build_replacement_values(settings, secrets):
     """Build the placeholder -> value mapping used in compose and .env files."""
     domain = fallback(settings.get("domain"), "ed")
@@ -138,6 +147,18 @@ def build_replacement_values(settings, secrets):
         "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": f"mathman.{domain}",
         "<NTP_SERVERS>": fallback(settings.get("ntp_servers"), "time.windows.com"),
         "<ALERT_EMAIL>": fallback(settings.get("alert_email"), "alert@correctionsed.com"),
+        # SMTP is disabled unless a reachable relay is explicitly configured.
+        # "localhost" here would refer to the Alertmanager container itself.
+        "<ALERT_SMTP_SMARTHOST>": fallback(settings.get("alert_smtp_smarthost"), ""),
+        "<ALERT_SMTP_FROM>": (
+            fallback(settings.get("alert_smtp_from"), "") or f"alertmanager@{domain}"
+        ),
+        "<ALERT_SMTP_REQUIRE_TLS>": yaml_bool(
+            settings.get("alert_smtp_require_tls"),
+            True,
+        ),
+        "<ALERT_SMTP_USERNAME>": fallback(settings.get("alert_smtp_username"), ""),
+        "<ALERT_SMTP_PASSWORD>": fallback(secrets.get("alert_smtp_password"), ""),
         "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
         "<PENPOT_SECRET_KEY>": fallback(secrets.get("penpot_secret_key"), ""),
         "<NETWORKS>": "",
