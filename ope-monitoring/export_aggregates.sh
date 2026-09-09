@@ -15,14 +15,18 @@
 # Options:
 #   -o, --output-dir DIR    Output directory (default: ./monitoring_exports)
 #   -d, --days N            Number of days to export (default: 1, i.e. yesterday)
-#   -p, --prometheus URL    Prometheus URL (default: http://localhost:9090)
+#   -p, --prometheus URL    Query Prometheus over HTTP instead of docker exec
+#                           (e.g. http://localhost:9090 if you published the port)
 #   -f, --facility ID       Override facility_id (auto-detected from Prometheus)
 #   --format FORMAT         Output format: csv, json, both (default: both)
 #   -h, --help              Show this help message
 
 set -euo pipefail
 
-PROMETHEUS_URL="http://localhost:9090"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+PROMETHEUS_URL=""
 OUTPUT_DIR="./monitoring_exports"
 DAYS=1
 FACILITY_ID=""
@@ -45,47 +49,74 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! command -v curl &>/dev/null; then
-    echo "ERROR: curl is required but not found" >&2
-    exit 1
-fi
+# GET a path on Prometheus. Uses docker compose exec by default (Prometheus is
+# not bound to the host). With --prometheus URL, uses curl against that URL.
+prom_get() {
+    local path_qs="$1"
 
-if ! curl -sf "${PROMETHEUS_URL}/-/healthy" &>/dev/null; then
-    echo "ERROR: Cannot reach Prometheus at ${PROMETHEUS_URL}" >&2
-    echo "       Is Prometheus running? Try: docker compose exec prometheus wget -qO- http://localhost:9090/-/healthy" >&2
-    exit 1
-fi
+    if [[ -n "$PROMETHEUS_URL" ]]; then
+        if ! command -v curl &>/dev/null; then
+            echo "ERROR: curl is required when using --prometheus" >&2
+            exit 1
+        fi
+        curl -sf "${PROMETHEUS_URL}${path_qs}"
+    else
+        (cd "$REPO_ROOT" && docker compose exec -T prometheus \
+            wget -qO- "http://127.0.0.1:9090${path_qs}")
+    fi
+}
+
+check_prometheus() {
+    if [[ -n "$PROMETHEUS_URL" ]]; then
+        if ! curl -sf "${PROMETHEUS_URL}/-/healthy" &>/dev/null; then
+            echo "ERROR: Cannot reach Prometheus at ${PROMETHEUS_URL}" >&2
+            echo "       Is Prometheus running and the port published?" >&2
+            exit 1
+        fi
+        return
+    fi
+
+    if ! command -v docker &>/dev/null; then
+        echo "ERROR: docker is required (or pass --prometheus URL)" >&2
+        exit 1
+    fi
+
+    if ! (cd "$REPO_ROOT" && docker compose exec -T prometheus \
+            wget -qO- "http://127.0.0.1:9090/-/healthy" &>/dev/null); then
+        echo "ERROR: Cannot reach Prometheus via docker compose exec" >&2
+        echo "       Is the prometheus service running?" >&2
+        echo "       Try: cd ${REPO_ROOT} && docker compose ps prometheus" >&2
+        echo "       Or:  docker compose exec prometheus wget -qO- http://127.0.0.1:9090/-/healthy" >&2
+        exit 1
+    fi
+}
+
+check_prometheus
 
 if [[ -z "$FACILITY_ID" ]]; then
-    FACILITY_ID=$(curl -sf "${PROMETHEUS_URL}/api/v1/label/facility/values" \
+    FACILITY_ID=$(prom_get "/api/v1/label/facility/values" \
         | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data'][0] if d.get('data') else 'unknown')" 2>/dev/null \
         || echo "unknown")
 fi
 
 mkdir -p "$OUTPUT_DIR"
 
-query_prometheus() {
-    local query="$1"
-    local start="$2"
-    local end="$3"
-    local step="${4:-3600}"
-    curl -sf --get "${PROMETHEUS_URL}/api/v1/query_range" \
-        --data-urlencode "query=${query}" \
-        --data-urlencode "start=${start}" \
-        --data-urlencode "end=${end}" \
-        --data-urlencode "step=${step}"
-}
-
 instant_query() {
     local query="$1"
     local time="$2"
-    curl -sf --get "${PROMETHEUS_URL}/api/v1/query" \
-        --data-urlencode "query=${query}" \
-        --data-urlencode "time=${time}"
+    local qs
+    qs=$(python3 -c "import urllib.parse,sys; print(urllib.parse.urlencode({'query': sys.argv[1], 'time': sys.argv[2]}))" "$query" "$time")
+    prom_get "/api/v1/query?${qs}"
 }
 
+if [[ -n "$PROMETHEUS_URL" ]]; then
+    PROM_DISPLAY="$PROMETHEUS_URL"
+else
+    PROM_DISPLAY="docker compose exec prometheus (http://127.0.0.1:9090)"
+fi
+
 echo "Exporting monitoring aggregates for facility: ${FACILITY_ID}"
-echo "  Prometheus: ${PROMETHEUS_URL}"
+echo "  Prometheus: ${PROM_DISPLAY}"
 echo "  Days: ${DAYS}"
 echo "  Output: ${OUTPUT_DIR}"
 echo ""
@@ -106,10 +137,6 @@ for day_offset in $(seq "$DAYS" -1 1); do
     pageviews_json=$(instant_query \
         "sum by (host) (increase(nginx_pageviews_total[24h]))" \
         "${day_end}")
-
-    bytes_json=$(instant_query \
-        "sum by (host) (increase(nginx_requests_total[24h]) * on(host) group_left avg by (host) (rate(nginx_requests_total[24h])))" \
-        "${day_end}" 2>/dev/null || echo '{"data":{"result":[]}}')
 
     status_json=$(instant_query \
         "sum by (host, status) (increase(nginx_requests_total[24h]))" \

@@ -224,20 +224,25 @@ lost locally.
 ### Air-Gapped Mode (Sneakernet Export)
 
 For facilities that cannot reach a central instance, use the export script to
-produce daily per-vhost aggregate files:
+produce daily per-vhost aggregate files. Prometheus is not published on the host
+(it stays on the internal `monitoring` network); the script queries it via
+`docker compose exec` by default.
 
 ```bash
 # Export yesterday's aggregates (default)
-./ope-monitoring/scripts/export_aggregates.sh
+./ope-monitoring/export_aggregates.sh
 
 # Export the last 7 days
-./ope-monitoring/scripts/export_aggregates.sh --days 7
+./ope-monitoring/export_aggregates.sh --days 7
 
 # Custom output directory and format
-./ope-monitoring/scripts/export_aggregates.sh \
+./ope-monitoring/export_aggregates.sh \
   --output-dir /media/usb/exports \
   --format csv \
   --days 30
+
+# Optional: if you published Prometheus on the host yourself
+./ope-monitoring/export_aggregates.sh --prometheus http://localhost:9090
 ```
 
 Output files are named `<facility_id>_<date>.{csv,json}` and contain per-vhost

@@ -22,6 +22,7 @@ ope-monitoring/
 ├── networks-include.yml          # Defines 'monitoring' network
 ├── init_dirs.sh                  # Creates data dirs with correct ownership
 ├── update_monitoring_images.sh   # Pull upstream, retag, push to GHCR
+├── export_aggregates.sh          # Offline per-vhost aggregate export
 ├── templates/                    # Source configs with <PLACEHOLDER> tokens
 │   ├── prometheus.yml
 │   ├── config.alloy
@@ -31,8 +32,6 @@ ope-monitoring/
 │   └── monitoring-vhost.conf
 ├── generated/                    # Rendered by scripts/rebuild_compose.py
 │   └── (same filenames as templates/)
-├── scripts/
-│   └── export_aggregates.sh     # Offline per-vhost aggregate export
 └── grafana/
     ├── dashboards/               # Provisioned JSON dashboards
     │   ├── host-metrics.json
@@ -136,12 +135,16 @@ restart to activate.
 
 ### Air-Gapped: Sneakernet Export
 
+Prometheus is not bound to the host; the script reaches it with
+`docker compose exec` (override with `--prometheus URL` if you published the
+port).
+
 ```bash
 # Export yesterday's per-vhost aggregates as CSV + JSON
-./ope-monitoring/scripts/export_aggregates.sh
+./ope-monitoring/export_aggregates.sh
 
 # Export last 7 days to a USB drive
-./ope-monitoring/scripts/export_aggregates.sh --days 7 --output-dir /media/usb/exports
+./ope-monitoring/export_aggregates.sh --days 7 --output-dir /media/usb/exports
 ```
 
 See [docs/MONITORING.md](../docs/MONITORING.md) for full centralization documentation.
