@@ -13,6 +13,8 @@ import shutil
 
 import yaml
 
+import glob as _glob
+
 from service_deps import (
     resolve_services,
     detect_ip,
@@ -105,6 +107,15 @@ def fallback(val, default=""):
     return str(val) if val is not None else str(default)
 
 
+def yaml_bool(val, default=True):
+    """Render common config values as a lowercase YAML boolean."""
+    if val is None:
+        val = default
+    if isinstance(val, str):
+        val = val.strip().lower() not in ("", "0", "false", "no", "off")
+    return "true" if bool(val) else "false"
+
+
 def build_replacement_values(settings, secrets):
     """Build the placeholder -> value mapping used in compose and .env files."""
     domain = fallback(settings.get("domain"), "ed")
@@ -136,9 +147,28 @@ def build_replacement_values(settings, secrets):
         "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": f"mathman.{domain}",
         "<NTP_SERVERS>": fallback(settings.get("ntp_servers"), "time.windows.com"),
         "<ALERT_EMAIL>": fallback(settings.get("alert_email"), "alert@correctionsed.com"),
+        # SMTP is disabled unless a reachable relay is explicitly configured.
+        # "localhost" here would refer to the Alertmanager container itself.
+        "<ALERT_SMTP_SMARTHOST>": fallback(settings.get("alert_smtp_smarthost"), ""),
+        "<ALERT_SMTP_FROM>": (
+            fallback(settings.get("alert_smtp_from"), "") or f"alertmanager@{domain}"
+        ),
+        "<ALERT_SMTP_REQUIRE_TLS>": yaml_bool(
+            settings.get("alert_smtp_require_tls"),
+            True,
+        ),
+        "<ALERT_SMTP_USERNAME>": fallback(settings.get("alert_smtp_username"), ""),
+        "<ALERT_SMTP_PASSWORD>": fallback(secrets.get("alert_smtp_password"), ""),
         "<CERT_NAME>": fallback(settings.get("cert_name"), "default"),
         "<PENPOT_SECRET_KEY>": fallback(secrets.get("penpot_secret_key"), ""),
         "<NETWORKS>": "",
+        "<FACILITY_ID>": fallback(settings.get("facility_id"), "default"),
+        "<FACILITY_NAME>": fallback(settings.get("facility_name"), "Default Facility"),
+        "<GRAFANA_ADMIN_PW>": fallback(settings.get("grafana_admin_pw"), fallback(settings.get("it_pw"), "changeme")),
+        "<PROMETHEUS_RETENTION>": fallback(settings.get("prometheus_retention"), "365d"),
+        "<LOKI_RETENTION>": fallback(settings.get("loki_retention"), "720h"),
+        "<CENTRAL_METRICS_URL>": fallback(settings.get("central_metrics_url"), ""),
+        "<CENTRAL_LOKI_URL>": fallback(settings.get("central_loki_url"), ""),
     }
     return values
 
@@ -188,6 +218,87 @@ def process_service_folder(service_dir):
             print(f"  ERROR reading {net_path}: {e}")
 
     return compose_fragment, volume_names, network_names
+
+
+import re
+
+
+def _process_conditional_blocks(content, replacement_values):
+    """Process #IF/#ELSE/#ENDIF conditional blocks in template content.
+
+    Syntax (comment style adapts to the file type):
+      // #IF <PLACEHOLDER>    (or # #IF <PLACEHOLDER> for YAML/shell)
+      ...kept when <PLACEHOLDER> is non-empty...
+      // #ELSE
+      ...kept when <PLACEHOLDER> is empty...
+      // #ENDIF <PLACEHOLDER>
+
+    The #ELSE section is optional. Directive lines themselves are always removed
+    from the output regardless of which branch is kept."""
+    pattern = re.compile(
+        r'^[ \t]*(?://|#)\s*#IF\s+(<[A-Z_]+>)\s*\n'
+        r'(.*?)'
+        r'(?:^[ \t]*(?://|#)\s*#ELSE\s*\n(.*?))?'
+        r'^[ \t]*(?://|#)\s*#ENDIF\s+\1\s*\n',
+        re.MULTILINE | re.DOTALL,
+    )
+
+    def _replace(m):
+        placeholder = m.group(1)
+        if_block = m.group(2)
+        else_block = m.group(3) or ""
+        value = replacement_values.get(placeholder, "")
+        if value:
+            return if_block
+        return else_block
+
+    return pattern.sub(_replace, content)
+
+
+def render_monitoring_templates(replacement_values):
+    """Render ope-monitoring/templates/* into ope-monitoring/generated/,
+    applying the same placeholder substitution used for compose files.
+    Scoped to templates/ so it doesn't clobber files that other services
+    render inside their containers at startup.
+
+    Also deploys the monitoring vhost override to the gateway volume so
+    nginx serves X-Robots-Tag on the Grafana subdomain."""
+    templates_dir = os.path.join(BASE_DIR, "ope-monitoring", "templates")
+    generated_dir = os.path.join(BASE_DIR, "ope-monitoring", "generated")
+
+    if not os.path.isdir(templates_dir):
+        return
+
+    os.makedirs(generated_dir, exist_ok=True)
+
+    domain = replacement_values.get("<DOMAIN>", "ed")
+    volumes_root = replacement_values.get("<VOLUMES_ROOT>", "./volumes")
+
+    for src_path in _glob.glob(os.path.join(templates_dir, "*")):
+        if not os.path.isfile(src_path):
+            continue
+        filename = os.path.basename(src_path)
+        with open(src_path, "r") as f:
+            content = f.read()
+        content = _process_conditional_blocks(content, replacement_values)
+        for key, value in replacement_values.items():
+            content = content.replace(key, value)
+        dst_path = os.path.join(generated_dir, filename)
+        with open(dst_path, "w") as f:
+            f.write(content)
+        print(f"  Rendered ope-monitoring/generated/{filename}")
+
+    # Deploy the monitoring vhost override into the gateway volume so
+    # nginx picks it up without manual intervention.
+    vhost_src = os.path.join(generated_dir, "monitoring-vhost.conf")
+    if os.path.isfile(vhost_src):
+        vhost_dir = os.path.join(BASE_DIR, volumes_root, "gateway", "vhost.d")
+        if os.path.isabs(volumes_root):
+            vhost_dir = os.path.join(volumes_root, "gateway", "vhost.d")
+        os.makedirs(vhost_dir, exist_ok=True)
+        vhost_dst = os.path.join(vhost_dir, f"monitoring.{domain}")
+        shutil.copy(vhost_src, vhost_dst)
+        print(f"  Deployed vhost override → {vhost_dst}")
 
 
 def rebuild_env(replacement_values):
@@ -266,6 +377,10 @@ def main():
     compose_path = os.path.join(BASE_DIR, "docker-compose.yml")
     with open(compose_path, "w") as f:
         f.write(dc_out)
+
+    if "ope-monitoring" in resolved:
+        print("\nRendering monitoring templates...")
+        render_monitoring_templates(replacement_values)
 
     rebuild_env(replacement_values)
 

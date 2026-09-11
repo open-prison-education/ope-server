@@ -21,6 +21,8 @@
             # Expose html folder so letsencrypt can do its thing
             - <VOLUMES_ROOT>/gateway/html:/usr/share/nginx/html:rw
             - <VOLUMES_ROOT>/gateway/dhparam:/etc/nginx/dhparam:rw
+            # Persist nginx logs for monitoring/analytics pipeline
+            - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:rw
             # Canvas volume so we can use sendfile
             - <VOLUMES_ROOT>/canvas/tmp:/canvas_files_tmp:rw
             - <VOLUMES_ROOT>/canvas/sendfile:/canvas_files_sendfile:rw
@@ -44,3 +46,6 @@
             #- HSTS=max-age=31536000; includeSubDomains; preload
             - SSL_POLICY=Mozilla-Intermediate
             - DOCKER_HOST=unix:///var/run/docker.sock
+            # Set these when behind a load balancer so $remote_addr reflects the real client:
+            #- REAL_IP_HEADER=X-Forwarded-For
+            #- TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16

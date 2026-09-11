@@ -113,6 +113,9 @@ if [[ $* == 'forego start -r' ]]; then
 	_resolvers
 
 	_setup_dhparam
+
+	# Start crond for daily logrotate (copytruncate keeps Alloy tail positions valid)
+	crond -b -l 8
 fi
 
 exec "$@"

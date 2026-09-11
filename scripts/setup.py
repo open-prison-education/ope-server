@@ -37,13 +37,18 @@ DEFAULT_SETTINGS = {
     "canvas_login_prompt": "Student ID (default is s + DOC number - s113412)",
     "ntp_servers": "time.windows.com",
     "alert_email": "alert@correctionsed.com",
+    "alert_smtp_smarthost": "",
+    "alert_smtp_from": "",
+    "alert_smtp_require_tls": True,
+    "alert_smtp_username": "",
     "acme_auth_code": "ZZZZ",
     "cert_name": "default",
     "dns_extras": "",
     "network_mode": "bridge",
     "volumes_root": "./volumes",
+    "facility_id": "default",
+    "facility_name": "Default Facility",
 }
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -116,6 +121,22 @@ def wizard_settings(defaults):
         "Alert email",
         defaults.get("alert_email", DEFAULT_SETTINGS["alert_email"]),
     )
+    settings["alert_smtp_smarthost"] = prompt(
+        "Alert SMTP relay (host:port, blank disables email)",
+        defaults.get("alert_smtp_smarthost", DEFAULT_SETTINGS["alert_smtp_smarthost"]),
+    )
+    settings["alert_smtp_from"] = prompt(
+        "Alert sender address (blank=alertmanager@domain)",
+        defaults.get("alert_smtp_from", DEFAULT_SETTINGS["alert_smtp_from"]),
+    )
+    settings["alert_smtp_require_tls"] = prompt(
+        "Alert SMTP requires STARTTLS (true/false)",
+        defaults.get("alert_smtp_require_tls", DEFAULT_SETTINGS["alert_smtp_require_tls"]),
+    ).lower() not in ("0", "false", "no", "off")
+    settings["alert_smtp_username"] = prompt(
+        "Alert SMTP username (blank=no authentication)",
+        defaults.get("alert_smtp_username", DEFAULT_SETTINGS["alert_smtp_username"]),
+    )
     settings["ntp_servers"] = prompt(
         "NTP servers",
         defaults.get("ntp_servers", DEFAULT_SETTINGS["ntp_servers"]),
@@ -139,6 +160,16 @@ def wizard_settings(defaults):
     settings["volumes_root"] = prompt(
         "Volumes root path (absolute or relative to project)",
         defaults.get("volumes_root", DEFAULT_SETTINGS["volumes_root"]),
+    )
+
+    print("\nMonitoring (Enter to keep defaults):")
+    settings["facility_id"] = prompt(
+        "Facility ID (lowercase, no spaces -- labels all metrics and logs)",
+        defaults.get("facility_id", DEFAULT_SETTINGS["facility_id"]),
+    )
+    settings["facility_name"] = prompt(
+        "Facility display name",
+        defaults.get("facility_name", DEFAULT_SETTINGS["facility_name"]),
     )
 
     return settings

@@ -1,0 +1,281 @@
+// =============================================================================
+// Prometheus remote-write destination
+// Requires --web.enable-remote-write-receiver on the Prometheus container.
+// =============================================================================
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// #IF <CENTRAL_METRICS_URL>
+// =============================================================================
+// Central Prometheus remote-write — pushes all metrics to the central instance.
+// Activated by setting central_metrics_url in config.yml.
+// =============================================================================
+prometheus.remote_write "central" {
+  endpoint {
+    url = "<CENTRAL_METRICS_URL>"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// #ENDIF <CENTRAL_METRICS_URL>
+// =============================================================================
+// Loki write destination
+// tenant_id is inert while Loki runs with auth_enabled: false (everything lands
+// in the "fake" tenant). It is set now so Phase 4 centralization needs no
+// pipeline change.
+// =============================================================================
+loki.write "default" {
+  endpoint {
+    url       = "http://loki:3100/loki/api/v1/push"
+    tenant_id = "<FACILITY_ID>"
+  }
+  external_labels = {
+    facility = "<FACILITY_ID>",
+  }
+}
+
+// #IF <CENTRAL_LOKI_URL>
+// =============================================================================
+// Central Loki write — pushes logs to the central aggregation instance.
+// Uses X-Scope-OrgID (tenant_id) so the central Loki can partition by facility.
+// Activated by setting central_loki_url in config.yml.
+// =============================================================================
+loki.write "central" {
+  endpoint {
+    url       = "<CENTRAL_LOKI_URL>"
+    tenant_id = "<FACILITY_ID>"
+  }
+  external_labels = {
+    facility      = "<FACILITY_ID>",
+    facility_name = "<FACILITY_NAME>",
+  }
+}
+
+// #ENDIF <CENTRAL_LOKI_URL>
+
+// =============================================================================
+// Host metrics via built-in node_exporter
+// =============================================================================
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+
+  disable_collectors = [
+    "arp", "bonding", "infiniband", "ipvs",
+    "nfs", "nfsd", "tapestats", "wifi", "zfs",
+  ]
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
+  forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// Container metrics via built-in cAdvisor
+// =============================================================================
+prometheus.exporter.cadvisor "containers" {
+  docker_host            = "unix:///var/run/docker.sock"
+  docker_only            = true
+  store_container_labels = true
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
+  forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// HTTP probes for each virtual host.
+// NOTE: each target's `name` becomes its `job` label, so alerts and dashboards
+// select on the `probe_*` metric names rather than on job="blackbox".
+// =============================================================================
+prometheus.exporter.blackbox "vhosts" {
+  config = "{ modules: { http_2xx: { prober: http, timeout: 10s, http: { fail_if_not_ssl: false, preferred_ip_protocol: ip4, valid_status_codes: [], tls_config: { insecure_skip_verify: true } } } } }"
+
+  target {
+    name    = "canvas"
+    address = "https://canvas.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "smc"
+    address = "https://smc.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "penpot"
+    address = "https://penpot.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "monitoring"
+    address = "https://monitoring.<DOMAIN>"
+    module  = "http_2xx"
+  }
+}
+
+prometheus.scrape "vhosts" {
+  targets         = prometheus.exporter.blackbox.vhosts.targets
+// #IF <CENTRAL_METRICS_URL>
+  forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
+// #ELSE
+  forward_to      = [prometheus.remote_write.default.receiver]
+// #ENDIF <CENTRAL_METRICS_URL>
+  scrape_interval = "60s"
+}
+
+// =============================================================================
+// Nginx access log pipeline — web analytics from gateway JSON logs
+//
+// Tails /var/log/nginx/access.json.log (the vhost_json format emitted by
+// ope-gateway). Extracts fields, sets low-cardinality Loki labels, stores
+// high-cardinality data as structured metadata, and emits Prometheus counters
+// for year-scale trend queries that survive Loki's 30-day retention.
+//
+// GeoIP: stage.geoip requires GeoLite2-City.mmdb at the path below.
+// Phase 3 bundles the DB for air-gapped distribution; for online deployments
+// download it from MaxMind (free account required) and place it in
+// <volumes_root>/monitoring/geoip/. Without the DB the nginx log pipeline will
+// be unhealthy — infrastructure monitoring is unaffected.
+// =============================================================================
+
+local.file_match "nginx_logs" {
+  path_targets = [{
+    __path__ = "/var/log/nginx/access.json.log",
+    job      = "nginx",
+  }]
+}
+
+loki.source.file "nginx" {
+  targets    = local.file_match.nginx_logs.targets
+  forward_to = [loki.process.nginx.receiver]
+}
+
+loki.process "nginx" {
+  stage.json {
+    expressions = {
+      time           = "time",
+      host           = "host",
+      remote_addr    = "remote_addr",
+      xff            = "xff",
+      method         = "method",
+      uri            = "uri",
+      request_uri    = "request_uri",
+      status         = "status",
+      bytes          = "bytes",
+      request_length = "request_length",
+      request_time   = "request_time",
+      upstream_time  = "upstream_time",
+      referer        = "referer",
+      user_agent     = "user_agent",
+      scheme         = "scheme",
+      ssl_protocol   = "ssl_protocol",
+      content_type   = "content_type",
+    }
+  }
+
+  stage.timestamp {
+    source = "time"
+    format = "2006-01-02T15:04:05-07:00"
+  }
+
+  stage.geoip {
+    source  = "remote_addr"
+    db      = "/etc/alloy/geoip/GeoLite2-City.mmdb"
+    db_type = "city"
+  }
+
+  // Low-cardinality labels only. host (~4 subdomains), method (~5 verbs),
+  // status (~15 codes) keeps the label set small and Loki performant.
+  stage.labels {
+    values = {
+      host   = "host",
+      status = "status",
+      method = "method",
+    }
+  }
+
+  // High-cardinality fields as structured metadata — queryable in Loki 3.x
+  // without contributing to stream cardinality.
+  stage.structured_metadata {
+    values = {
+      uri                    = "uri",
+      request_uri            = "request_uri",
+      remote_addr            = "remote_addr",
+      xff                    = "xff",
+      referer                = "referer",
+      user_agent             = "user_agent",
+      bytes                  = "bytes",
+      request_time           = "request_time",
+      upstream_time          = "upstream_time",
+      scheme                 = "scheme",
+      ssl_protocol           = "ssl_protocol",
+      content_type           = "content_type",
+      geoip_country_name     = "",
+      geoip_country_code     = "",
+      geoip_city_name        = "",
+      geoip_continent_code   = "",
+      geoip_subdivision_name = "",
+    }
+  }
+
+  // Derive a flag for HTML-only page views. Produces "1" when content_type
+  // starts with text/html, empty otherwise.
+  stage.template {
+    source   = "is_page"
+    template = "{{ if .content_type }}{{ if ne (TrimPrefix .content_type \"text/html\") .content_type }}1{{ end }}{{ end }}"
+  }
+
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_requests_total"
+      description       = "Total nginx requests by host, method, and status"
+      prefix            = ""
+      action            = "inc"
+      match_all         = true
+      max_idle_duration = "24h"
+    }
+  }
+
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_pageviews_total"
+      description       = "HTML page views (text/html responses only)"
+      prefix            = ""
+      source            = "is_page"
+      action            = "inc"
+      max_idle_duration = "24h"
+    }
+  }
+
+// #IF <CENTRAL_LOKI_URL>
+  forward_to = [loki.write.default.receiver, loki.write.central.receiver]
+// #ELSE
+  forward_to = [loki.write.default.receiver]
+// #ENDIF <CENTRAL_LOKI_URL>
+}

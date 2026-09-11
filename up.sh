@@ -67,6 +67,29 @@ build_flag="${1:-}"
 # Rebuild docker-compose.yml and .env from config.yml
 python3 "$BASEDIR/scripts/rebuild_compose.py"
 
+# Monitoring containers run as non-root with differing UIDs, so their data
+# directories must exist with the right ownership before compose creates them.
+MONITORING_ENABLED=$(python3 -c "
+import yaml, sys
+sys.path.insert(0, 'scripts')
+try:
+    with open('config.yml') as f:
+        cfg = yaml.safe_load(f) or {}
+    from service_deps import resolve_services
+    resolved = resolve_services(cfg.get('services', []))
+    print('1' if 'ope-monitoring' in resolved else '0')
+except Exception:
+    print('0')
+")
+
+if [ "$MONITORING_ENABLED" = "1" ] && [ -f "$BASEDIR/ope-monitoring/init_dirs.sh" ]; then
+    VOLUMES_ROOT=$(grep -E '^VOLUMES_ROOT=' "$BASEDIR/.env" 2>/dev/null | cut -d= -f2-)
+    if ! bash "$BASEDIR/ope-monitoring/init_dirs.sh" "${VOLUMES_ROOT}/monitoring"; then
+        echo "Aborting: monitoring data directories are not usable." >&2
+        exit 1
+    fi
+fi
+
 if [ "$build_flag" = "b" ]; then
     echo "Building docker containers..."
     $compose build

@@ -1,0 +1,207 @@
+# ope-monitoring
+
+Grafana-based observability stack providing infrastructure monitoring and
+web analytics for OPE Server. Derives traffic insights from nginx gateway
+access logs and monitors host/container health, with full air-gap support.
+
+## Components
+
+| Service      | Image                                                | Port  | Purpose                           |
+|--------------|------------------------------------------------------|-------|-----------------------------------|
+| Prometheus  | `ghcr.io/open-prison-education/prometheus:v3.14.0`   | 9090  | Metrics storage (TSDB, 1yr)       |
+| Loki        | `ghcr.io/open-prison-education/loki:3.7.6`           | 3100  | Log aggregation (30 days)         |
+| Alloy       | `ghcr.io/open-prison-education/alloy:v1.18.1`        | 12345 | Collection agent (metrics + logs) |
+| Grafana     | `ghcr.io/open-prison-education/grafana:13.2.0`       | 3000  | Dashboards and alerting UI        |
+| Alertmanager| `ghcr.io/open-prison-education/alertmanager:v0.34.0` | 9093  | Alert routing and deduplication   |
+
+## Directory Structure
+
+```
+ope-monitoring/
+├── docker-compose-include.yml    # Compose fragment (5 services)
+├── networks-include.yml          # Defines 'monitoring' network
+├── init_dirs.sh                  # Creates data dirs with correct ownership
+├── update_monitoring_images.sh   # Pull upstream, retag, push to GHCR
+├── export_aggregates.sh          # Offline per-vhost aggregate export
+├── templates/                    # Source configs with <PLACEHOLDER> tokens
+│   ├── prometheus.yml
+│   ├── config.alloy
+│   ├── loki-config.yml
+│   ├── alertmanager.yml
+│   ├── alert-rules.yml
+│   └── monitoring-vhost.conf
+├── generated/                    # Rendered by scripts/rebuild_compose.py
+│   └── (same filenames as templates/)
+└── grafana/
+    ├── dashboards/               # Provisioned JSON dashboards
+    │   ├── host-metrics.json
+    │   ├── container-metrics.json
+    │   ├── service-uptime.json
+    │   └── traffic-by-site.json
+    └── provisioning/
+        ├── datasources/datasources.yml
+        └── dashboards/dashboards.yml
+```
+
+## Mirroring images to GHCR
+
+Compose and `scripts/export_images.sh` expect the five monitoring images under
+`ghcr.io/open-prison-education/`. On a machine with internet and GHCR push
+access:
+
+```bash
+# Log in first (PAT with write:packages)
+echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
+
+# Pull upstream, retag, and push (uses default pinned versions)
+./ope-monitoring/update_monitoring_images.sh
+
+# Optional: retag only, or preview
+./ope-monitoring/update_monitoring_images.sh --no-push
+./ope-monitoring/update_monitoring_images.sh --dry-run
+
+# Optional: bump a version before push
+GRAFANA_VERSION=13.3.0 ./ope-monitoring/update_monitoring_images.sh
+```
+
+Then export for air-gap packaging with `./scripts/export_images.sh`.
+## Quick Start
+
+```bash
+# 1. Ensure monitoring is in the service list in config.yml
+#    (it is included by default)
+
+# 2. Create data directories (requires root or sudo)
+sudo ./ope-monitoring/init_dirs.sh <volumes_root>/monitoring
+
+# 3. Rebuild config to render templates
+./scripts/rebuild.sh
+
+# 4. Bring up the stack
+./up.sh
+```
+
+Grafana will be available at `https://monitoring.<DOMAIN>`.
+
+## Configuration
+
+All settings are in `config.yml` under `settings:`:
+
+| Setting                | Default               | Description                          |
+|-----------------------|-----------------------|--------------------------------------|
+| `facility_id`         | `default`             | Machine-readable facility identifier |
+| `facility_name`       | `Default Facility`    | Human-readable facility name         |
+| `grafana_admin_pw`    | (falls back to it_pw) | Grafana admin password               |
+| `prometheus_retention`| `365d`                | Prometheus TSDB retention period     |
+| `loki_retention`      | `720h`                | Loki log retention (30 days)         |
+| `alert_email`         | (required)            | Email for alert notifications        |
+| `alert_smtp_smarthost`| (empty, disabled)     | Reachable SMTP relay as `host:port`  |
+| `alert_smtp_from`     | `alertmanager@<domain>` | Envelope/from address              |
+| `alert_smtp_require_tls` | `true`             | Require STARTTLS from the relay      |
+| `alert_smtp_username` | (empty)               | SMTP username; empty means no auth   |
+| `central_metrics_url` | (empty, disabled)     | Central Prometheus remote_write URL  |
+| `central_loki_url`    | (empty, disabled)     | Central Loki push URL                |
+
+When SMTP authentication is required, put `alert_smtp_password` in
+`.secrets.yml`; do not put the password in `config.yml`. Email notification is
+disabled when `alert_smtp_smarthost` is empty. The relay must be reachable from
+the Alertmanager container—`localhost:25` refers to the container itself and is
+not a host mail server.
+
+After changing settings, run `./scripts/rebuild.sh` and restart the stack.
+
+## Data Directories
+
+Created by `init_dirs.sh` under `<volumes_root>/monitoring`:
+
+| Directory      | UID:GID      | Service      |
+|---------------|--------------|--------------|
+| `prometheus/` | 65534:65534  | Prometheus   |
+| `alertmanager/`| 65534:65534 | Alertmanager |
+| `loki/`       | 10001:10001  | Loki         |
+| `grafana/`    | 472:472      | Grafana      |
+| `alloy/`      | 0:0          | Alloy        |
+| `geoip/`      | 0:0          | GeoIP DB     |
+
+## Centralization
+
+Two modes for feeding data to a central monitoring instance:
+
+### Connected: Remote Push
+
+Set `central_metrics_url` and/or `central_loki_url` in `config.yml`. Alloy
+will push to both local and central destinations simultaneously. Rebuild and
+restart to activate.
+
+### Air-Gapped: Sneakernet Export
+
+Prometheus is not bound to the host; the script reaches it with
+`docker compose exec` (override with `--prometheus URL` if you published the
+port).
+
+```bash
+# Export yesterday's per-vhost aggregates as CSV + JSON
+./ope-monitoring/export_aggregates.sh
+
+# Export last 7 days to a USB drive
+./ope-monitoring/export_aggregates.sh --days 7 --output-dir /media/usb/exports
+```
+
+See [docs/MONITORING.md](../docs/MONITORING.md) for full centralization documentation.
+
+## Dashboards
+
+| Dashboard          | Source     | Shows                                       |
+|-------------------|------------|---------------------------------------------|
+| Host & Containers | Prometheus | CPU, memory, disk, network, container states|
+| Uptime & Probes   | Prometheus | HTTP probe status, TLS expiry, latency      |
+| Traffic by Site   | Loki+Prom  | Page views, top pages, referrers, geo       |
+
+All dashboards are local JSON (no grafana.com imports that require internet).
+
+## Alerts
+
+Configured in `templates/alert-rules.yml`:
+- Container restart loops
+- Memory > 90% (no swap on this host)
+- Disk > 80%
+- HTTP probe failures (per vhost)
+- TLS certificate expiry < 21 days
+- 5xx error rate spikes
+
+Alerts route to `alert_email` via Alertmanager and are visible in the Grafana UI.
+Both warning and critical alerts are emailed when SMTP is configured; critical
+alerts repeat hourly and warnings repeat every four hours.
+
+`ContainerStopped` keeps the last cAdvisor sample for each non-one-off Compose
+container so that the alert still has the container name after cAdvisor removes
+the stopped container's live series. With 30-second evaluations, a one-minute
+threshold, a one-minute pending period, and Alertmanager's 30-second group wait,
+expect the first notification roughly 2.5–3 minutes after `docker stop`.
+
+## GeoIP
+
+The traffic analytics pipeline requires `GeoLite2-City.mmdb` for geographic
+lookups. Without it, infrastructure monitoring still works but geographic panels
+show "Unknown."
+
+Place the database at the project root and `init_dirs.sh` will install it, or
+copy it directly to `<volumes_root>/monitoring/geoip/GeoLite2-City.mmdb`.
+
+Refresh quarterly from https://github.com/P3TERX/GeoLite.mmdb or https://www.maxmind.com/en/geolite2/signup (free).
+
+## Template System
+
+Files in `templates/` use `<PLACEHOLDER>` tokens (e.g. `<DOMAIN>`,
+`<FACILITY_ID>`) that are replaced by `scripts/rebuild_compose.py` during
+build. Conditional blocks gate features on optional settings:
+
+```
+// #IF <CENTRAL_METRICS_URL>
+...rendered only when central_metrics_url is configured...
+// #ELSE
+...rendered when it is not configured...
+// #ENDIF <CENTRAL_METRICS_URL>
+```
+
+Never edit files in `generated/` directly — they are overwritten on rebuild.
