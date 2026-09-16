@@ -78,9 +78,10 @@ docker tag prom/alertmanager:v0.34.0    ${REGISTRY}/alertmanager:v0.34.0
 ### GeoIP Database
 
 The Alloy log pipeline uses MaxMind's GeoLite2-City database for geographic
-lookups. This ~60 MB file must be present for the analytics pipeline to start
-cleanly. Infrastructure monitoring (metrics, alerts) is unaffected by its
-absence.
+lookups. Place this ~60 MB file at
+`<volumes_root>/monitoring/geoip/GeoLite2-City.mmdb`. If it is missing, Alloy
+still starts (entrypoint strips `stage.geoip`) so traffic metrics and logs keep
+flowing; geographic panels stay empty until the DB is restored.
 
 
 **Installing on the target:**

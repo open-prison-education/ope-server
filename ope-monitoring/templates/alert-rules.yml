@@ -138,12 +138,14 @@ groups:
 
   - name: traffic_alerts
     rules:
+      # Uses nginx_site_* (canonical hosts, probes excluded) so scanner noise on
+      # legacy Host headers and blackbox checks do not inflate the error rate.
       - alert: HighErrorRate
         expr: >
           (
-            sum by (host) (rate(nginx_requests_total{status=~"5.."}[10m]))
+            sum by (host) (rate(nginx_site_requests_total{status=~"5.."}[10m]))
             /
-            sum by (host) (rate(nginx_requests_total[10m]))
+            sum by (host) (rate(nginx_site_requests_total[10m]))
           )
           * 100
           > 5

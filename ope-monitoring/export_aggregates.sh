@@ -130,17 +130,34 @@ for day_offset in $(seq "$DAYS" -1 1); do
 
     echo "Processing ${day_label}..."
 
+    # Prefer site analytics counters (canonical hosts, probes excluded). Fall
+    # back to raw nginx_* only if site series are absent (pre-upgrade data).
     requests_json=$(instant_query \
-        "sum by (host) (increase(nginx_requests_total[24h]))" \
+        "sum by (host) (increase(nginx_site_requests_total[24h]))" \
         "${day_end}")
+    if ! echo "${requests_json}" | grep -q '"result":\[{'; then
+        requests_json=$(instant_query \
+            "sum by (host) (increase(nginx_requests_total[24h]))" \
+            "${day_end}")
+    fi
 
     pageviews_json=$(instant_query \
-        "sum by (host) (increase(nginx_pageviews_total[24h]))" \
+        "sum by (host) (increase(nginx_site_pageviews_total[24h]))" \
         "${day_end}")
+    if ! echo "${pageviews_json}" | grep -q '"result":\[{'; then
+        pageviews_json=$(instant_query \
+            "sum by (host) (increase(nginx_pageviews_total[24h]))" \
+            "${day_end}")
+    fi
 
     status_json=$(instant_query \
-        "sum by (host, status) (increase(nginx_requests_total[24h]))" \
+        "sum by (host, status) (increase(nginx_site_requests_total[24h]))" \
         "${day_end}")
+    if ! echo "${status_json}" | grep -q '"result":\[{'; then
+        status_json=$(instant_query \
+            "sum by (host, status) (increase(nginx_requests_total[24h]))" \
+            "${day_end}")
+    fi
 
     export_file="${OUTPUT_DIR}/${FACILITY_ID}_${day_label}"
 

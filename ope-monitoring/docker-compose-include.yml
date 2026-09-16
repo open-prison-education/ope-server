@@ -55,12 +55,9 @@
         privileged: true
         container_name: alloy
         restart: always
-        command:
-            - "run"
-            - "/etc/alloy/config.alloy"
-            - "--storage.path=/var/lib/alloy/data"
-            # Alloy defaults to 127.0.0.1, which Prometheus cannot scrape.
-            - "--server.http.listen-addr=0.0.0.0:12345"
+        # Entrypoint strips stage.geoip when GeoLite2 is missing so traffic
+        # metrics keep working (geo panels stay empty until the DB is restored).
+        entrypoint: ["/bin/sh", "/etc/alloy/entrypoint.sh"]
         deploy:
             resources:
                 limits:
@@ -68,6 +65,7 @@
                     memory: 512M
         volumes:
             - ./ope-monitoring/generated/config.alloy:/etc/alloy/config.alloy:ro
+            - ./ope-monitoring/alloy-entrypoint.sh:/etc/alloy/entrypoint.sh:ro
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /var/lib/docker:/var/lib/docker:ro
             - /var/run:/var/run:ro

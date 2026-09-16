@@ -251,6 +251,21 @@ loki.process "nginx" {
     template = "{{ if .content_type }}{{ if ne (TrimPrefix .content_type \"text/html\") .content_type }}1{{ end }}{{ end }}"
   }
 
+  // Site analytics flag: first-party visitor hosts only (not Canvas helper
+  // vhosts like rce/mathman, and not scanner typo Hosts). Also excludes
+  // monitoring probe user agents. Drives nginx_site_* counters below.
+  stage.template {
+    source = "is_site"
+    template = "{{ if and (or (eq .host \"canvas.<DOMAIN>\") (eq .host \"smc.<DOMAIN>\") (eq .host \"penpot.<DOMAIN>\") (eq .host \"monitoring.<DOMAIN>\") (eq .host \"cea.<DOMAIN>\") (eq .host \"dl.<DOMAIN>\") (eq .host \"websites.<DOMAIN>\")) (eq (regexReplaceAll \"(?i)(blackbox.exporter|prometheus/|kube-probe|healthcheck|grafana/|alloy/)\" .user_agent \"\") .user_agent) }}1{{ end }}"
+  }
+
+  stage.template {
+    source   = "is_site_page"
+    template = "{{ if and (eq .is_site \"1\") (eq .is_page \"1\") }}1{{ end }}"
+  }
+
+  // Raw gateway volume — every Host header, including probes and scanner noise.
+  // Kept for ops/debugging; Traffic by Site uses nginx_site_* instead.
   stage.metrics {
     metric.counter {
       name              = "nginx_requests_total"
@@ -268,6 +283,31 @@ loki.process "nginx" {
       description       = "HTML page views (text/html responses only)"
       prefix            = ""
       source            = "is_page"
+      action            = "inc"
+      max_idle_duration = "24h"
+    }
+  }
+
+  // Increment only when is_site == "1" (canonical host, non-probe UA).
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_site_requests_total"
+      description       = "Canonical-host nginx requests excluding monitoring probes"
+      prefix            = ""
+      source            = "is_site"
+      value             = "1"
+      action            = "inc"
+      max_idle_duration = "24h"
+    }
+  }
+
+  stage.metrics {
+    metric.counter {
+      name              = "nginx_site_pageviews_total"
+      description       = "Canonical-host HTML page views excluding monitoring probes"
+      prefix            = ""
+      source            = "is_site_page"
+      value             = "1"
       action            = "inc"
       max_idle_duration = "24h"
     }
