@@ -107,12 +107,12 @@ prometheus.scrape "containers" {
 }
 
 // =============================================================================
-// HTTP probes for each virtual host.
-// NOTE: each target's `name` becomes its `job` label, so alerts and dashboards
-// select on the `probe_*` metric names rather than on job="blackbox".
+// HTTP probes for each first-party virtual host (same allowlist as is_site).
+// Alloy sets job=integrations/blackbox/<name>. discovery.relabel below sets
+// instance to the probed URL so dashboards/alerts can name each service.
 // =============================================================================
 prometheus.exporter.blackbox "vhosts" {
-  config = "{ modules: { http_2xx: { prober: http, timeout: 10s, http: { fail_if_not_ssl: false, preferred_ip_protocol: ip4, valid_status_codes: [], tls_config: { insecure_skip_verify: true } } } } }"
+  config = "{ modules: { http_2xx: { prober: http, timeout: 10s, http: { fail_if_not_ssl: true, preferred_ip_protocol: ip4, valid_status_codes: [], tls_config: { insecure_skip_verify: false } } } } }"
 
   target {
     name    = "canvas"
@@ -137,10 +137,37 @@ prometheus.exporter.blackbox "vhosts" {
     address = "https://monitoring.<DOMAIN>"
     module  = "http_2xx"
   }
+
+  target {
+    name    = "cea"
+    address = "https://cea.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "dl"
+    address = "https://dl.<DOMAIN>"
+    module  = "http_2xx"
+  }
+
+  target {
+    name    = "websites"
+    address = "https://websites.<DOMAIN>"
+    module  = "http_2xx"
+  }
+}
+
+discovery.relabel "vhosts" {
+  targets = prometheus.exporter.blackbox.vhosts.targets
+
+  rule {
+    source_labels = ["__param_target"]
+    target_label  = "instance"
+  }
 }
 
 prometheus.scrape "vhosts" {
-  targets         = prometheus.exporter.blackbox.vhosts.targets
+  targets         = discovery.relabel.vhosts.output
 // #IF <CENTRAL_METRICS_URL>
   forward_to      = [prometheus.remote_write.default.receiver, prometheus.remote_write.central.receiver]
 // #ELSE
@@ -160,8 +187,8 @@ prometheus.scrape "vhosts" {
 // GeoIP: stage.geoip requires GeoLite2-City.mmdb at the path below.
 // Phase 3 bundles the DB for air-gapped distribution; for online deployments
 // download it from MaxMind (free account required) and place it in
-// <volumes_root>/monitoring/geoip/. Without the DB the nginx log pipeline will
-// be unhealthy — infrastructure monitoring is unaffected.
+// <volumes_root>/monitoring/geoip/. Without the DB, alloy-entrypoint.sh strips
+// stage.geoip so traffic metrics/logs still flow (geo panels stay empty).
 // =============================================================================
 
 local.file_match "nginx_logs" {
@@ -210,8 +237,19 @@ loki.process "nginx" {
     db_type = "city"
   }
 
-  // Low-cardinality labels only. host (~4 subdomains), method (~5 verbs),
-  // status (~15 codes) keeps the label set small and Loki performant.
+  // Preserve the raw Host header, then collapse non-canonical values so Loki
+  // stream labels and Prometheus counter labels stay bounded (~7 sites + other).
+  stage.template {
+    source   = "host_raw"
+    template = "{{ .host }}"
+  }
+
+  stage.template {
+    source = "host"
+    template = "{{ if or (eq .host_raw \"canvas.<DOMAIN>\") (eq .host_raw \"smc.<DOMAIN>\") (eq .host_raw \"penpot.<DOMAIN>\") (eq .host_raw \"monitoring.<DOMAIN>\") (eq .host_raw \"cea.<DOMAIN>\") (eq .host_raw \"dl.<DOMAIN>\") (eq .host_raw \"websites.<DOMAIN>\") }}{{ .host_raw }}{{ else }}other{{ end }}"
+  }
+
+  // Low-cardinality labels only: allowlisted host (+ other), method, status.
   stage.labels {
     values = {
       host   = "host",
@@ -221,9 +259,10 @@ loki.process "nginx" {
   }
 
   // High-cardinality fields as structured metadata — queryable in Loki 3.x
-  // without contributing to stream cardinality.
+  // without contributing to stream cardinality. host_raw keeps scanner Hosts.
   stage.structured_metadata {
     values = {
+      host_raw               = "host_raw",
       uri                    = "uri",
       request_uri            = "request_uri",
       remote_addr            = "remote_addr",
@@ -244,28 +283,28 @@ loki.process "nginx" {
     }
   }
 
-  // Derive a flag for HTML-only page views. Produces "1" when content_type
-  // starts with text/html, empty otherwise.
+  // HTML response flag (case-insensitive content_type prefix).
   stage.template {
     source   = "is_page"
-    template = "{{ if .content_type }}{{ if ne (TrimPrefix .content_type \"text/html\") .content_type }}1{{ end }}{{ end }}"
+    template = "{{ if .content_type }}{{ if ne (TrimPrefix (ToLower .content_type) \"text/html\") (ToLower .content_type) }}1{{ end }}{{ end }}"
   }
 
-  // Site analytics flag: first-party visitor hosts only (not Canvas helper
-  // vhosts like rce/mathman, and not scanner typo Hosts). Also excludes
-  // monitoring probe user agents. Drives nginx_site_* counters below.
+  // Canonical-host load signal: first-party hosts only, monitoring probes out.
+  // Intentionally keeps crawlers/scanners — use nginx_site_pageviews for pages.
   stage.template {
     source = "is_site"
-    template = "{{ if and (or (eq .host \"canvas.<DOMAIN>\") (eq .host \"smc.<DOMAIN>\") (eq .host \"penpot.<DOMAIN>\") (eq .host \"monitoring.<DOMAIN>\") (eq .host \"cea.<DOMAIN>\") (eq .host \"dl.<DOMAIN>\") (eq .host \"websites.<DOMAIN>\")) (eq (regexReplaceAll \"(?i)(blackbox.exporter|prometheus/|kube-probe|healthcheck|grafana/|alloy/)\" .user_agent \"\") .user_agent) }}1{{ end }}"
+    template = "{{ if and (or (eq .host_raw \"canvas.<DOMAIN>\") (eq .host_raw \"smc.<DOMAIN>\") (eq .host_raw \"penpot.<DOMAIN>\") (eq .host_raw \"monitoring.<DOMAIN>\") (eq .host_raw \"cea.<DOMAIN>\") (eq .host_raw \"dl.<DOMAIN>\") (eq .host_raw \"websites.<DOMAIN>\")) (eq (regexReplaceAll \"(?i)(blackbox.?exporter|prometheus/|kube-probe|healthcheck|grafana/|alloy/)\" .user_agent \"\") .user_agent) }}1{{ end }}"
   }
 
+  // Estimated page view: canonical host, GET, 2xx/304, HTML, not probe/bot UA.
+  // Not unique visitors — nginx cannot identify humans with certainty.
   stage.template {
-    source   = "is_site_page"
-    template = "{{ if and (eq .is_site \"1\") (eq .is_page \"1\") }}1{{ end }}"
+    source = "is_site_page"
+    template = "{{ if and (eq .is_site \"1\") (eq .is_page \"1\") (eq .method \"GET\") (or (eq .status \"200\") (eq .status \"201\") (eq .status \"204\") (eq .status \"301\") (eq .status \"302\") (eq .status \"304\")) (eq (regexReplaceAll \"(?i)(bot|spider|crawler|slurp|bingpreview|facebookexternalhit|bytespider|claudebot|gptbot|chatgpt|anthropic|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|yandex|baidu|duckduck|scrapy|headless)\" .user_agent \"\") .user_agent) }}1{{ end }}"
   }
 
-  // Raw gateway volume — every Host header, including probes and scanner noise.
-  // Kept for ops/debugging; Traffic by Site uses nginx_site_* instead.
+  // Raw gateway volume by allowlisted host label (junk Hosts collapse to other).
+  // Probes still count here until the drop stage; Traffic by Site uses nginx_site_*.
   stage.metrics {
     metric.counter {
       name              = "nginx_requests_total"
@@ -280,7 +319,7 @@ loki.process "nginx" {
   stage.metrics {
     metric.counter {
       name              = "nginx_pageviews_total"
-      description       = "HTML page views (text/html responses only)"
+      description       = "HTML responses (text/html) before site/bot filters"
       prefix            = ""
       source            = "is_page"
       action            = "inc"
@@ -304,13 +343,21 @@ loki.process "nginx" {
   stage.metrics {
     metric.counter {
       name              = "nginx_site_pageviews_total"
-      description       = "Canonical-host HTML page views excluding monitoring probes"
+      description       = "Estimated page views: canonical GET HTML 2xx/304, probes and known bots excluded"
       prefix            = ""
       source            = "is_site_page"
       value             = "1"
       action            = "inc"
       max_idle_duration = "24h"
     }
+  }
+
+  // Blackbox checks are already in Prometheus probe_* metrics. Drop them from
+  // Loki so dashboards are not half probe noise. Metrics above still saw them.
+  stage.drop {
+    source             = "user_agent"
+    expression         = "(?i)^Blackbox Exporter/"
+    drop_counter_reason = "blackbox_probe"
   }
 
 // #IF <CENTRAL_LOKI_URL>

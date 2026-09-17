@@ -97,9 +97,9 @@ groups:
 
   - name: service_alerts
     rules:
-      # probe_* metrics only come from the blackbox exporter, so no job filter
-      # is needed. Alloy sets the job label from each target's name (canvas,
-      # smc, penpot, monitoring), not to "blackbox".
+      # probe_* metrics only come from the Alloy blackbox exporter. After
+      # discovery.relabel, instance is the probed URL (https://smc.<domain>).
+      # job remains integrations/blackbox/<name>.
       - alert: ServiceDown
         expr: probe_success == 0
         for: 3m

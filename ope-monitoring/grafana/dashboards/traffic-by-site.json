@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Web analytics for first-party visitor hosts (canvas, smc, penpot, monitoring, cea, dl, websites). Excludes Canvas helper vhosts (rce/mathman), monitoring probes, and junk Host headers.",
+  "description": "Web analytics for first-party visitor hosts (canvas, smc, penpot, monitoring, cea, dl, websites). Excludes Canvas helper vhosts (rce/mathman), monitoring probes from site counters, and collapses junk Host headers to other. Page views are estimated (GET HTML 2xx/304, known bots excluded) — not unique humans.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -68,7 +68,7 @@
     {
       "type": "stat",
       "title": "Page Views",
-      "description": "HTML (text/html) responses on canonical hosts, excluding monitoring probes.",
+      "description": "Estimated page views: canonical-host GET responses with text/html and 2xx/304, excluding monitoring probes and known bot/spider user agents. Not unique visitors.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -165,7 +165,7 @@
     {
       "type": "stat",
       "title": "Active Sites",
-      "description": "Distinct canonical hosts with site traffic in the current series set.",
+      "description": "Canonical hosts (canvas, smc, penpot, monitoring, cea, dl, websites) with at least one site request in the selected time range. Probes excluded. Changes with the time picker and Site filter — not a fixed inventory count (see Service Uptime for monitored targets).",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -181,6 +181,7 @@
         "defaults": {
           "unit": "short",
           "decimals": 0,
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -199,7 +200,7 @@
       },
       "targets": [
         {
-          "expr": "count(count by (host) (nginx_site_requests_total{host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"}))",
+          "expr": "count(count by (host) (increase(nginx_site_requests_total{host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"}[$__range]) > 0)) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "instant": true
@@ -458,7 +459,7 @@
       ],
       "targets": [
         {
-          "expr": "topk(20, sum by (referer_domain) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent !~ `(?i)(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe)` | referer != `` | referer != `-` | referer !~ `.*corrections[.]sbctc[.]edu.*` | referer !~ `.*correctionsed[.]com.*` | referer !~ `https?://([0-9]{1,3}[.]){3}[0-9]{1,3}` | line_format `{{.referer}}` | regexp `(?i)https?://(?P<referer_domain>[^/:]+)` | __error__=`` [$__range])))",
+          "expr": "topk(20, sum by (referer_domain) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent !~ `(?i).*(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe|bot|spider|crawler|slurp|bingpreview|facebookexternalhit|bytespider|claudebot|gptbot|chatgpt|anthropic|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|yandex|baidu|duckduck|scrapy|headless).*` | referer != `` | referer != `-` | referer !~ `.*corrections[.]sbctc[.]edu.*` | referer !~ `.*correctionsed[.]com.*` | referer !~ `https?://([0-9]{1,3}[.]){3}[0-9]{1,3}` | line_format `{{.referer}}` | regexp `(?i)https?://(?P<referer_domain>[^/:]+)` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -590,8 +591,8 @@
     },
     {
       "type": "table",
-      "title": "Top User Agents (Real Users)",
-      "description": "Most common user agents on selected hosts. Monitoring agents are excluded via structured-metadata filter (not | json).",
+      "title": "Top User Agents (non-bot)",
+      "description": "Most common user agents on selected hosts after excluding monitoring probes and known crawlers/bots. Remaining rows can still include scanners that forge browser UAs — nginx cannot identify humans with certainty.",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -670,7 +671,7 @@
       ],
       "targets": [
         {
-          "expr": "topk(15, sum by (user_agent) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent != `` | user_agent !~ `(?i).*(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe).*` | __error__=`` [$__range])))",
+          "expr": "topk(15, sum by (user_agent) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent != `` | user_agent !~ `(?i).*(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe|bot|spider|crawler|slurp|bingpreview|facebookexternalhit|bytespider|claudebot|gptbot|chatgpt|anthropic|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|yandex|baidu|duckduck|scrapy|headless).*` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -842,7 +843,7 @@
       ],
       "targets": [
         {
-          "expr": "topk(30, sum by (geoip_country_name) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent !~ `(?i).*(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe).*` | geoip_country_name != `` | __error__=`` [$__range])))",
+          "expr": "topk(30, sum by (geoip_country_name) (count_over_time({job=\"nginx\", host=~\"$host\", host=~\"^(canvas|smc|penpot|monitoring|cea|dl|websites)\\\\..+\"} | user_agent !~ `(?i).*(blackbox|prometheus|grafana|alloy|healthcheck|kube-probe|bot|spider|crawler|slurp|bingpreview|facebookexternalhit|bytespider|claudebot|gptbot|chatgpt|anthropic|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|yandex|baidu|duckduck|scrapy|headless).*` | geoip_country_name != `` | __error__=`` [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -894,5 +895,5 @@
   "timezone": "",
   "title": "Traffic by Site",
   "uid": "ope-traffic-by-site",
-  "version": 5
+  "version": 8
 }
