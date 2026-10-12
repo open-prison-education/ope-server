@@ -22,24 +22,25 @@ OPE Server is a collection of Docker containers that work together to provide a 
                                     │
         ┌───────────────────────────┼───────────────────────────┐
         │                           │                           │
-        ▼                           ▼                           ▼
-┌───────────────┐         ┌─────────────────┐         ┌───────────────┐
-│  PostgreSQL   │         │     Redis       │         │      DNS      │
-│(ope-postgresql)│        │   (ope-redis)   │         │   (ope-dns)   │
-└───────────────┘         └─────────────────┘         └───────────────┘
+        ▼                           │                           │
+┌───────────────┐                   │                           │
+│ Canvas data   │                   │                           │
+│ Postgres+Redis│                   │                           │
+└───────────────┘                   │                           │
+                                    ▼                           ▼
+                          ┌─────────────────┐         ┌───────────────┐
+                          │ SMC SQLite      │         │      DNS      │
+                          │ (ope-smc)       │         │   (ope-dns)   │
+                          └─────────────────┘         └───────────────┘
 ```
 
 ## Services
 
 | Service | Description |
 |---------|-------------|
-| **ope-canvas** | Canvas LMS - Learning Management System by Instructure |
-| **ope-canvas-rce** | Rich Content Editor service for Canvas |
-| **ope-canvas-mathman** | Math equation rendering service for Canvas |
+| **ope-canvas** | Canvas LMS plus its RCE, optional MathMan, PostgreSQL, and Redis containers |
 | **ope-smc** | Student Management Console - User management and content sync |
 | **ope-gateway** | Nginx reverse proxy with SSL termination |
-| **ope-postgresql** | PostgreSQL database server |
-| **ope-redis** | Redis cache server |
 | **ope-dns** | DNS server for local domain resolution |
 | **ope-ntp** | NTP time synchronization server |
 | **ope-fog** | FOG Project imaging server for system deployment |
@@ -88,9 +89,9 @@ cp config.yml.example config.yml
 # Edit config.yml with your settings
 ```
 
-Core services (`ope-gateway`, `ope-dns`) and any dependencies (e.g.
-`ope-redis`, `ope-postgresql` for Canvas) are resolved automatically --
-you only need to list the services you actually want.
+Core services (`ope-gateway`, `ope-dns`) and Canvas-owned data services
+are resolved automatically -- you only need to list the services you
+actually want.
 
 3. **Start enabled services:**
 
@@ -194,7 +195,7 @@ ope-myapp/
 
 ## Deployment
 
-For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
+For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**. Canvas-specific production notes are in [Canvas architecture](docs/CANVAS_ARCHITECTURE.md), [upgrade](docs/CANVAS_UPGRADE.md), [backup](docs/CANVAS_BACKUP_RESTORE.md), and [air-gap](docs/CANVAS_AIRGAP.md).
 
 Deploying on an air-gapped machine with no internet? If you already have the
 pre-built files (`ope-server-offline.tar.gz` and `ope-images.tar.gz`), see the

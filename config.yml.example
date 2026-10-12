@@ -15,7 +15,7 @@
 #
 # Available services:
 #   ope-canvas          Canvas LMS  (pulls redis, postgresql, canvas-rce, canvas-mathman)
-#   ope-smc             Student Management Console  (pulls redis, postgresql)
+#   ope-smc             Student Management Console  (pulls ope-canvas)
 #   ope-kalite          Khan Academy Lite
 #   ope-gcf             GCFLearnFree
 #   ope-freecodecamp    freeCodeCamp
