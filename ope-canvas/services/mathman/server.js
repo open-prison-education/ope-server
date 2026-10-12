@@ -9,7 +9,15 @@ class Server  {
     this.ts = typeset;
     this.useRedis = !!(redisHost && redisPort);
     if (this.useRedis) {
-      this.redisCli = redis.createClient(redisPort, redisHost);
+      var options = {
+        host: redisHost,
+        port: redisPort,
+        db: parseInt(process.env.REDIS_DB || '2', 10)
+      };
+      if (process.env.REDIS_PASSWORD) {
+        options.auth_pass = process.env.REDIS_PASSWORD;
+      }
+      this.redisCli = redis.createClient(options);
     }
   }
 
@@ -20,6 +28,11 @@ class Server  {
     }
     let uri = url.parse(req.url, true);
     let type = uri.pathname.replace(/^\/+|\/+$/g, "");
+    if (type === 'readiness' || type === 'health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ready' }));
+      return;
+    }
     if (type !== 'svg' && type !== 'mml') {
       this.sendError(res, 404, "Not Found");
       return;

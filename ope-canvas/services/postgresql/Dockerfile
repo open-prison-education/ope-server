@@ -1,25 +1,10 @@
-FROM postgres:12.9-alpine
-#FROM postgres:9.6-alpine
+FROM postgres:16.15-alpine@sha256:1a66d744c1b459e13b05a8fca341da84cb63383e99ce262210efee5a319d4551
 
-# ope-postgresql - Postgresql server, used by other containers for the OPE project
-# Build with docker build -t ope-postgresql .
+LABEL description="Canvas-owned PostgreSQL 16 for Open Prison Education"
 
+COPY initdb/ /docker-entrypoint-initdb.d/
 
-LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
-LABEL description="Postgresql container used by canvas - Image for Open Prison Education"
-LABEL vendor="openprisoneducation.com"
-LABEL version="1.1"
+ENV POSTGRES_USER=postgres \
+    PGDATA=/var/lib/postgresql/data/pgdata-16.15
 
-
-LABEL rebuild=30
-COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
-COPY update_pw.sh /update_pw.sh
-RUN chmod +x /update_pw.sh
-# Copy in previous version binaries for upgrade if needed
-COPY pg9.6 /pg9.6/
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
-VOLUME /var/lib/postgresql/data
-EXPOSE 5432
-CMD ["postgres"]
+CMD ["postgres", "-c", "max_locks_per_transaction=640", "-c", "max_stack_depth=5MB", "-c", "shared_buffers=256MB", "-c", "password_encryption=scram-sha-256"]

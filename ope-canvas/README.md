@@ -38,10 +38,14 @@ on first run.
 
 ## Related Services
 
-- **ope-postgresql:** Database backend
-- **ope-redis:** Cache and session storage
+These containers are defined with Canvas and live under `ope-canvas/services/`:
+
+- **ope-postgresql:** Canvas-owned PostgreSQL 16
+- **ope-redis:** Canvas-owned Redis 7.4
 - **ope-canvas-rce:** Rich Content Editor
 - **ope-canvas-mathman:** Math equation rendering
+- **ope-canvas-jobs:** Delayed jobs
+- **ope-canvas-migrate:** One-shot migrations (`--profile migrate`)
 
 ## Usage
 
@@ -52,8 +56,8 @@ services:
   - ope-canvas
 ```
 
-Dependencies (`ope-redis`, `ope-postgresql`, `ope-canvas-rce`,
-`ope-canvas-mathman`) are resolved automatically. Then start services:
+The Canvas-owned data and editor services are resolved automatically.
+Build or import the pinned images, then start services:
 
 ```bash
 ./up.sh

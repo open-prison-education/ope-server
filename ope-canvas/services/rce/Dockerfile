@@ -1,46 +1,32 @@
-FROM instructure/node-passenger:12
+ARG NODE_VERSION=20.9.0
+ARG NODE_TARBALL_SHA256=9033989810bf86220ae46b1381bdcdc6c83a0294869ba2ad39e1061f1e69217a
+FROM debian:bookworm-slim
 
+ENV NODE_VERSION=${NODE_VERSION} \
+    RCE_COMMIT=d702ab3bd201cc3bad19abd32cec22e7fd9e1701 \
+    NODE_ENV=production \
+    PORT=3010
 
-LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
-LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
-LABEL vendor="openprisoneducation.com"
-LABEL version="1.3"
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+      curl ca-certificates xz-utils git \
+    && curl -fsSL "https://nodejs.org/dist/v20.9.0/node-v20.9.0-linux-x64.tar.xz" -o /tmp/node.tar.xz \
+    && echo "9033989810bf86220ae46b1381bdcdc6c83a0294869ba2ad39e1061f1e69217a  /tmp/node.tar.xz" | sha256sum -c - \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+    && npm install -g npm@9.8.1 \
+    && rm -rf /var/lib/apt/lists/* /tmp/node.tar.xz \
+    && groupadd --gid 9999 canvas && useradd --uid 9999 --gid canvas --create-home canvas
 
-USER root
+WORKDIR /usr/src/rce
+RUN git clone --depth 1 https://github.com/instructure/canvas-rce-api.git . \
+    && git fetch --depth 1 origin "$RCE_COMMIT" \
+    && git checkout --detach "$RCE_COMMIT"
 
-LABEL rebuild=7
-
-# COPY supervisord.conf /etc/supervisor/supervisord.conf
-
-
-# Pull the RCE server
-ENV RCE_APP_HOME /usr/src/rce/
-WORKDIR $RCE_APP_HOME
-#ENV RCE_RELEASE master
-ENV RCE_RELEASE v1.21
-RUN mkdir -p ${RCE_APP_HOME} \
-    && cd ${RCE_APP_HOME} \
-    && git init \
-    && git remote add origin https://github.com/instructure/canvas-rce-api \
-    #&& git fetch origin master --no-tags --depth 1 \
-    #&& git checkout master \
-    && git fetch origin --no-tags --depth 1 refs/tags/${RCE_RELEASE}:refs/tags/${RCE_RELEASE} \
-    && git checkout ${RCE_RELEASE} \
-    && npm install --production \
-    && echo Checkout done.
-
-LABEL rebuild=13
+COPY packageBookmark.js app/api/packageBookmark.js
 COPY start.sh /usr/src/start.sh
-COPY packageBookmark.js /usr/src/rce/app/api/packageBookmark.js
+RUN npm ci --omit=dev \
+    && chmod 755 /usr/src/start.sh \
+    && chown -R canvas:canvas /usr/src/rce /usr/src/start.sh
 
-RUN echo "Settings file permissions..." \
-    && chmod 755 /usr/src/*.sh \
-#    && dos2unix /usr/src/*.sh \
-    && chown -R docker:docker /usr/src/*.sh /usr/src/rce
-
-    
-# Stay root at the end - supervisor will switch back to docker user
-# VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp"]
+USER canvas
 EXPOSE 3010
-
-CMD ["/usr/src/start.sh"]
+CMD ["node", "app.js"]

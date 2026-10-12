@@ -1,67 +1,222 @@
+    ope-postgresql:
+        build: ./ope-canvas/services/postgresql
+        image: ghcr.io/open-prison-education/ope-postgresql:release
+        container_name: ope-postgresql
+        network_mode: <NETWORK_MODE>
+        restart: always
+        expose:
+            - "5432"
+        volumes:
+            - <VOLUMES_ROOT>/postgresql/data:/var/lib/postgresql/data:rw
+        env_file: .env
+        environment:
+            - POSTGRES_PASSWORD=${IT_PW}
+            - IT_PW=${IT_PW}
+            - PGDATA=/var/lib/postgresql/data/pgdata-16.15
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 12
+
+    ope-redis:
+        build: ./ope-canvas/services/redis
+        image: ghcr.io/open-prison-education/ope-redis:release
+        container_name: ope-redis
+        network_mode: <NETWORK_MODE>
+        restart: always
+        expose:
+            - "6379"
+        volumes:
+            - <VOLUMES_ROOT>/redis/data2:/data:rw
+        env_file: .env
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 8
+
+    ope-canvas-rce:
+        build: ./ope-canvas/services/rce
+        image: ghcr.io/open-prison-education/ope-canvas-rce:release
+        container_name: ope-canvas-rce
+        network_mode: <NETWORK_MODE>
+        restart: always
+        expose:
+            - "3010"
+        depends_on:
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=rce.<DOMAIN>,<CANVAS_RCE_DEFAULT_DOMAIN>
+            - VIRTUAL_PORT=3010
+            - VIRTUAL_PROTO=http
+            - CERT_NAME=<CERT_NAME>
+            - RCE_API_HOST=${CANVAS_DEFAULT_DOMAIN}/rce
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+            - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
+            - PORT=3010
+            - NODE_ENV=production
+            - ECOSYSTEM_KEY=${CANVAS_ENC_SECRET}
+            - ECOSYSTEM_SECRET=${CANVAS_SIGN_SECRET}
+            - STATSD_HOST=127.0.0.1
+            - STATSD_PORT=8125
+            - LETSENCRYPT_HOST=<CANVAS_RCE_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+        healthcheck:
+            test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3010/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+            interval: 15s
+            timeout: 5s
+            retries: 8
+
+    ope-canvas-mathman:
+        build: ./ope-canvas/services/mathman
+        image: ghcr.io/open-prison-education/ope-canvas-mathman:release
+        container_name: ope-canvas-mathman
+        network_mode: <NETWORK_MODE>
+        restart: always
+        expose:
+            - "80"
+        depends_on:
+            - ope-gateway
+            - ope-dns
+            - ope-redis
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=mathman.<DOMAIN>,<CANVAS_MATHMAN_DEFAULT_DOMAIN>
+            - VIRTUAL_PORT=80
+            - VIRTUAL_PROTO=http
+            - CERT_NAME=<CERT_NAME>
+            - NODE_ENV=production
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_DB=2
+            - LETSENCRYPT_HOST=<CANVAS_MATHMAN_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+        links:
+            - ope-gateway:${CANVAS_DEFAULT_DOMAIN}
+            - ope-redis:redis
+        healthcheck:
+            test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:80/readiness',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+            interval: 15s
+            timeout: 5s
+            retries: 8
+
     ope-canvas:
         build: ./ope-canvas
         image: ghcr.io/open-prison-education/ope-canvas:release
         container_name: ope-canvas
         network_mode: <NETWORK_MODE>
         restart: always
-        ports:
+        expose:
             - "3000"
         volumes:
-            # Normal mounts
             - <VOLUMES_ROOT>/canvas/tmp:/usr/src/app/tmp:rw
             - <VOLUMES_ROOT>/canvas/log:/usr/src/app/log:rw
             - <VOLUMES_ROOT>/canvas/tmpfiles:/tmp:rw
-            - <VOLUMES_ROOT>/canvas/sendfile:/usr/src/app/sendfile:rw
             - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
+            - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
         depends_on:
-            - ope-gateway
-            - ope-dns
-            - ope-redis
-            - ope-postgresql
-            - ope-canvas-rce
-            - ope-canvas-mathman
+            ope-gateway:
+                condition: service_started
+            ope-dns:
+                condition: service_started
+            ope-redis:
+                condition: service_started
+            ope-postgresql:
+                condition: service_started
+            ope-canvas-rce:
+                condition: service_started
+            ope-canvas-mathman:
+                condition: service_started
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
-            - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=canvas.<DOMAIN>,<DOMAIN>,<CANVAS_DEFAULT_DOMAIN>
             - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
             - CANVAS_LMS_ADMIN_EMAIL=${ADMIN_EMAIL}
             - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
-            - CANVAS_LMS_STATS_COLLECTION="opt_out"
+            - CANVAS_LMS_STATS_COLLECTION=opt_out
             - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
+            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
             - TIME_ZONE=${TIME_ZONE}
             - CANVAS_LOGIN_PROMPT=${CANVAS_LOGIN_PROMPT}
             - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+            - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
+            - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
             - VIRTUAL_PORT=3000
-            # Share the default cert on the gateway
             - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
-            #- HTTPS_METHOD=noredirect
-            # Params for the start script
             - EMAIL_DELIVERY_METHOD=test
-            - SMTP_ADDRESS=localhost
-            - SMTP_PORT=25
-            - SMTP_USER=smtp_user
-            - SMTP_PASS=smtp_pass
-            - IS_ONLINE=${IS_ONLINE}
-            # RCE server params
-            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
-            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
-            - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
-            - NODE_TLS_REJECT_UNAUTHORIZED=0
-            # Params for Mathman service
-            - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
-            - LETSENCRYPT_HOST=<CANVAS_DEFAULT_DOMAIN>
-            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
-            # Tell rails to serve static files to remove mime download errors
             - RAILS_SERVE_STATIC_FILES=1
             - DISABLE_ANONYMOUS_TELEMETRY=true
+        command: ["/usr/local/bin/canvas-web.sh"]
+        healthcheck:
+            test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/readiness"]
+            interval: 20s
+            timeout: 5s
+            retries: 15
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis
-            #- ope-canvas-rce:ope-canvas-rce
-            # ${CANVAS_RCE_DEFAULT_DOMAIN}
-            # Send links to rce server through the gateway
             - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
             - ope-gateway:gateway.<DOMAIN>
+
+    ope-canvas-jobs:
+        build: ./ope-canvas
+        image: ghcr.io/open-prison-education/ope-canvas:release
+        container_name: ope-canvas-jobs
+        network_mode: <NETWORK_MODE>
+        restart: always
+        volumes:
+            - <VOLUMES_ROOT>/canvas/tmp:/usr/src/app/tmp:rw
+            - <VOLUMES_ROOT>/canvas/log:/usr/src/app/log:rw
+            - <VOLUMES_ROOT>/canvas/tmpfiles:/tmp:rw
+            - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
+            - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
+        depends_on:
+            - ope-postgresql
+            - ope-redis
+            - ope-canvas
+        env_file: .env
+        environment:
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
+            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+            - CANVAS_LMS_STATS_COLLECTION=opt_out
+        command: ["/usr/local/bin/canvas-jobs.sh"]
+        links:
+            - ope-postgresql:postgresql
+            - ope-redis:redis
+
+    ope-canvas-migrate:
+        build: ./ope-canvas
+        image: ghcr.io/open-prison-education/ope-canvas:release
+        container_name: ope-canvas-migrate
+        network_mode: <NETWORK_MODE>
+        profiles: ["migrate"]
+        restart: "no"
+        volumes:
+            - <VOLUMES_ROOT>/canvas/tmp:/usr/src/app/tmp:rw
+            - <VOLUMES_ROOT>/canvas/log:/usr/src/app/log:rw
+            - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
+            - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
+        depends_on:
+            - ope-postgresql
+            - ope-redis
+        env_file: .env
+        environment:
+            - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
+            - CANVAS_LMS_ADMIN_EMAIL=${ADMIN_EMAIL}
+            - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
+            - CANVAS_LMS_STATS_COLLECTION=opt_out
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
+            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+        command: ["/usr/local/bin/canvas-migrate.sh", "upgrade"]
+        links:
+            - ope-postgresql:postgresql
+            - ope-redis:redis

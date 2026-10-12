@@ -1,22 +1,11 @@
-FROM redis:5.0.3-alpine
+FROM redis:7.4.11-alpine@sha256:ca0acbb137c1dc3339c8b147a58fd6f42775d4599327b50e7b116c23de501af2
 
-# ope-redis - Redis server, used by other containers
-# Build with docker build -t ope-redis .
+LABEL description="Canvas-owned Redis 7.4 for Open Prison Education"
 
-#INSTRUCTIONS
-# Build the container - shouldn't need any other setup other than linking containers to it
-
-# To copy to offline server use the setup tool
-
-LABEL description="Redis container used by canvas - Image for Open Prison Education"
-LABEL version="0.1"
-
-LABEL version="3"
-COPY redis.conf.tmpl /etc/redis.conf.tmpl
+COPY redis.conf /usr/local/etc/redis/redis.conf
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 VOLUME ["/data"]
-
-#CMD ["redis-server", "/etc/redis.conf"]
+EXPOSE 6379
 CMD ["/start.sh"]

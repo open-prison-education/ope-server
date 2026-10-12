@@ -1,33 +1,7 @@
-# OPE Redis
+# Canvas Redis
 
-Redis cache server for the Open Prison Education platform.
+Canvas-owned Redis 7.4. No password, same as the previous stack, so unmodified
+SMC can flush DB 0. Canvas uses logical DB 0. MathMan uses DB 2 and the
+`mml:` / `svg:` key prefixes.
 
-## Overview
-
-Provides in-memory caching and session storage for Canvas LMS and other OPE services.
-
-## Ports
-
-| Port | Protocol | Description |
-|------|----------|-------------|
-| 6379 | TCP | Redis connections |
-
-## Volumes
-
-| Path | Description |
-|------|-------------|
-| `/data` | Persistent Redis data |
-
-## Maintenance
-
-Clear the Redis cache:
-
-```bash
-./scripts/flush_redis_keys.sh
-```
-
-## Usage
-
-This service is a **dependency** that is enabled automatically when a service
-that requires it (e.g. `ope-canvas`, `ope-smc`) is listed in `config.yml`.
-There is no need to enable it manually.
+`scripts/flush_redis_keys.sh` flushes DB 0.
