@@ -31,7 +31,6 @@ def main() -> None:
         "<IT_PW>": os.environ.get("IT_PW", ""),
         "<CANVAS_DB_POOL>": os.environ.get("CANVAS_DB_POOL", "8"),
         "<CANVAS_DEFAULT_DOMAIN>": os.environ.get("CANVAS_DEFAULT_DOMAIN", "canvas.ed"),
-        "<CANVAS_FILES_DEFAULT_DOMAIN>": os.environ.get("CANVAS_FILES_DEFAULT_DOMAIN", "files.ed"),
         "<CANVAS_SECRET>": os.environ.get("CANVAS_SECRET", ""),
         "<CANVAS_JWT_ENCRYPTION_KEY>": os.environ.get("CANVAS_JWT_ENCRYPTION_KEY", ""),
         "<CANVAS_ENC_SECRET>": os.environ.get("CANVAS_ENC_SECRET", ""),

@@ -137,7 +137,6 @@ def build_replacement_values(settings, secrets):
         "<CANVAS_ENC_SECRET>": fallback(secrets.get("canvas_enc_secret"), ""),
         "<CANVAS_SIGN_SECRET>": fallback(secrets.get("canvas_sign_secret"), ""),
         "<CANVAS_JWT_ENCRYPTION_KEY>": fallback(secrets.get("canvas_jwt_encryption_key"), ""),
-        "<CANVAS_FILES_DEFAULT_DOMAIN>": f"files.{domain}",
         "<CANVAS_DB_POOL>": fallback(settings.get("canvas_db_pool"), "8"),
         "<EMAIL_DELIVERY_METHOD>": "test",
         "<IT_PW>": fallback(settings.get("it_pw"), "changeme"),
