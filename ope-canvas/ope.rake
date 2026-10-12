@@ -12,6 +12,22 @@ namespace :ope do
     
   end
 
+  # canvas-migrate.sh calls this after db:initial_setup or db:migrate.
+  # execute skips startup_apply_admin_settings' startup_db_migrate prerequisite
+  # so this does not run initial setup or db:migrate a second time.
+  task :production_apply => [:environment] do
+    puts "====== OPE PRODUCTION_APPLY BEGIN ======"
+    Rake::Task["ope:startup_init_env"].invoke
+    Rake::Task["ope:fix_null_root_account_ids"].invoke
+    Rake::Task["db:reset_encryption_key_hash"].invoke
+    Rake::Task["ope:init_auditing"].invoke
+    Rake::Task["ope:set_sequence_range"].invoke
+    Rake::Task["ope:enable_auditing"].invoke
+    Rake::Task["ope:startup_apply_admin_settings"].execute
+    Rake::Task["ope:ensure_jwk_key"].invoke
+    puts "====== OPE PRODUCTION_APPLY COMPLETE ======"
+  end
+
   task :startup_init_env => [:environment] do
     puts "====== OPE STARTUP_INIT BEGIN ======"
     # Make sure we have info in our environment
