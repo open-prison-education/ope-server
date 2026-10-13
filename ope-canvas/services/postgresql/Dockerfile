@@ -1,4 +1,4 @@
-FROM postgres:16.15-alpine@sha256:1a66d744c1b459e13b05a8fca341da84cb63383e99ce262210efee5a319d4551
+FROM postgres:16.15-alpine
 
 LABEL description="Canvas-owned PostgreSQL 16 for Open Prison Education"
 

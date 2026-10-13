@@ -1,6 +1,6 @@
-FROM redis:7.4.11-alpine@sha256:ca0acbb137c1dc3339c8b147a58fd6f42775d4599327b50e7b116c23de501af2
+FROM redis:8.8.3-alpine
 
-LABEL description="Canvas-owned Redis 7.4 for Open Prison Education"
+LABEL description="Canvas-owned Redis 8.8 for Open Prison Education"
 
 COPY redis.conf /usr/local/etc/redis/redis.conf
 COPY start.sh /start.sh

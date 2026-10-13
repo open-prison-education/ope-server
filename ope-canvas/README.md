@@ -41,7 +41,7 @@ on first run.
 These containers are defined with Canvas and live under `ope-canvas/services/`:
 
 - **ope-postgresql:** Canvas-owned PostgreSQL 16
-- **ope-redis:** Canvas-owned Redis 7.4
+- **ope-redis:** Canvas-owned Redis 8.8
 - **ope-canvas-rce:** Rich Content Editor
 - **ope-canvas-mathman:** Math equation rendering
 - **ope-canvas-jobs:** Delayed jobs

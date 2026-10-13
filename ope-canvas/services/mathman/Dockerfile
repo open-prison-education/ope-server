@@ -1,12 +1,9 @@
-FROM instructure/node-passenger:12
+FROM instructure/node-passenger:18
 LABEL maintainer="Instructure"
-
-LABEL rebuild=1
 
 USER root
 
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-  && apt-get update && apt-get install -y --no-install-recommends zip \
+RUN apt-get update && apt-get install -y --no-install-recommends zip \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package.json

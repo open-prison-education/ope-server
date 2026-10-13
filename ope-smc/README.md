@@ -30,7 +30,7 @@ The SMC domain is derived from the `domain` setting in `config.yml`
 ## Usage
 
 Enable SMC in `config.yml` (or via the interactive setup wizard `./setup.sh`).
-SMC depends on Canvas, which owns PostgreSQL and Redis:
+SMC depends on Canvas, which owns PostgreSQL and Redis (resolved automatically).
 
 ```yaml
 services:
