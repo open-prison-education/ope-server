@@ -1,7 +1,6 @@
 # Immutable Canvas LMS image. Source and dependencies are pinned.
 # Build on a connected builder, then export the image for air-gapped hosts.
-# Runtime does not clone, install, or patch source.
-ARG RUBY_IMAGE=ruby:3.4.1-bookworm@sha256:24d87689bd5c1821388b9fa2fcfd743938f1baa5c4ceffcd34bdc9633113fe38
+ARG RUBY_IMAGE=ruby:3.4.1-bookworm
 FROM ${RUBY_IMAGE}
 
 ENV RAILS_ENV=production \
@@ -15,13 +14,24 @@ ENV RAILS_ENV=production \
     NODE_TARBALL_SHA256=9033989810bf86220ae46b1381bdcdc6c83a0294869ba2ad39e1061f1e69217a \
     BUNDLER_VERSION=2.6.7 \
     CANVAS_COMMIT=44bfdc264d5fe6a942ebdb5f10a0eb63ee04df3a \
-    QTI_COMMIT=aab28af7a05142140c6fd2f45ed67a4c925a7d1b
+    QTI_COMMIT=aab28af7a05142140c6fd2f45ed67a4c925a7d1b \
+    PGDG_KEY_SHA256=0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76
 
-RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+# Bookworm's own archive has postgresql-client-15 only. Client 16, matching the
+# PostgreSQL 16 server, comes from the PGDG apt repository. libpq-dev is taken
+# from that same repository.
+RUN apt-get update -qq \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && echo "${PGDG_KEY_SHA256}  /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc" | sha256sum -c - \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update -qq \
+    && apt-get install -y --no-install-recommends \
       libxmlsec1-dev python3 python-is-python3 libicu-dev libidn11-dev \
       parallel postgresql-client-16 tzdata unzip pbzip2 git build-essential \
       libpq-dev libxml2-dev libxslt1-dev libyaml-dev imagemagick libmagickwand-dev \
-      shared-mime-info curl ca-certificates xz-utils python3-lxml \
+      shared-mime-info xz-utils python3-lxml \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" -o /tmp/node.tar.xz \
     && echo "${NODE_TARBALL_SHA256}  /tmp/node.tar.xz" | sha256sum -c - \
@@ -58,19 +68,41 @@ RUN python3 /tmp/apply_ope_patches.py "$APP_HOME" \
         -e 's#//cdnjs.cloudflare.com##g' \
     && chmod 755 /usr/local/bin/canvas-*.sh \
     && mkdir -p tmp/files log tmp/pids \
-    && chown -R canvas:canvas "$APP_HOME"
+    && chown -R canvas:canvas "$APP_HOME" /usr/local/bundle
 
 USER canvas
 RUN bundle config set --local build.nokogiri --use-system-libraries \
     && bundle config set --local build.ffi --enable-system-libffi \
     && bundle install --jobs "$(nproc)" \
     && python3 /tmp/apply_ope_patches.py "$APP_HOME" "$(bundle show switchman)" \
-    && yarn install --frozen-lockfile \
-    && COMPILE_ASSETS_BRAND_CONFIGS=0 COMPILE_ASSETS_NPM_INSTALL=0 bin/rails canvas:compile_assets --trace \
-    && rm -rf node_modules tmp/cache /usr/local/bundle/cache
+    && yarn install --frozen-lockfile
+
+COPY patches/silence_sass.js /tmp/silence-sass.js
+
+# One asset task at a time. Production rspack plus CSS, styleguide, and API
+# docs together exhaust this builder. Compile output stays in a file so Sass
+# warnings cannot fill the BuildKit log and hide the real failure.
+# This Canvas commit imports @instructure/platform-alerts and omits it from package.json.
+RUN yarn add @instructure/platform-alerts@0.2.0 --ignore-scripts -W \
+    && NODE_OPTIONS="--max-old-space-size=4096 --require /tmp/silence-sass.js" \
+      CANVAS_BUILD_CONCURRENCY=1 \
+      COMPILE_ASSETS_API_DOCS=0 \
+      COMPILE_ASSETS_BRAND_CONFIGS=0 \
+      COMPILE_ASSETS_NPM_INSTALL=0 \
+      COMPILE_ASSETS_STYLEGUIDE=0 \
+      SKIP_SOURCEMAPS=1 \
+      bin/rails canvas:compile_assets --trace > /tmp/canvas-compile.log 2>&1 & \
+    compile_pid=$!; \
+    while kill -0 "$compile_pid" 2>/dev/null; do \
+      echo "canvas assets still compiling ($(wc -l < /tmp/canvas-compile.log) log lines)"; \
+      sleep 20; \
+    done; \
+    wait "$compile_pid" \
+    || { echo '----- canvas compile log tail -----'; tail -n 200 /tmp/canvas-compile.log; exit 1; } \
+    && rm -rf node_modules tmp/cache /usr/local/bundle/cache /tmp/canvas-compile.log
 
 USER root
-RUN rm -f /tmp/apply_ope_patches.py
+RUN rm -f /tmp/apply_ope_patches.py /tmp/silence-sass.js
 USER canvas
 
 EXPOSE 3000

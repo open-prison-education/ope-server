@@ -10,6 +10,9 @@ ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
 
 def replace(path: pathlib.Path, old: str, new: str) -> None:
     text = path.read_text()
+    if new in text:
+        print(f"already patched {path}")
+        return
     if old not in text:
         raise SystemExit(f"expected text not found in {path}: {old!r}")
     path.write_text(text.replace(old, new, 1))
