@@ -57,7 +57,7 @@ namespace :ope do
     end
 
     if (ENV["CANVAS_LOGIN_PROMPT"] || "").empty?
-        ENV["CANVAS_LOGIN_PROMPT"] = "Student ID (default is s + DOC number - s113412)"
+        ENV["CANVAS_LOGIN_PROMPT"] = "Student ID (default: s + DOC number e.g. s113412)"
     end
 
     if (ENV["CANVAS_DEFAULT_DOMAIN"] || "").empty?
@@ -291,7 +291,7 @@ namespace :ope do
         site_admin_account.settings[:teachers_can_create_courses] = admin_account.settings[:teachers_can_create_courses] = false
         site_admin_account.settings[:users_can_edit_name] = admin_account.settings[:users_can_edit_name] = false
         site_admin_account.settings[:login_handle_name] = admin_account.settings[:login_handle_name] = ENV["CANVAS_LOGIN_PROMPT"]
-        # "Student ID (default is s + DOC number - s113412)"
+        # "Student ID (default: s + DOC number e.g. s113412)"
         site_admin_account.settings[:self_enrollment] = admin_account.settings[:self_enrollment] = "Never"
 
 

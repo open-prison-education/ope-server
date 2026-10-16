@@ -105,5 +105,8 @@ USER root
 RUN rm -f /tmp/apply_ope_patches.py /tmp/silence-sass.js
 USER canvas
 
+# production.rb loads production-*.rb. Rails must serve /public because the
+COPY --chown=canvas:canvas production-local.rb config/environments/production-local.rb
+
 EXPOSE 3000
 CMD ["/usr/local/bin/canvas-web.sh"]
