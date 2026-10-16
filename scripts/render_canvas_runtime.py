@@ -22,7 +22,8 @@ def render(values: dict) -> pathlib.Path:
             text = text.replace(key, str(value))
         dest = DST / dest_name
         dest.write_text(text)
-        dest.chmod(stat.S_IRUSR | stat.S_IWUSR)
+        # Bind-mounted into the Canvas container as uid 9999 (canvas).
+        dest.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
     return DST
 
 
