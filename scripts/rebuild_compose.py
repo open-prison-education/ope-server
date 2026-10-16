@@ -145,7 +145,7 @@ def build_replacement_values(settings, secrets):
         "<TIME_ZONE>": fallback(settings.get("time_zone"), "Pacific Time (US & Canada)"),
         "<CANVAS_LOGIN_PROMPT>": fallback(
             settings.get("canvas_login_prompt"),
-            "Student ID (default is s + DOC number - s113412)",
+            "Student ID (default: s + DOC number e.g. s113412)",
         ),
         "<CANVAS_DEFAULT_DOMAIN>": f"canvas.{domain}",
         "<SMC_DEFAULT_DOMAIN>": f"smc.{domain}",
