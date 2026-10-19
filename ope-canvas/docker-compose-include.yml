@@ -102,6 +102,38 @@
             timeout: 5s
             retries: 8
 
+    ope-canvas-init:
+        build: ./ope-canvas
+        image: ghcr.io/open-prison-education/ope-canvas:release
+        container_name: ope-canvas-init
+        network_mode: <NETWORK_MODE>
+        restart: "no"
+        volumes:
+            - <VOLUMES_ROOT>/canvas/tmp:/usr/src/app/tmp:rw
+            - <VOLUMES_ROOT>/canvas/log:/usr/src/app/log:rw
+            - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
+            - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
+        depends_on:
+            ope-postgresql:
+                condition: service_healthy
+            ope-redis:
+                condition: service_healthy
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
+            - CANVAS_LMS_ADMIN_EMAIL=${ADMIN_EMAIL}
+            - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
+            - CANVAS_LMS_STATS_COLLECTION=opt_out
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
+            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+        command: ["/usr/local/bin/canvas-init.sh"]
+        links:
+            - ope-postgresql:postgresql
+            - ope-redis:redis
+
     ope-canvas:
         build: ./ope-canvas
         image: ghcr.io/open-prison-education/ope-canvas:release
@@ -129,6 +161,8 @@
                 condition: service_started
             ope-canvas-mathman:
                 condition: service_started
+            ope-canvas-init:
+                condition: service_completed_successfully
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
@@ -176,9 +210,12 @@
             - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
             - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
         depends_on:
-            - ope-postgresql
-            - ope-redis
-            - ope-canvas
+            ope-postgresql:
+                condition: service_started
+            ope-redis:
+                condition: service_started
+            ope-canvas-init:
+                condition: service_completed_successfully
         env_file: .env
         environment:
             - CANVAS_SECRET=${CANVAS_SECRET}

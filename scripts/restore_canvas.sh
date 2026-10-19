@@ -1,5 +1,8 @@
 #!/bin/bash
 # Restore a Canvas backup directory created by backup_canvas.sh.
+#
+# Environment:
+#   VOLUMES_ROOT    Canvas volume root (default: the .env value, then ./volumes)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,6 +13,12 @@ SRC="${1:-}"
 if [ -z "$SRC" ] || [ ! -d "$SRC" ]; then
   echo "usage: restore_canvas.sh <backup-dir>" >&2
   exit 2
+fi
+
+# .env is not a shell script: values such as LMS_ACCOUNT_NAME contain spaces.
+# Read VOLUMES_ROOT only. Docker Compose loads the rest of .env itself.
+if [ -z "${VOLUMES_ROOT:-}" ] && [ -f .env ]; then
+  VOLUMES_ROOT="$(grep -E '^VOLUMES_ROOT=' .env | head -n 1 | cut -d= -f2- || true)"
 fi
 
 echo "Restoring Canvas from $SRC"

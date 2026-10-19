@@ -24,7 +24,7 @@ settings:
   domain: ed                  # canvas.<domain>
   lms_account_name: "Open Prison Education"
   time_zone: "Pacific Time (US & Canada)"
-  canvas_login_prompt: "Student ID (default is s + DOC number - s113412)"
+  canvas_login_prompt: "Student ID (default: s + DOC number e.g. s113412)"
 ```
 
 Canvas encryption secrets are stored in `.secrets.yml` and auto-generated
@@ -44,8 +44,9 @@ These containers are defined with Canvas and live under `ope-canvas/services/`:
 - **ope-redis:** Canvas-owned Redis 8.8
 - **ope-canvas-rce:** Rich Content Editor
 - **ope-canvas-mathman:** Math equation rendering
+- **ope-canvas-init:** One-shot schema setup when `canvas_production` has no tables
 - **ope-canvas-jobs:** Delayed jobs
-- **ope-canvas-migrate:** One-shot migrations (`--profile migrate`)
+- **ope-canvas-migrate:** Manual migrations (`--profile migrate`)
 
 ## Usage
 
@@ -62,6 +63,11 @@ Build or import the pinned images, then start services:
 ```bash
 ./up.sh
 ```
+
+`ope-canvas-init` runs before web and jobs. It creates the schema when
+`canvas_production` has no tables, then exits. An existing schema is left
+unchanged. Restores and image upgrades are manual; see
+`docs/CANVAS_UPGRADE.md`.
 
 ## Initial Setup
 

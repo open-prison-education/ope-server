@@ -3,7 +3,7 @@
 # outside the live database volume.
 #
 # Captures:
-#   postgresql/  custom-format dumps of canvas_production and, if present, canvas_queue
+#   postgresql/  custom-format dump of canvas_production
 #   files/       uploaded files from volumes/canvas/tmp/files
 #   keys/        Canvas encryption keys from volumes/canvas/keys
 #   config/      rendered runtime config, config.yml, .secrets.yml, docker-compose.yml
@@ -38,12 +38,6 @@ mkdir -p "$DEST/postgresql" "$DEST/files" "$DEST/config" "$DEST/keys"
 $compose exec -T ope-postgresql pg_dump -U postgres --format=custom --file=/tmp/canvas_production.dump canvas_production
 $compose cp ope-postgresql:/tmp/canvas_production.dump "$DEST/postgresql/canvas_production.dump"
 $compose exec -T ope-postgresql rm -f /tmp/canvas_production.dump
-
-if $compose exec -T ope-postgresql psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='canvas_queue'" | grep -q 1; then
-  $compose exec -T ope-postgresql pg_dump -U postgres --format=custom --file=/tmp/canvas_queue.dump canvas_queue
-  $compose cp ope-postgresql:/tmp/canvas_queue.dump "$DEST/postgresql/canvas_queue.dump"
-  $compose exec -T ope-postgresql rm -f /tmp/canvas_queue.dump
-fi
 
 VOLUMES_ROOT="${VOLUMES_ROOT:-./volumes}"
 if [ -d "$VOLUMES_ROOT/canvas/tmp/files" ]; then

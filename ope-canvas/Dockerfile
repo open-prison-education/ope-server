@@ -58,7 +58,7 @@ COPY ope.rake lib/tasks/ope.rake
 COPY fonts/ public/fonts/
 COPY ajax/ public/ajax/
 COPY ViewerJS/ public/vendor/ViewerJS/
-COPY bin/canvas-web.sh bin/canvas-jobs.sh bin/canvas-migrate.sh /usr/local/bin/
+COPY bin/canvas-web.sh bin/canvas-jobs.sh bin/canvas-migrate.sh bin/canvas-init.sh /usr/local/bin/
 
 RUN python3 /tmp/apply_ope_patches.py "$APP_HOME" \
     && find . \( -name '*.html' -o -name '*.css' -o -name '*.erb' -o -name '*.js' \) -type f -print0 \

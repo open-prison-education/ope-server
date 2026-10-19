@@ -106,7 +106,11 @@ to change settings, or edit `config.yml` directly.
 ```
 
 This starts all the services you selected during setup. It may take a few
-minutes for all containers to come up.
+minutes for all containers to come up. When Canvas is enabled and
+`canvas_production` has no tables, `ope-canvas-init` creates the schema
+before web and jobs start. That first run can take much longer. A database
+that already has tables is left unchanged. Restores and later image upgrades
+are in [Canvas upgrade](CANVAS_UPGRADE.md).
 
 To confirm everything is running:
 
@@ -215,4 +219,6 @@ For more troubleshooting steps, see the
 
 - [Accessing Services](ACCESSING_SERVICES.md) -- DNS setup, remote access, SSL warnings
 - [Deployment Guide](DEPLOYMENT.md) -- Full deployment reference (Docker install, backups, SSL, etc.)
+- [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md) -- Snapshot and recover Canvas
+- [Canvas upgrade](CANVAS_UPGRADE.md) -- First-time database, image upgrades, secret rotation
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) -- For IT staff: how to build the offline bundle

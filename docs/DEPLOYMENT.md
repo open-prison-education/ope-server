@@ -16,6 +16,8 @@ This guide covers the complete deployment process for the Open Prison Education 
 
 **Related:**
 - [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+- [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md) - Snapshot and recover Canvas
+- [Canvas upgrade](CANVAS_UPGRADE.md) - First-time database, image upgrades, secret rotation
 - [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) - For site operators: deploying from pre-built files on an air-gapped machine
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) - For developers: building the offline bundle
 
@@ -140,6 +142,15 @@ This rebuilds `docker-compose.yml` and `.env` from `config.yml`, then starts
 all configured containers. If `config.yml` does not exist yet, `up.sh` will
 launch the setup wizard automatically.
 
+When Canvas is enabled, `ope-canvas-init` waits for PostgreSQL and Redis,
+then runs `canvas-migrate.sh initial` if `canvas_production` has no tables
+in `public`. When tables are already present, it exits and leaves the schema
+unchanged. Web and jobs start after that container exits successfully.
+Restores and image upgrades stay manual; follow
+[Canvas upgrade](CANVAS_UPGRADE.md) (`predeploy` / `upgrade`).
+
+Admin login is `admin@<your-domain>` with the `it_pw` value from `config.yml`.
+
 ### 4. Access Services
 
 Once services are running, see the **[Accessing Services Guide](ACCESSING_SERVICES.md)** for detailed instructions on:
@@ -231,35 +242,51 @@ docker compose restart ope-canvas
 
 ## Backup and Restore
 
+Full Canvas procedures are in [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md).
+
 ### Automated Backups
 
-Add to crontab for daily backups at 2:00 AM:
+Pick the cron job that matches the services you run. Both default to 30 days of
+retention. `export_databases.sh` accepts an optional day count and passes it to
+the Canvas backup as `OPE_BACKUP_KEEP_DAYS`.
 
 ```bash
 crontab -e
-# Add this line:
+# Canvas only (does not require FOG):
+0 2 * * * /path/to/ope-server/scripts/backup_canvas.sh
+
+# Canvas plus FOG. Fails if ope-fog is not running:
 0 2 * * * /path/to/ope-server/scripts/export_databases.sh
 ```
 
-### Manual Backup
+### Canvas backup
 
 ```bash
-./scripts/export_databases.sh
+./scripts/backup_canvas.sh
 ```
 
-Backups are stored in:
-- PostgreSQL: `/var/lib/postgresql/data/backups/`
-- MySQL (FOG): `/var/lib/mysql/backups/`
+Use this before an upgrade. It does not require FOG. It writes a PostgreSQL
+custom-format dump, uploaded files, keys, and config under `backups/canvas/`
+or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume.
+
+### FOG MySQL backup
+
+`scripts/export_databases.sh` dumps FOG MySQL after the Canvas snapshot. Those
+dumps stay in the FOG data volume (`/var/lib/mysql/backups` inside `ope-fog`).
 
 ### Restore Database
 
 ```bash
-# PostgreSQL
-docker compose exec ope-postgresql psql -U postgres -d canvas_production < backup.sql
+# Canvas: pass the snapshot directory (not an archive)
+./scripts/restore_canvas.sh backups/canvas/<stamp>
 
-# MySQL
-docker compose exec ope-fog mysql < backup.sql
+# FOG: nightly dumps live inside the FOG volume
+docker compose exec ope-fog \
+  bash -c 'mysql < /var/lib/mysql/backups/all_database_YYYYMMDD.sql'
 ```
+
+After a Canvas restore, run the migrate container if the schema is older than
+the image. See [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md).
 
 ## Public Deployment: Preventing Search Engine Crawling
 
