@@ -45,7 +45,7 @@ export PGPASSWORD=$IT_PW;
 db_online=0
 until [ $db_online -eq 1 ]
 do
-	echo "= Waiting for ope-postgresql to come online ="
+	echo "= Waiting for ope-canvas-postgres to come online ="
 	sleep 1
 	db_online=1  # Gets set back to 0 if the db connection fails
 	psql -U postgres -h postgresql -tc "select 1" | grep -q 1 || db_online=0

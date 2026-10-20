@@ -121,7 +121,7 @@ Key settings in `config.yml`:
 | `is_online` | `1` if the server has internet access, `0` for offline / air-gapped |
 
 Services are listed under the `services:` key. Core services (`ope-gateway`,
-`ope-dns`) and dependencies (e.g. `ope-redis`, `ope-postgresql` for Canvas)
+`ope-dns`) and dependencies (e.g. `ope-canvas-redis`, `ope-canvas-postgres` for Canvas)
 are resolved automatically -- you only need to list the services you want:
 
 ```yaml
@@ -365,7 +365,7 @@ docker compose logs
 
 ```bash
 # Restart database containers
-docker compose restart ope-postgresql ope-redis
+docker compose restart ope-canvas-postgres ope-canvas-redis
 ```
 
 #### Permission Issues

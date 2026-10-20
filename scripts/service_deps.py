@@ -17,8 +17,8 @@ CORE_SERVICES = ["ope-gateway", "ope-dns"]
 SERVICE_DIRS = {
     "ope-canvas-rce": "ope-canvas/services/rce",
     "ope-canvas-mathman": "ope-canvas/services/mathman",
-    "ope-postgresql": "ope-canvas/services/postgresql",
-    "ope-redis": "ope-canvas/services/redis",
+    "ope-canvas-postgres": "ope-canvas/services/postgresql",
+    "ope-canvas-redis": "ope-canvas/services/redis",
 }
 
 
@@ -33,11 +33,11 @@ CANVAS_STACK_SERVICES = frozenset(SERVICE_DIRS)
 # Core services are implicitly included for every deployment.
 SERVICE_DEPS = {
     "ope-canvas": [
-        "ope-gateway", "ope-dns", "ope-redis", "ope-postgresql",
+        "ope-gateway", "ope-dns", "ope-canvas-redis", "ope-canvas-postgres",
         "ope-canvas-rce", "ope-canvas-mathman",
     ],
     "ope-canvas-rce": ["ope-dns"],
-    "ope-canvas-mathman": ["ope-gateway", "ope-dns", "ope-redis"],
+    "ope-canvas-mathman": ["ope-gateway", "ope-dns", "ope-canvas-redis"],
     "ope-smc": ["ope-canvas"],
     "ope-kalite": ["ope-gateway", "ope-dns"],
     "ope-codecombat": ["ope-gateway", "ope-dns"],
@@ -51,8 +51,8 @@ SERVICE_DEPS = {
     "ope-dl": ["ope-gateway", "ope-dns"],
     "ope-ntp": [],
     "ope-letsencrypt": [],
-    "ope-redis": ["ope-gateway", "ope-dns"],
-    "ope-postgresql": ["ope-gateway", "ope-dns"],
+    "ope-canvas-redis": ["ope-gateway", "ope-dns"],
+    "ope-canvas-postgres": ["ope-gateway", "ope-dns"],
     "ope-penpot": ["ope-gateway", "ope-dns"],
     "ope-monitoring": ["ope-gateway", "ope-dns"],
 }
@@ -67,7 +67,7 @@ SERVICE_CATALOG = [
             {
                 "name": "ope-canvas",
                 "description": "Canvas LMS",
-                "extra_deps_label": "+ redis, postgresql, canvas-rce, canvas-mathman",
+                "extra_deps_label": "+ canvas-postgres, canvas-redis, canvas-rce, canvas-mathman",
             },
         ],
     },

@@ -1,7 +1,7 @@
-    ope-postgresql:
+    ope-canvas-postgres:
         build: ./ope-canvas/services/postgresql
-        image: ghcr.io/open-prison-education/ope-postgresql:release
-        container_name: ope-postgresql
+        image: ghcr.io/open-prison-education/ope-canvas-postgres:release
+        container_name: ope-canvas-postgres
         network_mode: <NETWORK_MODE>
         restart: always
         expose:
@@ -19,10 +19,10 @@
             timeout: 5s
             retries: 12
 
-    ope-redis:
+    ope-canvas-redis:
         build: ./ope-canvas/services/redis
-        image: ghcr.io/open-prison-education/ope-redis:release
-        container_name: ope-redis
+        image: ghcr.io/open-prison-education/ope-canvas-redis:release
+        container_name: ope-canvas-redis
         network_mode: <NETWORK_MODE>
         restart: always
         expose:
@@ -80,7 +80,7 @@
         depends_on:
             - ope-gateway
             - ope-dns
-            - ope-redis
+            - ope-canvas-redis
         env_file: .env
         environment:
             - VIRTUAL_HOST=mathman.<DOMAIN>,<CANVAS_MATHMAN_DEFAULT_DOMAIN>
@@ -95,7 +95,7 @@
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
         links:
             - ope-gateway:${CANVAS_DEFAULT_DOMAIN}
-            - ope-redis:redis
+            - ope-canvas-redis:redis
         healthcheck:
             test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:80/readiness',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
             interval: 15s
@@ -114,9 +114,9 @@
             - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
             - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
         depends_on:
-            ope-postgresql:
+            ope-canvas-postgres:
                 condition: service_healthy
-            ope-redis:
+            ope-canvas-redis:
                 condition: service_healthy
         env_file: .env
         environment:
@@ -131,8 +131,8 @@
             - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
         command: ["/usr/local/bin/canvas-init.sh"]
         links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
+            - ope-canvas-postgres:postgresql
+            - ope-canvas-redis:redis
 
     ope-canvas:
         build: ./ope-canvas
@@ -153,9 +153,9 @@
                 condition: service_started
             ope-dns:
                 condition: service_started
-            ope-redis:
+            ope-canvas-redis:
                 condition: service_started
-            ope-postgresql:
+            ope-canvas-postgres:
                 condition: service_started
             ope-canvas-rce:
                 condition: service_started
@@ -192,8 +192,8 @@
             timeout: 5s
             retries: 15
         links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
+            - ope-canvas-postgres:postgresql
+            - ope-canvas-redis:redis
             - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
             - ope-gateway:gateway.<DOMAIN>
 
@@ -210,9 +210,9 @@
             - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
             - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
         depends_on:
-            ope-postgresql:
+            ope-canvas-postgres:
                 condition: service_started
-            ope-redis:
+            ope-canvas-redis:
                 condition: service_started
             ope-canvas-init:
                 condition: service_completed_successfully
@@ -225,8 +225,8 @@
             - CANVAS_LMS_STATS_COLLECTION=opt_out
         command: ["/usr/local/bin/canvas-jobs.sh"]
         links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
+            - ope-canvas-postgres:postgresql
+            - ope-canvas-redis:redis
 
     ope-canvas-migrate:
         build: ./ope-canvas
@@ -241,8 +241,8 @@
             - <VOLUMES_ROOT>/canvas/keys:/usr/src/app/keys:rw
             - ./ope-canvas/runtime-rendered:/usr/src/app/config/ope:ro
         depends_on:
-            - ope-postgresql
-            - ope-redis
+            - ope-canvas-postgres
+            - ope-canvas-redis
         env_file: .env
         environment:
             - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
@@ -255,5 +255,5 @@
             - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
         command: ["/usr/local/bin/canvas-migrate.sh", "upgrade"]
         links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
+            - ope-canvas-postgres:postgresql
+            - ope-canvas-redis:redis

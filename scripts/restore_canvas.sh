@@ -22,8 +22,8 @@ if [ -z "${VOLUMES_ROOT:-}" ] && [ -f .env ]; then
 fi
 
 echo "Restoring Canvas from $SRC"
-$compose exec -T ope-postgresql pg_restore -U postgres --clean --if-exists --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump" || \
-  $compose exec -T ope-postgresql pg_restore -U postgres --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump"
+$compose exec -T ope-canvas-postgres pg_restore -U postgres --clean --if-exists --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump" || \
+  $compose exec -T ope-canvas-postgres pg_restore -U postgres --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump"
 
 VOLUMES_ROOT="${VOLUMES_ROOT:-./volumes}"
 if [ -f "$SRC/files/files.tar" ]; then

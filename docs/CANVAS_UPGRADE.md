@@ -12,7 +12,7 @@ then exits. Web and jobs start after that. `ope-canvas-migrate`
 ## What operators should expect
 
 - **Canvas owns PostgreSQL and Redis.** Enabling `ope-canvas` (or `ope-smc`,
-  which depends on it) starts `ope-postgresql`, `ope-redis`, `ope-canvas-rce`,
+  which depends on it) starts `ope-canvas-postgres`, `ope-canvas-redis`, `ope-canvas-rce`,
   `ope-canvas-mathman`, `ope-canvas-init`, `ope-canvas`, and `ope-canvas-jobs`.
 - **PostgreSQL is 16.15.** Data lives in `pgdata-16.15` on the existing
   `postgresql/data` volume. An old PostgreSQL 12 datadir on that volume is left
@@ -64,7 +64,7 @@ Admin login is `admin@<your-domain>` with the `it_pw` value from `config.yml`.
 
    ```bash
    ./scripts/rebuild.sh
-   docker compose up -d ope-postgresql
+   docker compose up -d ope-canvas-postgres
    ```
 
    PostgreSQL initializes `pgdata-16.15` if that directory is empty. An old

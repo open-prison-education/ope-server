@@ -13,7 +13,7 @@
 #   OPE_BACKUP_KEEP_DAYS    delete backups older than this many days (default: 30)
 #   VOLUMES_ROOT            Canvas volume root (default: the .env value, then ./volumes)
 #
-# Requires the ope-postgresql container to be running. Restore with
+# Requires the ope-canvas-postgres container to be running. Restore with
 # scripts/restore_canvas.sh <backup-dir>.
 set -euo pipefail
 
@@ -35,9 +35,9 @@ fi
 echo "Backing up Canvas to $DEST"
 mkdir -p "$DEST/postgresql" "$DEST/files" "$DEST/config" "$DEST/keys"
 
-$compose exec -T ope-postgresql pg_dump -U postgres --format=custom --file=/tmp/canvas_production.dump canvas_production
-$compose cp ope-postgresql:/tmp/canvas_production.dump "$DEST/postgresql/canvas_production.dump"
-$compose exec -T ope-postgresql rm -f /tmp/canvas_production.dump
+$compose exec -T ope-canvas-postgres pg_dump -U postgres --format=custom --file=/tmp/canvas_production.dump canvas_production
+$compose cp ope-canvas-postgres:/tmp/canvas_production.dump "$DEST/postgresql/canvas_production.dump"
+$compose exec -T ope-canvas-postgres rm -f /tmp/canvas_production.dump
 
 VOLUMES_ROOT="${VOLUMES_ROOT:-./volumes}"
 if [ -d "$VOLUMES_ROOT/canvas/tmp/files" ]; then

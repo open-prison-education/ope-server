@@ -286,8 +286,8 @@ Docker Compose healthchecks already hit:
 - `GET /readiness` on `ope-canvas` (port 3000)
 - `GET /readiness` on `ope-canvas-rce` (port 3010)
 - `GET /readiness` on `ope-canvas-mathman` (port 80)
-- `pg_isready -U postgres` on `ope-postgresql`
-- `redis-cli ping` on `ope-redis`
+- `pg_isready -U postgres` on `ope-canvas-postgres`
+- `redis-cli ping` on `ope-canvas-redis`
 
 Grafana's Uptime & Probes dashboard uses Alloy blackbox checks against the
 public vhosts (`https://canvas.<DOMAIN>`, and the other first-party hosts),

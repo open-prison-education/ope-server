@@ -40,8 +40,8 @@ on first run.
 
 These containers are defined with Canvas and live under `ope-canvas/services/`:
 
-- **ope-postgresql:** Canvas-owned PostgreSQL 16
-- **ope-redis:** Canvas-owned Redis 8.8
+- **ope-canvas-postgres:** Canvas-owned PostgreSQL 16
+- **ope-canvas-redis:** Canvas-owned Redis 8.8
 - **ope-canvas-rce:** Rich Content Editor
 - **ope-canvas-mathman:** Math equation rendering
 - **ope-canvas-init:** One-shot schema setup when `canvas_production` has no tables

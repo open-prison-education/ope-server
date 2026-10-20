@@ -8,7 +8,7 @@ an upgrade or after a failed cutover.
 | Backup Canvas occasionally or before an upgrade | `./scripts/backup_canvas.sh` |
 | Restore a Canvas snapshot | `./scripts/restore_canvas.sh backups/canvas/<stamp>` |
 
-`ope-postgresql` must be running for backup and restore. The scripts talk to
+`ope-canvas-postgres` must be running for backup and restore. The scripts talk to
 that container; they do not dump files from inside the live PostgreSQL data
 directory.
 
@@ -62,10 +62,10 @@ and expect an in-place upgrade.
 
    ```bash
    ./scripts/rebuild.sh
-   docker compose up -d ope-postgresql
+   docker compose up -d ope-canvas-postgres
    ```
 
-   Wait until `docker compose ps` shows `ope-postgresql` healthy. If Canvas
+   Wait until `docker compose ps` shows `ope-canvas-postgres` healthy. If Canvas
    web or jobs are already running, stop them first:
 
    ```bash
