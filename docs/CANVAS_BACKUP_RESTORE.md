@@ -1,109 +1,177 @@
-# Canvas backup and restore
+# Canvas backup, restore, and upgrade
 
-Use these scripts when you need a Canvas snapshot you can restore later — before
-an upgrade or after a failed cutover.
+Use this page to copy Canvas data, put that copy back, or upgrade the server from an older Canvas version to the current one.
 
-| Situation | Command |
-|-----------|---------|
-| Backup Canvas occasionally or before an upgrade | `./scripts/backup_canvas.sh` |
-| Restore a Canvas snapshot | `./scripts/restore_canvas.sh backups/canvas/<stamp>` |
+A brand-new deployment does not need these steps. `./up.sh` creates an empty Canvas for you. See the [Deployment Guide](DEPLOYMENT.md).
 
-`ope-canvas-postgres` must be running for backup and restore. The scripts talk to
-that container; they do not dump files from inside the live PostgreSQL data
-directory.
+Run the commands from the `ope-server` folder. Let each command finish. Some of them take a long time, and the screen can sit still while they work.
 
-## What a Canvas backup contains
+## Which steps do I follow?
 
-`backup_canvas.sh` writes a timestamped directory (`YYYYMMDDTHHMMSSZ`, UTC)
-under `backups/canvas/` unless you set `OPE_BACKUP_ROOT`.
+- **Save a copy of Canvas:** [Make a backup](#make-a-backup)
+- **Put a copy back onto this same version:** [Restore a backup](#restore-a-backup)
+- **Upgrade the server from an older Canvas version to the current one:** [Upgrade the server from an older Canvas version](#upgrade-the-server-from-an-older-canvas-version)
+- **The upgrade failed:** [Go back](#go-back)
 
-| Path in the snapshot | Contents |
-|----------------------|----------|
-| `postgresql/canvas_production.dump` | The Canvas database (courses, users, and background jobs) |
-| `files/files.tar` | Uploaded files from `<volumes_root>/canvas/tmp/files` |
-| `keys/keys.tar` | Canvas encryption keys from `<volumes_root>/canvas/keys` |
-| `config/` | A copy of the config that was running (`config.yml`, `.secrets.yml`, rendered Canvas YAML, `docker-compose.yml`) |
+## Make a backup
 
-The snapshot is a directory, not a tarball. Copy the whole directory off the
-host if you need it on another machine.
-
-The script does **not** dump Redis. Canvas cache and MathMan equation cache
-are rebuilt at runtime. It also does **not** write a second SQL dump next to
-the PostgreSQL volume.
-
-## Run a backup
+The Canvas database container (`ope-canvas-postgres`) must be running.
 
 ```bash
-# Default destination: ./backups/canvas/<stamp>
 ./scripts/backup_canvas.sh
-
-# Off-host destination and custom retention (days)
-OPE_BACKUP_ROOT=/mnt/backup/canvas OPE_BACKUP_KEEP_DAYS=60 ./scripts/backup_canvas.sh
 ```
 
-Both backup and restore read `VOLUMES_ROOT` from `.env` when the environment
-variable is unset, so a custom `volumes_root` in `config.yml` is picked up
-after `./scripts/rebuild.sh` or `./up.sh`.
+The script prints a folder name like `backups/canvas/20261021T195300Z`. That folder is the backup. Copy the whole folder to another disk or another computer.
 
-After a successful run, backups older than `OPE_BACKUP_KEEP_DAYS` (default 30)
-are deleted from the backup root.
+Open the folder and confirm it contains:
 
-## Restore
+- `postgresql/canvas_production.dump` — courses, users, and background jobs
+- `config/` — your settings, including `config.yml` and `secrets.yml`
+- `files/files.tar` — uploaded files, when the site has any
+- `keys/keys.tar` — the keys Canvas uses to read saved data, when the site has any
 
-Restore onto a PostgreSQL 16 volume that uses the current `pgdata-16.15`
-datadir. Do not point the new container at an old PostgreSQL 12 data directory
-and expect an in-place upgrade.
+The backup leaves out the temporary cache. Canvas rebuilds that on its own.
 
-1. On a new host, copy `config.yml` and `.secrets.yml` from the snapshot's
-   `config/` directory first (saved there as `config.yml` and `secrets.yml`).
-   Render config and start PostgreSQL only. Starting the full stack on an
-   empty database runs `ope-canvas-init`, which would create a new schema
-   before the snapshot is loaded.
+This command does not run by itself. To run it every night, see [Backup and Restore](DEPLOYMENT.md#backup-and-restore) in the Deployment Guide. Each successful backup deletes copies in that same folder that are more than 30 days old, so keep the off-computer copy.
+
+To write the backup straight to another disk:
+
+```bash
+OPE_BACKUP_ROOT=/mnt/backup/canvas ./scripts/backup_canvas.sh
+```
+
+Change `/mnt/backup/canvas` to a folder on that disk.
+
+## Restore a backup
+
+Use this when the backup was made by **the same** version of Canvas.
+
+A backup from an **older** Canvas version follows [Upgrade the server from an older Canvas version](#upgrade-the-server-from-an-older-canvas-version). Those steps update the database before Canvas starts.
+
+Run the commands below. On an empty database, `./up.sh` creates a new Canvas before your backup is loaded, and the restore can then fail.
+
+1. On a different computer, copy the settings out of the backup first:
+   - `config/config.yml` → `config.yml` in `ope-server`
+   - `config/secrets.yml` → `.secrets.yml` in `ope-server`
+
+   The second name starts with a dot. The restore script does not copy these files for you. On the same computer, `config.yml` and `.secrets.yml` are already in place.
+
+2. Write the Docker settings from `config.yml`, stop the website and background jobs, then start only the database. Stopping is safe when they are already stopped:
 
    ```bash
    ./scripts/rebuild.sh
-   docker compose up -d ope-canvas-postgres
-   ```
-
-   Wait until `docker compose ps` shows `ope-canvas-postgres` healthy. If Canvas
-   web or jobs are already running, stop them first:
-
-   ```bash
    docker compose stop ope-canvas ope-canvas-jobs
+   docker compose up -d --no-deps ope-canvas-postgres
    ```
 
-2. Restore the snapshot directory (not an archive):
+3. Wait until the database is ready:
 
    ```bash
-   ./scripts/restore_canvas.sh backups/canvas/20261015T090000Z
+   docker compose ps ope-canvas-postgres
    ```
 
-   That loads `canvas_production.dump` into Postgres, then unpacks `files.tar`
-   and `keys.tar` when those files exist. Files and keys go under
-   `VOLUMES_ROOT` from `.env` (or `./volumes` if unset). It does not write
-   `config.yml` or `.secrets.yml` back into the repo (step 1 is how those get
-   onto a new host), and it does not restore Redis.
+   Continue when the status says `healthy`. If it says `starting`, wait a minute and run the command again.
 
-3. Bring the database tables up to date **only if** this host is running a
-   newer Canvas image than the one that created the backup. Restore puts back
-   the tables as they were that day. A newer image expects newer columns and
-   tables, so Canvas will fail until you run:
+4. Load the backup. Pass the backup folder, and use your folder name:
+
+   ```bash
+   ./scripts/restore_canvas.sh /path/to/the/backup/folder>
+   e.g. ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
+   ```
+
+   Wait until it prints `Restore complete.`
+
+5. Start Canvas:
+
+   ```bash
+   docker compose up -d ope-canvas ope-canvas-jobs
+   ```
+
+6. [Check that Canvas works](#check-that-canvas-works).
+
+## Upgrade the server from an older Canvas version
+
+Use these steps when the server is running an older Canvas version than the current ope-server. Do this once.
+
+The new database files live in `volumes/postgresql/data/pgdata-16.15` (or under your custom volumes folder). Leave the other folders next to `pgdata-16.15` alone until the new site has been working for a while.
+
+The website is down from the stop command until Canvas starts again. If you have a spare computer, copy the backup there and run this whole section on it first. Leave the real site running until that copy works.
+
+1. On the current server, [make a backup](#make-a-backup). Copy the whole backup folder off the computer. Keep it until you trust the new server.
+
+2. On the computer that will run this version, put this version of ope-server and its images in place. From the backup folder, copy:
+   - `config/config.yml` → `config.yml`
+   - `config/secrets.yml` → `.secrets.yml`
+
+   A server/site with no internet connection follows the [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) to load the images first, then continues here. Start the Canvas website at step 6, after the database update.
+
+3. Write the Docker settings, stop Canvas, and start only the database:
+
+   ```bash
+   ./scripts/rebuild.sh
+   docker compose stop ope-canvas ope-canvas-jobs
+   docker compose up -d --no-deps ope-canvas-postgres
+   ```
+
+   Wait until `docker compose ps ope-canvas-postgres` shows `healthy`.
+
+4. Load the backup. Use the path to your backup folder:
+
+   ```bash
+   ./scripts/restore_canvas.sh /path/to/the/backup/folder
+   e.g. ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
+   ```
+
+   Wait until it prints `Restore complete.`
+
+5. Update the database. Keep the website and jobs stopped. Run the first command and wait until you are back at the prompt. Then run the second command the same way.
+
+   ```bash
+   docker compose --profile migrate run --rm ope-canvas-migrate \
+     /usr/local/bin/canvas-migrate.sh predeploy
+   ```
 
    ```bash
    docker compose --profile migrate run --rm ope-canvas-migrate \
      /usr/local/bin/canvas-migrate.sh upgrade
    ```
 
-   Skip this when you are restoring onto the **same** Canvas image you backed
-   up from (same-version recovery). Use it when the restore is part of an
-   [upgrade](CANVAS_UPGRADE.md).
+   If either command prints `rake aborted!` or stops with an error, leave Canvas stopped and follow [Go back](#go-back).
 
-4. Start Canvas. `ope-canvas-init` sees the restored tables and exits;
-   web and jobs then start:
+6. Start Canvas:
 
    ```bash
    docker compose up -d ope-canvas ope-canvas-jobs
    ```
 
-Rolling back after a forward migration is this restore path, not a container
-restart. See [Canvas upgrade](CANVAS_UPGRADE.md).
+7. [Check that Canvas works](#check-that-canvas-works).
+
+8. Keep the backup folder and the previous copy of ope-server until the new site has been stable.
+
+## Check that Canvas works
+
+- Open Canvas and log in as `admin@<your-domain>`. The password is the `it_pw` value in `config.yml`.
+- Upload a file.
+- Insert an equation in the editor.
+- If you use SMC, import a student and log in from a student laptop.
+- Reboot the server, then log in again.
+
+## Go back
+
+Starting Canvas again leaves a half-finished database update in place.
+
+- **Return to the older Canvas version.** Install the older ope-server again and follow [Restore a backup](#restore-a-backup) with the backup you saved before the upgrade. Skip the two update commands. Those belong only to the current version.
+- **Try the upgrade again.** On the current version, repeat steps 4 and 5 in [Upgrade the server from an older Canvas version](#upgrade-the-server-from-an-older-canvas-version). The restore replaces the database. Start Canvas after both update commands finish and the prompt returns.
+
+## Passwords and keys
+
+Leave passwords and keys unchanged while you back up, restore, or upgrade. The backup already contains the keys that match the database.
+
+- `it_pw` in `config.yml` is both the database password and the Canvas admin password. Changing it means updating the database user as well. Get help before changing it.
+- Redis has no password. Leave it that way. SMC clears the Canvas cache by connecting without one.
+- `CANVAS_SECRET` in `.secrets.yml` protects data already stored in Canvas. Changing it can make that data unreadable.
+- `CANVAS_JWT_ENCRYPTION_KEY` in `.secrets.yml` is used for login tokens. To change it, add the new key above the old one and keep both until old sessions expire. Replacing the only key logs everyone out.
+- `CANVAS_ENC_SECRET` and `CANVAS_SIGN_SECRET` change together. The editor uses the same values. Existing editor sessions fail until Canvas and the editor both have the new pair.
+- Keys in the Canvas `keys` folder can be added. Keep every key that is already there. Deleting one can make older content unreadable.
+
+Do not commit `.env`, `config.yml`, or `.secrets.yml`.

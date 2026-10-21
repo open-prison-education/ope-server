@@ -16,8 +16,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 
 **Related:**
 - [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
-- [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md) - Snapshot and recover Canvas
-- [Canvas upgrade](CANVAS_UPGRADE.md) - First-time database, image upgrades, secret rotation
+- [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md) - Copy Canvas, put it back, or upgrade the server from an older Canvas version
 - [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) - For site operators: deploying from pre-built files on an air-gapped machine
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) - For developers: building the offline bundle
 
@@ -146,8 +145,8 @@ When Canvas is enabled, `ope-canvas-init` waits for PostgreSQL and Redis,
 then runs `canvas-migrate.sh initial` if `canvas_production` has no tables
 in `public`. When tables are already present, it exits and leaves the schema
 unchanged. Web and jobs start after that container exits successfully.
-Restores and image upgrades stay manual; follow
-[Canvas upgrade](CANVAS_UPGRADE.md) (`predeploy` / `upgrade`).
+To upgrade the server from an older Canvas version to the current one, follow
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
 
 Admin login is `admin@<your-domain>` with the `it_pw` value from `config.yml`.
 
@@ -242,7 +241,7 @@ docker compose restart ope-canvas
 
 ## Backup and Restore
 
-Full Canvas procedures are in [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md).
+Full Canvas procedures are in [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
 
 ### Automated Backups
 
@@ -285,8 +284,9 @@ docker compose exec ope-fog \
   bash -c 'mysql < /var/lib/mysql/backups/all_database_YYYYMMDD.sql'
 ```
 
-After a Canvas restore, run the migrate container if the schema is older than
-the image. See [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md).
+After a restore onto this same Canvas version, start Canvas. A backup from an
+older Canvas version follows the upgrade steps in
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
 
 ## Public Deployment: Preventing Search Engine Crawling
 

@@ -9,7 +9,7 @@ referrers, geographic breakdown) derived from nginx gateway logs.
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) -- Building the offline bundle
 - [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) -- Installing on air-gapped machines
 - [Deployment Guide](DEPLOYMENT.md) -- Full deployment with internet access
-- [Canvas backup and restore](CANVAS_BACKUP_RESTORE.md) -- Canvas snapshots and restore
+- [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md) -- Copy Canvas, put it back, or upgrade the server from an older Canvas version
 
 ---
 
@@ -301,7 +301,7 @@ notifications stall, check that container and `volumes/canvas/log/` (including
 
 Backup age is not alerted. Confirm snapshots appear under `backups/canvas/` or
 `OPE_BACKUP_ROOT` after the nightly job. See
-[Canvas backup and restore](CANVAS_BACKUP_RESTORE.md).
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
 
 Do not treat `docker ps` "Up" as the only Canvas health signal. Use
 `docker compose ps` (health column), the readiness endpoints above, and a

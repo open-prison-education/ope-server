@@ -66,8 +66,8 @@ Build or import the pinned images, then start services:
 
 `ope-canvas-init` runs before web and jobs. It creates the schema when
 `canvas_production` has no tables, then exits. An existing schema is left
-unchanged. Restores and image upgrades are manual; see
-`docs/CANVAS_UPGRADE.md`.
+unchanged. To upgrade the server from an older Canvas version to the current
+one, see `docs/CANVAS_BACKUP_RESTORE.md`.
 
 ## Initial Setup
 

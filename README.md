@@ -104,9 +104,9 @@ automatically before starting containers.
 
 When Canvas is enabled, `ope-canvas-init` runs before web and jobs. It
 creates the schema when `canvas_production` has no tables, then exits. An
-existing schema is left unchanged. Restores and later image upgrades stay
-manual; see the [Deployment Guide](docs/DEPLOYMENT.md) and
-[Canvas upgrade](docs/CANVAS_UPGRADE.md).
+existing schema is left unchanged. To upgrade the server from an older Canvas
+version to the current one, see the [Deployment Guide](docs/DEPLOYMENT.md) and
+[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md).
 
 4. **Stop enabled services and remove containers:**
 
@@ -205,7 +205,7 @@ ope-myapp/
 
 ## Deployment
 
-For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, first-time Canvas database setup, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**. Canvas operators should also read **[Backup and restore](docs/CANVAS_BACKUP_RESTORE.md)** and **[Upgrade](docs/CANVAS_UPGRADE.md)**.
+For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, first-time Canvas database setup, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**. To copy Canvas, restore it, or upgrade the server from an older Canvas version, see **[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md)**.
 
 Deploying on an air-gapped machine with no internet? If you already have the
 pre-built files (`ope-server-offline.tar.gz` and `ope-images.tar.gz`), see the
