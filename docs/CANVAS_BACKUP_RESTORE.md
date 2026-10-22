@@ -32,7 +32,9 @@ Open the folder and confirm it contains:
 
 The backup leaves out the temporary cache. Canvas rebuilds that on its own.
 
-This command does not run by itself. To run it every night, see [Backup and Restore](DEPLOYMENT.md#backup-and-restore) in the Deployment Guide. Each successful backup deletes copies in that same folder that are more than 30 days old, so keep the off-computer copy.
+The backup holds passwords and keys, so only the user who ran the script can open it. If you ran it with `sudo`, use `sudo` to copy it too.
+
+This command does not run by itself. To run it every night, see [Backup and Restore](DEPLOYMENT.md#backup-and-restore) in the Deployment Guide. Each successful backup deletes older backup folders (named like `20261021T195300Z`) in that same folder when they are more than 30 days old. It leaves other files alone. Keep the off-computer copy.
 
 To write the backup straight to another disk:
 
@@ -72,14 +74,13 @@ Run the commands below. On an empty database, `./up.sh` creates a new Canvas bef
 
    Continue when the status says `healthy`. If it says `starting`, wait a minute and run the command again.
 
-4. Load the backup. Pass the backup folder, and use your folder name:
+4. Load the backup. Pass the backup folder. For example, for the folder `backups/canvas/20261021T195300Z`:
 
    ```bash
-   ./scripts/restore_canvas.sh /path/to/the/backup/folder>
-   e.g. ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
+   ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
    ```
 
-   Wait until it prints `Restore complete.`
+   Wait until it prints `Restore complete.` If it prints `Database restore failed.`, leave Canvas stopped and follow [Go back](#go-back).
 
 5. Start Canvas:
 
@@ -97,7 +98,16 @@ The new database files live in `volumes/postgresql/data/pgdata-16.15` (or under 
 
 The website is down from the stop command until Canvas starts again. If you have a spare computer, copy the backup there and run this whole section on it first. Leave the real site running until that copy works.
 
-1. On the current server, [make a backup](#make-a-backup). Copy the whole backup folder off the computer. Keep it until you trust the new server.
+1. On the current server, make a backup of the older Canvas. The older ope-server has no backup script, and its database container is named `ope-postgresql`, so use the script from this version:
+
+   - Copy `scripts/backup_canvas.sh` from this version of ope-server into the `scripts` folder of the older ope-server on the current server.
+   - From the older ope-server folder, with the older Canvas still running, run:
+
+     ```bash
+     ./scripts/backup_canvas.sh --old-stack
+     ```
+
+   It prints a folder name like `backups/canvas/20261021T195300Z` and ends with `Canvas backup complete.` Check the folder contents as in [Make a backup](#make-a-backup). Copy the whole backup folder off the computer. Keep it until you trust the new server.
 
 2. On the computer that will run this version, put this version of ope-server and its images in place. From the backup folder, copy:
    - `config/config.yml` → `config.yml`
@@ -115,14 +125,13 @@ The website is down from the stop command until Canvas starts again. If you have
 
    Wait until `docker compose ps ope-canvas-postgres` shows `healthy`.
 
-4. Load the backup. Use the path to your backup folder:
+4. Load the backup. Pass the backup folder. For example, for the folder `backups/canvas/20261021T195300Z`:
 
    ```bash
-   ./scripts/restore_canvas.sh /path/to/the/backup/folder
-   e.g. ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
+   ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
    ```
 
-   Wait until it prints `Restore complete.`
+   Wait until it prints `Restore complete.` The restore makes the `canvas` database user the owner of everything it loads. The older version used `postgres`. If it prints `Database restore failed.`, leave Canvas stopped and follow [Go back](#go-back).
 
 5. Update the database. Keep the website and jobs stopped. Run the first command and wait until you are back at the prompt. Then run the second command the same way.
 
@@ -160,7 +169,7 @@ The website is down from the stop command until Canvas starts again. If you have
 
 Starting Canvas again leaves a half-finished database update in place.
 
-- **Return to the older Canvas version.** Install the older ope-server again and follow [Restore a backup](#restore-a-backup) with the backup you saved before the upgrade. Skip the two update commands. Those belong only to the current version.
+- **Return to the older Canvas version.** Stop this version with `./down.sh`. Put the older copy of ope-server back in place and start it with its own `./up.sh`. The older version reads its own database folder next to `pgdata-16.15` (for example `pgdata-12.9`), and the upgrade does not change that folder. If you ran the upgrade on a spare computer, the real server was never changed, so keep using it.
 - **Try the upgrade again.** On the current version, repeat steps 4 and 5 in [Upgrade the server from an older Canvas version](#upgrade-the-server-from-an-older-canvas-version). The restore replaces the database. Start Canvas after both update commands finish and the prompt returns.
 
 ## Passwords and keys
@@ -169,9 +178,14 @@ Leave passwords and keys unchanged while you back up, restore, or upgrade. The b
 
 - `it_pw` in `config.yml` is both the database password and the Canvas admin password. Changing it means updating the database user as well. Get help before changing it.
 - Redis has no password. Leave it that way. SMC clears the Canvas cache by connecting without one.
-- `CANVAS_SECRET` in `.secrets.yml` protects data already stored in Canvas. Changing it can make that data unreadable.
-- `CANVAS_JWT_ENCRYPTION_KEY` in `.secrets.yml` is used for login tokens. To change it, add the new key above the old one and keep both until old sessions expire. Replacing the only key logs everyone out.
-- `CANVAS_ENC_SECRET` and `CANVAS_SIGN_SECRET` change together. The editor uses the same values. Existing editor sessions fail until Canvas and the editor both have the new pair.
+- `canvas_secret` in `.secrets.yml` protects data already stored in Canvas. Changing it can make that data unreadable.
+- `canvas_jwt_encryption_key` in `.secrets.yml` encrypts login tokens. Replacing it with nothing else in place logs everyone out. To change it without logging people out:
+  1. In `.secrets.yml`, add a line `canvas_jwt_encryption_key_previous:` and move the current `canvas_jwt_encryption_key` value onto it.
+  2. Set `canvas_jwt_encryption_key` to a new value. `openssl rand -hex 32` prints one.
+  3. Run `./scripts/rebuild.sh`, then `docker compose restart ope-canvas ope-canvas-jobs`.
+
+  Canvas then makes new tokens with the new key and still accepts tokens made with the previous one. After the old sessions have expired, delete the `canvas_jwt_encryption_key_previous` line and run the two commands in step 3 again. Only one previous key is kept, so finish one change before you start another.
+- `canvas_enc_secret` and `canvas_sign_secret` in `.secrets.yml` change together. The editor uses the same values. Existing editor sessions fail until Canvas and the editor both have the new pair.
 - Keys in the Canvas `keys` folder can be added. Keep every key that is already there. Deleting one can make older content unreadable.
 
 Do not commit `.env`, `config.yml`, or `.secrets.yml`.

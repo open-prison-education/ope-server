@@ -266,7 +266,10 @@ crontab -e
 
 Use this before an upgrade. It does not require FOG. It writes a PostgreSQL
 custom-format dump, uploaded files, keys, and config under `backups/canvas/`
-or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume.
+or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume. To back up a
+server that still runs an older Canvas version (`ope-postgresql`), run it with
+`--old-stack` as described in
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md#upgrade-the-server-from-an-older-canvas-version).
 
 ### FOG MySQL backup
 
