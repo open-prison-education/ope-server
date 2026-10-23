@@ -1,0 +1,47 @@
+# .github/workflows/cursor-review-relay.yml
+#
+# Cursor Automations ignore PR comments posted by bots/GitHub Apps, so the
+# "Resolve Comments in OPE-Server PR" automation never sees reviews posted by
+# cursor[bot] (the "OPE-Server PR Reviewer" automation).
+#
+# This workflow watches for those reviews and reposts a trigger comment as a
+# real user (via a personal access token), which the automation does accept.
+
+name: Relay Cursor review to resolver automation
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cursor-relay-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  relay:
+    # Only reviews from the reviewer automation that actually have findings.
+    # The resolver's own "All N items are fixed" summary doesn't start with
+    # "OPE review", so it won't re-trigger anything (no loop).
+    if: >
+      github.event.review.user.login == 'cursor[bot]' &&
+      startsWith(github.event.review.body, 'OPE review') &&
+      (contains(github.event.review.body, 'Blocker') ||
+       contains(github.event.review.body, 'Should fix'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post trigger comment as a real user
+        env:
+          # Fine-grained PAT for this repo only:
+          #   Pull requests: Read and write, Issues: Read and write
+          # Do NOT use GITHUB_TOKEN: those comments come from
+          # github-actions[bot] and are filtered out too.
+          GH_TOKEN: ${{ secrets.CURSOR_TRIGGER_PAT }}
+          PR: ${{ github.event.pull_request.number }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
+        run: |
+          # Make this text match whatever your automation's trigger filters on.
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+            "@cursor please address the findings in the latest OPE review: $REVIEW_URL"
