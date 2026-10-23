@@ -9,6 +9,7 @@ referrers, geographic breakdown) derived from nginx gateway logs.
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) -- Building the offline bundle
 - [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) -- Installing on air-gapped machines
 - [Deployment Guide](DEPLOYMENT.md) -- Full deployment with internet access
+- [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md) -- Copy Canvas, put it back, or upgrade the server from an older Canvas version
 
 ---
 
@@ -277,3 +278,31 @@ to a specific technology choice.
 
 All dashboards are provisioned as local JSON files (no internet-dependent
 grafana.com imports) at `ope-monitoring/grafana/dashboards/`.
+
+## Canvas health
+
+Docker Compose healthchecks already hit:
+
+- `GET /readiness` on `ope-canvas` (port 3000)
+- `GET /readiness` on `ope-canvas-rce` (port 3010)
+- `GET /readiness` on `ope-canvas-mathman` (port 80)
+- `pg_isready -U postgres` on `ope-canvas-postgres`
+- `redis-cli ping` on `ope-canvas-redis`
+
+Grafana's Uptime & Probes dashboard uses Alloy blackbox checks against the
+public vhosts (`https://canvas.<DOMAIN>`, and the other first-party hosts),
+not those internal `/readiness` URLs. A green Canvas probe means the gateway
+can reach the LMS over HTTPS. It does not prove delayed jobs, PostgreSQL, or
+Redis are healthy.
+
+`ope-canvas-jobs` has no HTTP healthcheck. If assignments, imports, or
+notifications stall, check that container and `volumes/canvas/log/` (including
+`delayed_job.log`).
+
+Backup age is not alerted. Confirm snapshots appear under `backups/canvas/` or
+`OPE_BACKUP_ROOT` after the nightly job. See
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
+
+Do not treat `docker ps` "Up" as the only Canvas health signal. Use
+`docker compose ps` (health column), the readiness endpoints above, and a
+browser login.

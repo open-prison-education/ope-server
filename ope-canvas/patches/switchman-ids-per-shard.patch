@@ -1,0 +1,8 @@
+--- a/lib/switchman/shard.rb
++++ b/lib/switchman/shard.rb
+@@ -1,7 +1,7 @@
+ # frozen_string_literal: true
+ 
+ module Switchman
+-  IDS_PER_SHARD = 10_000_000_000_000
++  IDS_PER_SHARD = 1_000_000_000_000_000

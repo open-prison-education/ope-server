@@ -25,6 +25,7 @@
         depends_on:
             - ope-gateway
             - ope-dns
+            - ope-canvas
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
@@ -42,7 +43,7 @@
             - HTTPS_METHOD=redirect
             - IS_ONLINE=${IS_ONLINE}
         links:
-            - ope-postgresql:postgresql
+            - ope-canvas-postgres:postgresql
+            - ope-canvas-redis:redis
             # Send canvas connections through the gateway
             - ope-gateway:canvas.<DOMAIN>
-            - ope-redis:redis

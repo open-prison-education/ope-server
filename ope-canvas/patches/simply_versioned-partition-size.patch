@@ -1,0 +1,7 @@
+--- a/config/initializers/simply_versioned.rb
++++ b/config/initializers/simply_versioned.rb
+@@ -1,5 +1,5 @@
+ # frozen_string_literal: true
+ 
+-Version.partition_size = 5_000_000
++Version.partition_size = 1_000_000_000_000_000

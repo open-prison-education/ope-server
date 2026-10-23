@@ -15,7 +15,7 @@
 #
 # Available services:
 #   ope-canvas          Canvas LMS  (pulls redis, postgresql, canvas-rce, canvas-mathman)
-#   ope-smc             Student Management Console  (pulls redis, postgresql)
+#   ope-smc             Student Management Console  (pulls ope-canvas)
 #   ope-kalite          Khan Academy Lite
 #   ope-gcf             GCFLearnFree
 #   ope-freecodecamp    freeCodeCamp
@@ -73,7 +73,7 @@ settings:
   lms_account_name: "Open Prison Education"
 
   # Login prompt shown to Canvas users
-  canvas_login_prompt: "Student ID (default is s + DOC number - s113412)"
+  canvas_login_prompt: "Student ID (default: s + DOC number e.g. s113412)"
 
   # NTP servers for time synchronisation (comma-separated)
   ntp_servers: "time.windows.com"

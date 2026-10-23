@@ -106,8 +106,8 @@ docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep ghcr.io/o
 > docker save ghcr.io/open-prison-education/ope-canvas:release \
 >             ghcr.io/open-prison-education/ope-gateway:release \
 >             ghcr.io/open-prison-education/ope-dns:release \
->             ghcr.io/open-prison-education/ope-redis:release \
->             ghcr.io/open-prison-education/ope-postgresql:release \
+>             ghcr.io/open-prison-education/ope-canvas-redis:release \
+>             ghcr.io/open-prison-education/ope-canvas-postgres:release \
 >             ghcr.io/open-prison-education/ope-canvas-rce:release \
 >             ghcr.io/open-prison-education/ope-canvas-mathman:release \
 >   | gzip > ope-images.tar.gz

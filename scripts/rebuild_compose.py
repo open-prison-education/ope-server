@@ -20,8 +20,12 @@ from service_deps import (
     detect_ip,
     generate_secret,
     generate_secret_32,
+    generate_secret_64,
     generate_penpot_secret,
+    service_dir_name,
+    CANVAS_STACK_SERVICES,
 )
+from template_utils import process_conditional_blocks as _process_conditional_blocks
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -89,6 +93,9 @@ def load_or_create_secrets():
     if not secrets.get("canvas_sign_secret"):
         secrets["canvas_sign_secret"] = generate_secret_32()
         changed = True
+    if not secrets.get("canvas_jwt_encryption_key"):
+        secrets["canvas_jwt_encryption_key"] = generate_secret_64()
+        changed = True
     if not secrets.get("penpot_secret_key"):
         secrets["penpot_secret_key"] = generate_penpot_secret()
         changed = True
@@ -130,13 +137,19 @@ def build_replacement_values(settings, secrets):
         "<CANVAS_SECRET>": fallback(secrets.get("canvas_secret"), ""),
         "<CANVAS_ENC_SECRET>": fallback(secrets.get("canvas_enc_secret"), ""),
         "<CANVAS_SIGN_SECRET>": fallback(secrets.get("canvas_sign_secret"), ""),
+        "<CANVAS_JWT_ENCRYPTION_KEY>": fallback(secrets.get("canvas_jwt_encryption_key"), ""),
+        "<CANVAS_JWT_ENCRYPTION_KEY_PREVIOUS>": fallback(
+            secrets.get("canvas_jwt_encryption_key_previous"), ""
+        ),
+        "<CANVAS_DB_POOL>": fallback(settings.get("canvas_db_pool"), "8"),
+        "<EMAIL_DELIVERY_METHOD>": "test",
         "<IT_PW>": fallback(settings.get("it_pw"), "changeme"),
         "<OFFICE_PW>": fallback(settings.get("office_pw"), "changeme"),
         "<LMS_ACCOUNT_NAME>": fallback(settings.get("lms_account_name"), "Open Prison Education"),
         "<TIME_ZONE>": fallback(settings.get("time_zone"), "Pacific Time (US & Canada)"),
         "<CANVAS_LOGIN_PROMPT>": fallback(
             settings.get("canvas_login_prompt"),
-            "Student ID (default is s + DOC number - s113412)",
+            "Student ID (default: s + DOC number e.g. s113412)",
         ),
         "<CANVAS_DEFAULT_DOMAIN>": f"canvas.{domain}",
         "<SMC_DEFAULT_DOMAIN>": f"smc.{domain}",
@@ -218,41 +231,6 @@ def process_service_folder(service_dir):
             print(f"  ERROR reading {net_path}: {e}")
 
     return compose_fragment, volume_names, network_names
-
-
-import re
-
-
-def _process_conditional_blocks(content, replacement_values):
-    """Process #IF/#ELSE/#ENDIF conditional blocks in template content.
-
-    Syntax (comment style adapts to the file type):
-      // #IF <PLACEHOLDER>    (or # #IF <PLACEHOLDER> for YAML/shell)
-      ...kept when <PLACEHOLDER> is non-empty...
-      // #ELSE
-      ...kept when <PLACEHOLDER> is empty...
-      // #ENDIF <PLACEHOLDER>
-
-    The #ELSE section is optional. Directive lines themselves are always removed
-    from the output regardless of which branch is kept."""
-    pattern = re.compile(
-        r'^[ \t]*(?://|#)\s*#IF\s+(<[A-Z_]+>)\s*\n'
-        r'(.*?)'
-        r'(?:^[ \t]*(?://|#)\s*#ELSE\s*\n(.*?))?'
-        r'^[ \t]*(?://|#)\s*#ENDIF\s+\1\s*\n',
-        re.MULTILINE | re.DOTALL,
-    )
-
-    def _replace(m):
-        placeholder = m.group(1)
-        if_block = m.group(2)
-        else_block = m.group(3) or ""
-        value = replacement_values.get(placeholder, "")
-        if value:
-            return if_block
-        return else_block
-
-    return pattern.sub(_replace, content)
 
 
 def render_monitoring_templates(replacement_values):
@@ -341,9 +319,11 @@ def main():
     network_list = []
 
     for service_name in sorted(resolved):
-        service_dir = os.path.join(BASE_DIR, service_name)
+        if service_name in CANVAS_STACK_SERVICES and "ope-canvas" in resolved:
+            continue
+        service_dir = os.path.join(BASE_DIR, service_dir_name(service_name))
         if not os.path.isdir(service_dir):
-            print(f"  WARNING: directory {service_name}/ not found, skipping")
+            print(f"  WARNING: directory {service_dir} not found, skipping")
             continue
 
         print(f"  Processing {service_name}")
@@ -383,6 +363,11 @@ def main():
         render_monitoring_templates(replacement_values)
 
     rebuild_env(replacement_values)
+
+    if "ope-canvas" in resolved:
+        from render_canvas_runtime import render
+        dest = render(replacement_values)
+        print(f"  Rendered Canvas runtime config → {dest}")
 
     print("\nRebuild Compose Complete.")
 

@@ -34,7 +34,7 @@ DEFAULT_SETTINGS = {
     "office_pw": "changeme",
     "time_zone": "Pacific Time (US & Canada)",
     "lms_account_name": "Open Prison Education",
-    "canvas_login_prompt": "Student ID (default is s + DOC number - s113412)",
+    "canvas_login_prompt": "Student ID (default: s + DOC number e.g. s113412)",
     "ntp_servers": "time.windows.com",
     "alert_email": "alert@correctionsed.com",
     "alert_smtp_smarthost": "",

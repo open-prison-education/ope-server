@@ -1,0 +1,12 @@
+production:
+  adapter: postgresql
+  encoding: utf8
+  host: postgresql
+  port: 5432
+  username: canvas
+  password: "<IT_PW>"
+  database: canvas_production
+  timeout: 5000
+  prepared_statements: false
+  pool: <CANVAS_DB_POOL>
+  delayed_jobs_shard: self

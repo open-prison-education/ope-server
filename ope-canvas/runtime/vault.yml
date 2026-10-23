@@ -1,0 +1,4 @@
+production:
+  addr: file
+  token: file
+  kv_mount: app-canvas

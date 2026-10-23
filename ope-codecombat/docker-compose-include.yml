@@ -24,5 +24,5 @@
             - VIRTUAL_PORT=3000
             #- HTTPS_METHOD=noredirect
         #links:
-        #    - ope-postgresql:postgresql
-        #    - ope-redis:redis
+        #    - ope-canvas-postgres:postgresql
+        #    - ope-canvas-redis:redis

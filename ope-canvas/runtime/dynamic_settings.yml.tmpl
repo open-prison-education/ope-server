@@ -1,0 +1,22 @@
+production:
+  config:
+    canvas:
+      rich-content-service:
+        app-host: "<CANVAS_RCE_DEFAULT_DOMAIN>"
+      math-man:
+        base_url: "https://<CANVAS_MATHMAN_DEFAULT_DOMAIN>"
+        use_for_svg: "true"
+        use_for_mml: "true"
+  private:
+    canvas:
+      auditors.yml: |
+        write_paths:
+          - active_record
+        read_path: active_record
+      attachment_specific_file_domain: false
+  store:
+    canvas:
+      lti-keys:
+#<CANVAS_JWK_KEYS>
+      services-jwt:
+#<CANVAS_JWK_KEYS>

@@ -6,10 +6,12 @@
 .venv/
 /docker-compose.yml
 /ope-monitoring/generated/
+/ope-canvas/runtime-rendered/
 __pycache__/
 *.pyc
 /volumes/
 /runtime/
 ope-server-offline.tar.gz
 /exported_images/
+/backups/
 GeoLite2-City.mmdb
