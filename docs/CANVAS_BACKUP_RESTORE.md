@@ -179,12 +179,12 @@ Leave passwords and keys unchanged while you back up, restore, or upgrade. The b
 - `it_pw` in `config.yml` is both the database password and the Canvas admin password. Changing it means updating the database user as well. Get help before changing it.
 - Redis has no password. Leave it that way. SMC clears the Canvas cache by connecting without one.
 - `canvas_secret` in `.secrets.yml` protects data already stored in Canvas. Changing it can make that data unreadable.
-- `canvas_jwt_encryption_key` in `.secrets.yml` encrypts login tokens. Replacing it with nothing else in place logs everyone out. To change it without logging people out:
+- `canvas_jwt_encryption_key` in `.secrets.yml` signs API and service tokens. It does not sign the browser login cookie. Replacing the only key makes existing tokens fail. To change it while old tokens still work:
   1. In `.secrets.yml`, add a line `canvas_jwt_encryption_key_previous:` and move the current `canvas_jwt_encryption_key` value onto it.
   2. Set `canvas_jwt_encryption_key` to a new value. `openssl rand -hex 32` prints one.
   3. Run `./scripts/rebuild.sh`, then `docker compose restart ope-canvas ope-canvas-jobs`.
 
-  Canvas then makes new tokens with the new key and still accepts tokens made with the previous one. After the old sessions have expired, delete the `canvas_jwt_encryption_key_previous` line and run the two commands in step 3 again. Only one previous key is kept, so finish one change before you start another.
+  Canvas then signs new tokens with the new key and still accepts tokens signed with the previous one. After those tokens expire, delete the `canvas_jwt_encryption_key_previous` line and run the two commands in step 3 again. Only one previous key is kept, so finish one change before you start another.
 - `canvas_enc_secret` and `canvas_sign_secret` in `.secrets.yml` change together. The editor uses the same values. Existing editor sessions fail until Canvas and the editor both have the new pair.
 - Keys in the Canvas `keys` folder can be added. Keep every key that is already there. Deleting one can make older content unreadable.
 
