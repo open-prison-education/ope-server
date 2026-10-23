@@ -34,7 +34,10 @@ This guide covers the complete deployment process for the Open Prison Education 
 - **Operating System:** Ubuntu 20.04 LTS or later (recommended)
 - **Docker Engine:** 20.10 or later
 - **Docker Compose:** v2.0 or later
-- **Python:** 3.6 or later (not required on air-gapped targets)
+- **Python:** 3.11 or later (not required on air-gapped targets). If the system
+  `python3` is older (for example Ubuntu 22.04 or earlier), run
+  `./scripts/bundle_runtime.sh` once. The scripts then use the bundled Python
+  in `runtime/python/` instead of the system one.
 - **Git:** 2.x or later (not required on air-gapped targets)
 
 Note: Python and Git are only needed on the build machine. Air-gapped targets use a
@@ -80,7 +83,10 @@ docker compose version
 ### 4. Install Python 3 (not required on air-gapped targets)
 
 ```bash
-sudo apt install python3 python3-pip -y
+sudo apt install python3 python3-pip python3-venv -y
+
+# Must print 3.11 or later. Otherwise run ./scripts/bundle_runtime.sh after cloning.
+python3 --version
 ```
 
 ## Installation
