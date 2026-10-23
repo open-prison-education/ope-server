@@ -61,7 +61,7 @@ OPE Server is a collection of Docker containers that work together to provide a 
 - Linux server (Ubuntu 20.04+ recommended)
 - Docker Engine 20.10+
 - Docker Compose v2+
-- Python 3.11+ (not required on air-gapped targets -- see [Offline Deployment](docs/OFFLINE_DEPLOYMENT.md)). Older system Python: run `./scripts/bundle_runtime.sh` to use a bundled one
+- Python 3.6+ (not required on air-gapped targets -- see [Offline Deployment](docs/OFFLINE_DEPLOYMENT.md))
 - Minimum 8GB RAM
 - 500GB+ storage (varies based on content)
 

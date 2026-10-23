@@ -40,7 +40,10 @@ echo "Restoring Canvas from $SRC"
 if ! docker exec -i "$PG_CONTAINER" pg_restore -U postgres \
     --clean --if-exists --no-owner --no-privileges --role=canvas --exit-on-error \
     --dbname=canvas_production < "$DUMP"; then
-  echo "Database restore failed. Leave Canvas stopped and follow \"Go back\" in docs/CANVAS_BACKUP_RESTORE.md." >&2
+  echo "Database restore failed. Leave Canvas stopped. The database may be only partly loaded." >&2
+  echo "Fix the cause, then run this script again with the same backup folder." >&2
+  echo "Same-version restore: see \"Restore a backup\" in docs/CANVAS_BACKUP_RESTORE.md." >&2
+  echo "Upgrade from an older Canvas: see \"Go back\" in docs/CANVAS_BACKUP_RESTORE.md." >&2
   exit 1
 fi
 

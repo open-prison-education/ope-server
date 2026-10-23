@@ -80,7 +80,13 @@ Run the commands below. On an empty database, `./up.sh` creates a new Canvas bef
    ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
    ```
 
-   Wait until it prints `Restore complete.` If it prints `Database restore failed.`, leave Canvas stopped and follow [Go back](#go-back).
+   Wait until it prints `Restore complete.` If it prints `Database restore failed.`, leave the website and background jobs stopped. A failed restore can leave the database only partly loaded. Read the lines above that message, fix the cause, then run the restore again with the same backup folder:
+
+   ```bash
+   ./scripts/restore_canvas.sh backups/canvas/20261021T195300Z
+   ```
+
+   Start Canvas only after the script prints `Restore complete.`
 
 5. Start Canvas:
 

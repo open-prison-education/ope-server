@@ -50,32 +50,41 @@ def _grant_canvas_access(paths):
     return False
 
 
+def _runtime_access_error():
+    return (
+        "ERROR: could not give the Canvas user (uid/gid {uid}) read access to {dst}.\n"
+        "       Run ./scripts/rebuild.sh as root (sudo), or install the 'acl'\n"
+        "       package so setfacl is available, then run it again.".format(
+            uid=CANVAS_UID, dst=DST
+        )
+    )
+
+
 def render(values: dict) -> pathlib.Path:
-    DST.mkdir(parents=True, exist_ok=True)
-    os.chmod(str(DST), DIR_MODE)
-    written = []
-    for src in sorted(SRC.iterdir()):
-        if not src.is_file():
-            continue
-        dest_name = src.name[:-5] if src.name.endswith(".tmpl") else src.name
-        text = process_conditional_blocks(src.read_text(), values)
-        for key, value in values.items():
-            text = text.replace(key, str(value))
-        dest = DST / dest_name
-        fd = os.open(str(dest), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, FILE_MODE)
-        with os.fdopen(fd, "w") as f:
-            f.write(text)
-        os.chmod(str(dest), FILE_MODE)
-        written.append(dest)
+    try:
+        DST.mkdir(parents=True, exist_ok=True)
+        os.chmod(str(DST), DIR_MODE)
+        written = []
+        for src in sorted(SRC.iterdir()):
+            if not src.is_file():
+                continue
+            dest_name = src.name[:-5] if src.name.endswith(".tmpl") else src.name
+            text = process_conditional_blocks(src.read_text(), values)
+            for key, value in values.items():
+                text = text.replace(key, str(value))
+            dest = DST / dest_name
+            fd = os.open(str(dest), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, FILE_MODE)
+            with os.fdopen(fd, "w") as f:
+                f.write(text)
+            os.chmod(str(dest), FILE_MODE)
+            written.append(dest)
+    except PermissionError:
+        # An earlier sudo ./up.sh can leave runtime-rendered owned by root.
+        # os.chmod / os.open then raise before _grant_canvas_access can explain it.
+        sys.exit(_runtime_access_error())
 
     if not _grant_canvas_access([DST] + written):
-        sys.exit(
-            "ERROR: could not give the Canvas user (uid/gid {uid}) read access to {dst}.\n"
-            "       Run ./scripts/rebuild.sh as root (sudo), or install the 'acl'\n"
-            "       package so setfacl is available, then run it again.".format(
-                uid=CANVAS_UID, dst=DST
-            )
-        )
+        sys.exit(_runtime_access_error())
     return DST
 
 
