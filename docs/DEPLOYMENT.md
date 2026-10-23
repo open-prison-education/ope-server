@@ -34,7 +34,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 - **Operating System:** Ubuntu 20.04 LTS or later (recommended)
 - **Docker Engine:** 20.10 or later
 - **Docker Compose:** v2.0 or later
-- **Python:** 3.6 or later (not required on air-gapped targets)
+- **Python:** 3.11 or later (not required on air-gapped targets)
 - **Git:** 2.x or later (not required on air-gapped targets)
 
 Note: Python and Git are only needed on the build machine. Air-gapped targets use a
@@ -80,7 +80,10 @@ docker compose version
 ### 4. Install Python 3 (not required on air-gapped targets)
 
 ```bash
-sudo apt install python3 python3-pip -y
+sudo apt install python3 python3-pip python3-venv -y
+
+# Must print 3.11 or later. Otherwise run ./scripts/bundle_runtime.sh after cloning.
+python3 --version
 ```
 
 ## Installation
@@ -266,7 +269,10 @@ crontab -e
 
 Use this before an upgrade. It does not require FOG. It writes a PostgreSQL
 custom-format dump, uploaded files, keys, and config under `backups/canvas/`
-or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume.
+or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume. To back up a
+server that still runs an older Canvas version (`ope-postgresql`), run it with
+`--old-stack` as described in
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md#upgrade-the-server-from-an-older-canvas-version).
 
 ### FOG MySQL backup
 

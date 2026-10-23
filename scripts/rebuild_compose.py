@@ -25,6 +25,7 @@ from service_deps import (
     service_dir_name,
     CANVAS_STACK_SERVICES,
 )
+from template_utils import process_conditional_blocks as _process_conditional_blocks
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -137,6 +138,9 @@ def build_replacement_values(settings, secrets):
         "<CANVAS_ENC_SECRET>": fallback(secrets.get("canvas_enc_secret"), ""),
         "<CANVAS_SIGN_SECRET>": fallback(secrets.get("canvas_sign_secret"), ""),
         "<CANVAS_JWT_ENCRYPTION_KEY>": fallback(secrets.get("canvas_jwt_encryption_key"), ""),
+        "<CANVAS_JWT_ENCRYPTION_KEY_PREVIOUS>": fallback(
+            secrets.get("canvas_jwt_encryption_key_previous"), ""
+        ),
         "<CANVAS_DB_POOL>": fallback(settings.get("canvas_db_pool"), "8"),
         "<EMAIL_DELIVERY_METHOD>": "test",
         "<IT_PW>": fallback(settings.get("it_pw"), "changeme"),
@@ -227,41 +231,6 @@ def process_service_folder(service_dir):
             print(f"  ERROR reading {net_path}: {e}")
 
     return compose_fragment, volume_names, network_names
-
-
-import re
-
-
-def _process_conditional_blocks(content, replacement_values):
-    """Process #IF/#ELSE/#ENDIF conditional blocks in template content.
-
-    Syntax (comment style adapts to the file type):
-      // #IF <PLACEHOLDER>    (or # #IF <PLACEHOLDER> for YAML/shell)
-      ...kept when <PLACEHOLDER> is non-empty...
-      // #ELSE
-      ...kept when <PLACEHOLDER> is empty...
-      // #ENDIF <PLACEHOLDER>
-
-    The #ELSE section is optional. Directive lines themselves are always removed
-    from the output regardless of which branch is kept."""
-    pattern = re.compile(
-        r'^[ \t]*(?://|#)\s*#IF\s+(<[A-Z_]+>)\s*\n'
-        r'(.*?)'
-        r'(?:^[ \t]*(?://|#)\s*#ELSE\s*\n(.*?))?'
-        r'^[ \t]*(?://|#)\s*#ENDIF\s+\1\s*\n',
-        re.MULTILINE | re.DOTALL,
-    )
-
-    def _replace(m):
-        placeholder = m.group(1)
-        if_block = m.group(2)
-        else_block = m.group(3) or ""
-        value = replacement_values.get(placeholder, "")
-        if value:
-            return if_block
-        return else_block
-
-    return pattern.sub(_replace, content)
 
 
 def render_monitoring_templates(replacement_values):

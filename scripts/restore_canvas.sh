@@ -7,23 +7,42 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-compose="docker compose"
+
+PG_CONTAINER="ope-canvas-postgres"
 
 SRC="${1:-}"
 if [ -z "$SRC" ] || [ ! -d "$SRC" ]; then
   echo "usage: restore_canvas.sh <backup-dir>" >&2
   exit 2
 fi
+DUMP="$SRC/postgresql/canvas_production.dump"
+if [ ! -s "$DUMP" ]; then
+  echo "No database dump at $DUMP. Pass the backup folder that contains postgresql/." >&2
+  exit 2
+fi
+
+# container_name is fixed, so docker exec works with Compose v1 or v2.
+if ! docker inspect -f '{{.State.Running}}' "$PG_CONTAINER" 2>/dev/null | grep -qx true; then
+  echo "The $PG_CONTAINER container is not running. Start it, then run this again." >&2
+  exit 1
+fi
 
 # .env is not a shell script: values such as LMS_ACCOUNT_NAME contain spaces.
-# Read VOLUMES_ROOT only. Docker Compose loads the rest of .env itself.
+# Read VOLUMES_ROOT only.
 if [ -z "${VOLUMES_ROOT:-}" ] && [ -f .env ]; then
   VOLUMES_ROOT="$(grep -E '^VOLUMES_ROOT=' .env | head -n 1 | cut -d= -f2- || true)"
 fi
 
 echo "Restoring Canvas from $SRC"
-$compose exec -T ope-canvas-postgres pg_restore -U postgres --clean --if-exists --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump" || \
-  $compose exec -T ope-canvas-postgres pg_restore -U postgres --dbname=canvas_production < "$SRC/postgresql/canvas_production.dump"
+# Canvas connects as the canvas role. Older releases connected as postgres, so
+# their dumps name postgres as owner: restore every object as canvas instead.
+# Stop at the first error rather than leaving a mixed database behind.
+if ! docker exec -i "$PG_CONTAINER" pg_restore -U postgres \
+    --clean --if-exists --no-owner --no-privileges --role=canvas --exit-on-error \
+    --dbname=canvas_production < "$DUMP"; then
+  echo "Database restore failed. Leave Canvas stopped and follow \"Go back\" in docs/CANVAS_BACKUP_RESTORE.md." >&2
+  exit 1
+fi
 
 # Volume files belong to the Canvas user inside the container. They must be
 # replaced: keeping a key that is already on disk can leave the restored

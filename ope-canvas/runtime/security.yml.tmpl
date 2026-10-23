@@ -1,5 +1,9 @@
 production:
   encryption_key: "<CANVAS_SECRET>"
+  # The first key encrypts new tokens. Every key listed can decrypt.
   jwt_encryption_keys:
     - "<CANVAS_JWT_ENCRYPTION_KEY>"
+# #IF <CANVAS_JWT_ENCRYPTION_KEY_PREVIOUS>
+    - "<CANVAS_JWT_ENCRYPTION_KEY_PREVIOUS>"
+# #ENDIF <CANVAS_JWT_ENCRYPTION_KEY_PREVIOUS>
   lti_iss: "https://<CANVAS_DEFAULT_DOMAIN>"

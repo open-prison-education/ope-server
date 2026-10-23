@@ -65,7 +65,10 @@ echo "Using Compose: $compose"
 build_flag="${1:-}"
 
 # Rebuild docker-compose.yml and .env from config.yml
-python3 "$BASEDIR/scripts/rebuild_compose.py"
+if ! python3 "$BASEDIR/scripts/rebuild_compose.py"; then
+    echo "Aborting: could not rebuild docker-compose.yml and .env." >&2
+    exit 1
+fi
 
 # Monitoring containers run as non-root with differing UIDs, so their data
 # directories must exist with the right ownership before compose creates them.
