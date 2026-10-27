@@ -245,17 +245,12 @@ Full Canvas procedures are in [Canvas backup, restore, and upgrade](CANVAS_BACKU
 
 ### Automated Backups
 
-Pick the cron job that matches the services you run. Both default to 30 days of
-retention. `export_databases.sh` accepts an optional day count and passes it to
-the Canvas backup as `OPE_BACKUP_KEEP_DAYS`.
+Schedule a daily Canvas backup. It keeps 30 days by default. Set
+`OPE_BACKUP_KEEP_DAYS` to keep a different number of days.
 
 ```bash
 crontab -e
-# Canvas only (does not require FOG):
 0 2 * * * /path/to/ope-server/scripts/backup_canvas.sh
-
-# Canvas plus FOG. Fails if ope-fog is not running:
-0 2 * * * /path/to/ope-server/scripts/export_databases.sh
 ```
 
 ### Canvas backup
@@ -264,27 +259,17 @@ crontab -e
 ./scripts/backup_canvas.sh
 ```
 
-Use this before an upgrade. It does not require FOG. It writes a PostgreSQL
-custom-format dump, uploaded files, keys, and config under `backups/canvas/`
-or `OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume. To back up a
+Use this before an upgrade. It writes a PostgreSQL custom-format dump,
+uploaded files, keys, and config under `backups/canvas/` or
+`OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume. To back up a
 server that still runs an older Canvas version (`ope-postgresql`), run it with
 `--old-stack` as described in
 [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md#upgrade-the-server-from-an-older-canvas-version).
 
-### FOG MySQL backup
-
-`scripts/export_databases.sh` dumps FOG MySQL after the Canvas snapshot. Those
-dumps stay in the FOG data volume (`/var/lib/mysql/backups` inside `ope-fog`).
-
-### Restore Database
+### Restore
 
 ```bash
-# Canvas: pass the snapshot directory (not an archive)
 ./scripts/restore_canvas.sh backups/canvas/<stamp>
-
-# FOG: nightly dumps live inside the FOG volume
-docker compose exec ope-fog \
-  bash -c 'mysql < /var/lib/mysql/backups/all_database_YYYYMMDD.sql'
 ```
 
 After a restore onto this same Canvas version, start Canvas. A backup from an
