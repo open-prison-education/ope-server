@@ -2,7 +2,9 @@
 
 Use this page to copy Canvas data, put that copy back, or upgrade the server from an older Canvas version to the current one.
 
-A brand-new deployment does not need these steps. `./up.sh` creates an empty Canvas for you. See the [Deployment Guide](DEPLOYMENT.md).
+**Before you start:** This page assumes ope-server is already installed on your server and Canvas is already set up and in use. If you are setting up ope-server for the first time, you do not need this page. Follow the [Deployment Guide](DEPLOYMENT.md) instead. `./up.sh` creates an empty Canvas for you.
+
+To restore a backup onto a different computer, put ope-server and its images on that computer first, but do not run `./up.sh` there. [Restore a backup](#restore-a-backup) explains why.
 
 Run the commands from the `ope-server` folder. Let each command finish. Some of them take a long time, and the screen can sit still while they work.
 
@@ -100,9 +102,21 @@ Run the commands below. On an empty database, `./up.sh` creates a new Canvas bef
 
 Use these steps when the server is running an older Canvas version than the current ope-server. Do this once.
 
-The new database files live in `volumes/postgresql/data/pgdata-16.15` (or under your custom volumes folder). Leave the other folders next to `pgdata-16.15` alone until the new site has been working for a while.
+**Before you start:** You need:
 
-The website is down from the stop command until Canvas starts again. If you have a spare computer, copy the backup there and run this whole section on it first. Leave the real site running until that copy works.
+- A server that is already running an older version of ope-server, with Canvas working on it. Step 1 makes the backup from that running Canvas.
+- A copy of this newer version of ope-server, with its images, ready to put in place in step 2.
+
+**Keep the older database folder.** The upgrade puts the new database in its own folder, `volumes/postgresql/data/pgdata-16.15`. If you changed `volumes_root` in `config.yml`, this folder is under that location instead of `volumes`. The older Canvas database stays in a folder next to it, for example `pgdata-12.9`, and the upgrade does not change it. Do not delete, move, or rename the older folder. You need it to [go back](#go-back) to the older version if something goes wrong. Keep it until the new site has worked well for a few weeks.
+
+**Canvas will be offline during the upgrade.** No one can use it from step 3, when you stop it, until step 6, when you start it again. Pick a time when no one needs Canvas, and tell your users ahead of time.
+
+**Optional (highly recommended): practice on a spare computer first.** This lets you try the upgrade while the real site stays online:
+
+- Do step 1 on the real server to make the backup.
+- Do steps 2 through 7 on the spare computer.
+- If something goes wrong, the real server was never changed. Keep using it.
+- If everything works, do the upgrade for real. Anything people changed on the real site after your practice backup is not on the spare computer, so start again at step 1 and make a fresh backup.
 
 1. On the current server, make a backup of the older Canvas. The older ope-server has no backup script, and its database container is named `ope-postgresql`, so use the script from this version:
 

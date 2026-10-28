@@ -3,7 +3,7 @@
 # outside the live database volume.
 #
 # Usage:
-#   backup_canvas.sh              back up this release's Canvas (ope-canvas-postgres)
+#   backup_canvas.sh              back up latest release's Canvas (ope-canvas-postgres)
 #   backup_canvas.sh --old-stack  back up an older release's Canvas (ope-postgresql)
 #                                 before upgrading. Copy this script onto the old
 #                                 server and run it from that ope-server folder.
