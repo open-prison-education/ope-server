@@ -22,24 +22,25 @@ OPE Server is a collection of Docker containers that work together to provide a 
                                     │
         ┌───────────────────────────┼───────────────────────────┐
         │                           │                           │
-        ▼                           ▼                           ▼
-┌───────────────┐         ┌─────────────────┐         ┌───────────────┐
-│  PostgreSQL   │         │     Redis       │         │      DNS      │
-│(ope-postgresql)│        │   (ope-redis)   │         │   (ope-dns)   │
-└───────────────┘         └─────────────────┘         └───────────────┘
+        ▼                           │                           │
+┌───────────────┐                   │                           │
+│ Canvas data   │                   │                           │
+│ Postgres+Redis│                   │                           │
+└───────────────┘                   │                           │
+                                    ▼                           ▼
+                          ┌─────────────────┐         ┌───────────────┐
+                          │ SMC SQLite      │         │      DNS      │
+                          │ (ope-smc)       │         │   (ope-dns)   │
+                          └─────────────────┘         └───────────────┘
 ```
 
 ## Services
 
 | Service | Description |
 |---------|-------------|
-| **ope-canvas** | Canvas LMS - Learning Management System by Instructure |
-| **ope-canvas-rce** | Rich Content Editor service for Canvas |
-| **ope-canvas-mathman** | Math equation rendering service for Canvas |
+| **ope-canvas** | Canvas LMS plus PostgreSQL, Redis, RCE, MathMan, jobs, and a one-shot schema init |
 | **ope-smc** | Student Management Console - User management and content sync |
 | **ope-gateway** | Nginx reverse proxy with SSL termination |
-| **ope-postgresql** | PostgreSQL database server |
-| **ope-redis** | Redis cache server |
 | **ope-dns** | DNS server for local domain resolution |
 | **ope-ntp** | NTP time synchronization server |
 | **ope-fog** | FOG Project imaging server for system deployment |
@@ -88,9 +89,9 @@ cp config.yml.example config.yml
 # Edit config.yml with your settings
 ```
 
-Core services (`ope-gateway`, `ope-dns`) and any dependencies (e.g.
-`ope-redis`, `ope-postgresql` for Canvas) are resolved automatically --
-you only need to list the services you actually want.
+Core services (`ope-gateway`, `ope-dns`) and Canvas-owned data services
+are resolved automatically -- you only need to list the services you
+actually want.
 
 3. **Start enabled services:**
 
@@ -100,6 +101,12 @@ you only need to list the services you actually want.
 
 If `config.yml` does not exist yet, `up.sh` will launch the setup wizard
 automatically before starting containers.
+
+When Canvas is enabled, `ope-canvas-init` runs before web and jobs. It
+creates the schema when `canvas_production` has no tables, then exits. An
+existing schema is left unchanged. To upgrade the server from an older Canvas
+version to the current one, see the [Deployment Guide](docs/DEPLOYMENT.md) and
+[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md).
 
 4. **Stop enabled services and remove containers:**
 
@@ -128,8 +135,10 @@ ope-server/
 │   ├── bundle_runtime.sh    # Build offline ope-server tarball with bundled Python
 │   ├── retag_images.sh      # Retag Docker images from operepo/* to ghcr.io/open-prison-education/*
 │   ├── push_images.py       # Push images to registry
-│   ├── export_databases.sh  # Backup PostgreSQL and MySQL databases
-│   ├── flush_redis_keys.sh  # Clear Redis cache
+│   ├── backup_canvas.sh     # Canvas snapshot: database, files, keys, and config
+│   ├── restore_canvas.sh    # Restore a Canvas snapshot directory
+│   ├── export_databases.sh  # Nightly Canvas snapshot, then FOG MySQL dump
+│   ├── flush_redis_keys.sh  # Clear Redis cache (Canvas DB 0 only)
 │   └── recompile_canvas_assets.sh  # Recompile Canvas assets
 ├── docs/                    # Documentation
 └── ope-*/                   # Individual service directories
@@ -144,8 +153,10 @@ ope-server/
 | `./up.sh b` | Build images locally from source instead of pulling from the registry, then start services |
 | `./down.sh` | Stop all containers |
 | `./scripts/rebuild.sh` | Regenerate `docker-compose.yml` and `.env` without starting containers |
-| `./scripts/export_databases.sh` | Backup PostgreSQL and MySQL databases |
-| `./scripts/flush_redis_keys.sh` | Clear Redis cache |
+| `./scripts/backup_canvas.sh` | Canvas snapshot: database, files, keys, and config |
+| `./scripts/restore_canvas.sh <dir>` | Restore a Canvas snapshot directory |
+| `./scripts/export_databases.sh` | Nightly backup: Canvas snapshot, then FOG MySQL (requires FOG) |
+| `./scripts/flush_redis_keys.sh` | Clear Redis cache (Canvas DB 0 only) |
 | `./scripts/bundle_runtime.sh` | Build an offline ope-server tarball with bundled Python for air-gapped deployment |
 | `./scripts/retag_images.sh` | Retag local Docker images from the old `operepo/*` namespace to `ghcr.io/open-prison-education/*` |
 
@@ -194,7 +205,7 @@ ope-myapp/
 
 ## Deployment
 
-For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
+For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, first-time Canvas database setup, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**. To copy Canvas, restore it, or upgrade the server from an older Canvas version, see **[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md)**.
 
 Deploying on an air-gapped machine with no internet? If you already have the
 pre-built files (`ope-server-offline.tar.gz` and `ope-images.tar.gz`), see the

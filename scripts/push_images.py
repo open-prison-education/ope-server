@@ -6,7 +6,7 @@ import sys
 
 import yaml
 
-from service_deps import resolve_services
+from service_deps import resolve_services, service_dir_name
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(BASE_DIR, "config.yml")
@@ -24,7 +24,7 @@ def main():
     resolved = resolve_services(user_services)
 
     for svc in sorted(resolved):
-        svc_dir = os.path.join(BASE_DIR, svc)
+        svc_dir = os.path.join(BASE_DIR, service_dir_name(svc))
         if not os.path.isdir(svc_dir):
             continue
         image = f"operepo/{svc}:release"

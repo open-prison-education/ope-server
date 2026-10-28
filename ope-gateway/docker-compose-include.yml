@@ -23,9 +23,6 @@
             - <VOLUMES_ROOT>/gateway/dhparam:/etc/nginx/dhparam:rw
             # Persist nginx logs for monitoring/analytics pipeline
             - <VOLUMES_ROOT>/gateway/log:/var/log/nginx:rw
-            # Canvas volume so we can use sendfile
-            - <VOLUMES_ROOT>/canvas/tmp:/canvas_files_tmp:rw
-            - <VOLUMES_ROOT>/canvas/sendfile:/canvas_files_sendfile:rw
         env_file: .env
         #depends_on:
         #    - ope-router

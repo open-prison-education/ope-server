@@ -67,8 +67,8 @@ INDIVIDUAL_IMAGES=(
     "ope-websites:release"
     "ope-smc:release"
     "ope-gateway:release"
-    "ope-redis:release"
-    "ope-postgresql:release"
+    "ope-canvas-redis:release"
+    "ope-canvas-postgres:release"
     "ope-dns:release"
     "ope-letsencrypt:release"
 )

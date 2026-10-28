@@ -16,6 +16,7 @@ This guide covers the complete deployment process for the Open Prison Education 
 
 **Related:**
 - [Accessing Services Guide](ACCESSING_SERVICES.md) - How to access Canvas and other applications
+- [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md) - Copy Canvas, put it back, or upgrade the server from an older Canvas version
 - [Offline Deployment Guide](OFFLINE_DEPLOYMENT.md) - For site operators: deploying from pre-built files on an air-gapped machine
 - [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md) - For developers: building the offline bundle
 
@@ -79,7 +80,7 @@ docker compose version
 ### 4. Install Python 3 (not required on air-gapped targets)
 
 ```bash
-sudo apt install python3 python3-pip -y
+sudo apt install python3 python3-pip python3-venv -y
 ```
 
 ## Installation
@@ -119,7 +120,7 @@ Key settings in `config.yml`:
 | `is_online` | `1` if the server has internet access, `0` for offline / air-gapped |
 
 Services are listed under the `services:` key. Core services (`ope-gateway`,
-`ope-dns`) and dependencies (e.g. `ope-redis`, `ope-postgresql` for Canvas)
+`ope-dns`) and dependencies (e.g. `ope-canvas-redis`, `ope-canvas-postgres` for Canvas)
 are resolved automatically -- you only need to list the services you want:
 
 ```yaml
@@ -139,6 +140,15 @@ See `config.yml.example` for the full list of available services and settings.
 This rebuilds `docker-compose.yml` and `.env` from `config.yml`, then starts
 all configured containers. If `config.yml` does not exist yet, `up.sh` will
 launch the setup wizard automatically.
+
+When Canvas is enabled, `ope-canvas-init` waits for PostgreSQL and Redis,
+then runs `canvas-migrate.sh initial` if `canvas_production` has no tables
+in `public`. When tables are already present, it exits and leaves the schema
+unchanged. Web and jobs start after that container exits successfully.
+To upgrade the server from an older Canvas version to the current one, follow
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
+
+Admin login is `admin@<your-domain>` with the `it_pw` value from `config.yml`.
 
 ### 4. Access Services
 
@@ -231,35 +241,40 @@ docker compose restart ope-canvas
 
 ## Backup and Restore
 
+Full Canvas procedures are in [Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
+
 ### Automated Backups
 
-Add to crontab for daily backups at 2:00 AM:
+Schedule a daily Canvas backup. It keeps 30 days by default. Set
+`OPE_BACKUP_KEEP_DAYS` to keep a different number of days.
 
 ```bash
 crontab -e
-# Add this line:
-0 2 * * * /path/to/ope-server/scripts/export_databases.sh
+0 2 * * * /path/to/ope-server/scripts/backup_canvas.sh
 ```
 
-### Manual Backup
+### Canvas backup
 
 ```bash
-./scripts/export_databases.sh
+./scripts/backup_canvas.sh
 ```
 
-Backups are stored in:
-- PostgreSQL: `/var/lib/postgresql/data/backups/`
-- MySQL (FOG): `/var/lib/mysql/backups/`
+Use this before an upgrade. It writes a PostgreSQL custom-format dump,
+uploaded files, keys, and config under `backups/canvas/` or
+`OPE_BACKUP_ROOT` — never inside the live PostgreSQL volume. To back up a
+server that still runs an older Canvas version (`ope-postgresql`), run it with
+`--old-stack` as described in
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md#upgrade-the-server-from-an-older-canvas-version).
 
-### Restore Database
+### Restore
 
 ```bash
-# PostgreSQL
-docker compose exec ope-postgresql psql -U postgres -d canvas_production < backup.sql
-
-# MySQL
-docker compose exec ope-fog mysql < backup.sql
+./scripts/restore_canvas.sh backups/canvas/<stamp>
 ```
+
+After a restore onto this same Canvas version, start Canvas. A backup from an
+older Canvas version follows the upgrade steps in
+[Canvas backup, restore, and upgrade](CANVAS_BACKUP_RESTORE.md).
 
 ## Public Deployment: Preventing Search Engine Crawling
 
@@ -338,7 +353,7 @@ docker compose logs
 
 ```bash
 # Restart database containers
-docker compose restart ope-postgresql ope-redis
+docker compose restart ope-canvas-postgres ope-canvas-redis
 ```
 
 #### Permission Issues

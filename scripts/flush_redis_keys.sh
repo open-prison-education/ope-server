@@ -8,7 +8,8 @@ fi;
 echo "Using Compose: $compose"
 
 
-$compose exec ope-redis sh -c "redis-cli flushdb"
+# Flush only the Canvas cache DB.
+$compose exec ope-canvas-redis sh -c "redis-cli -n 0 flushdb"
 # flushall clears ALL dbs.
 
 

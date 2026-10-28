@@ -20,7 +20,7 @@ RUN apk add --update --no-cache \
     && python -m pip install --upgrade pip \
     && python -m pip install --upgrade 'setuptools < 82' ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
-        psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
+        psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \
         webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint pydantic pylti1p3
 
 RUN FFMPEG_VER=8.0.2 \ 
@@ -85,8 +85,6 @@ RUN cd $W2P_DIR \
 
 RUN cd $W2P_DIR \
     && echo "${SMC_RELEASE}" > web2py/applications/smc/app_version.txt
-
-
 
 # Copy our files in
 COPY set_admin_password /bin/set_admin_password
