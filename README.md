@@ -102,11 +102,8 @@ actually want.
 If `config.yml` does not exist yet, `up.sh` will launch the setup wizard
 automatically before starting containers.
 
-When Canvas is enabled, `ope-canvas-init` runs before web and jobs. It
-creates the schema when `canvas_production` has no tables, then exits. An
-existing schema is left unchanged. To upgrade the server from an older Canvas
-version to the current one, see the [Deployment Guide](docs/DEPLOYMENT.md) and
-[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md).
+To upgrade the server from an older Canvas version to the current one, see
+the [Deployment Guide](docs/DEPLOYMENT.md) and [Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md).
 
 4. **Stop enabled services and remove containers:**
 

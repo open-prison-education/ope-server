@@ -49,9 +49,9 @@ case "$ARCH" in
     *)       echo "ERROR: Unsupported arch '$ARCH'. Use x86_64 or aarch64."; exit 1 ;;
 esac
 
-# Resolve the release tag (default: latest)
+# Resolve Python release tag (default: latest)
 if [ -z "$PY_RELEASE" ]; then
-    echo "Fetching latest release tag..."
+    echo "Fetching latest Python release tag..."
     PY_RELEASE="$(curl -sfL \
         "https://raw.githubusercontent.com/astral-sh/python-build-standalone/latest-release/latest-release.json" \
         | python3 -c "import sys,json; print(json.load(sys.stdin)['tag'])" 2>/dev/null)"
@@ -147,8 +147,13 @@ echo ""
 # Create the offline distribution tarball
 echo "Creating offline tarball..."
 PROJECT_NAME="$(basename "$BASE_DIR")"
+STAGE_TAR="$(mktemp -p "$(dirname "$BASE_DIR")" "${PROJECT_NAME}-offline.XXXXXX")"
 
-tar czf "$TARBALL_OUT" \
+# tar exits 0 on success. Exit 1 means a file changed during read and is
+# non-fatal; anything above 1 is a real failure. Initialize TAR_RC so a
+# successful run does not trip `set -u` on the check below.
+TAR_RC=0
+tar czf "$STAGE_TAR" \
     -C "$BASE_DIR/.." \
     --exclude="${PROJECT_NAME}/.git" \
     --exclude="${PROJECT_NAME}/.venv" \
@@ -161,10 +166,16 @@ tar czf "$TARBALL_OUT" \
     --ignore-failed-read \
     "${PROJECT_NAME}/" || TAR_RC=$?
 
-if [ $TAR_RC -gt 1 ]; then
+if [ "$TAR_RC" -gt 1 ]; then
+    rm -f "$STAGE_TAR"
     echo "ERROR: tar failed with exit code $TAR_RC."
     exit 1
 fi
+
+mv "$STAGE_TAR" "$TARBALL_OUT"
+# mktemp creates the file mode 0600, and tar keeps that mode. Apply the
+# current umask so the deliverable matches a file tar created directly.
+chmod "$(printf '%o' $((0666 & ~$(umask))))" "$TARBALL_OUT"
 
 echo "=== Offline tarball created ==="
 echo "  File: $TARBALL_OUT"
