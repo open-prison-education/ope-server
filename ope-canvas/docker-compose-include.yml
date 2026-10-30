@@ -135,7 +135,6 @@
             - ope-canvas-redis:redis
 
     ope-canvas:
-        build: ./ope-canvas
         image: ghcr.io/open-prison-education/ope-canvas:release
         container_name: ope-canvas
         network_mode: <NETWORK_MODE>
@@ -198,7 +197,6 @@
             - ope-gateway:gateway.<DOMAIN>
 
     ope-canvas-jobs:
-        build: ./ope-canvas
         image: ghcr.io/open-prison-education/ope-canvas:release
         container_name: ope-canvas-jobs
         network_mode: <NETWORK_MODE>
@@ -229,7 +227,6 @@
             - ope-canvas-redis:redis
 
     ope-canvas-migrate:
-        build: ./ope-canvas
         image: ghcr.io/open-prison-education/ope-canvas:release
         container_name: ope-canvas-migrate
         network_mode: <NETWORK_MODE>
