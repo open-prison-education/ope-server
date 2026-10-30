@@ -53,8 +53,6 @@ The default domain suffix is `.ed` (configurable via the `domain` setting in `co
 |---------|-------------------|-------------|
 | Canvas LMS | `canvas.ed` | Learning Management System |
 | SMC | `smc.ed` | Student Management Console |
-| Canvas RCE | `N/A` | Rich Content Editor for Canvas |
-| Canvas Mathman | `N/A` | Math equation rendering |
 | KA Lite | `kalite.ed`| Khan Academy offline content |
 | GCF | `gcf.ed` | GCFLearnFree content |
 | FOG | `fog.ed`| System imaging server |
@@ -228,10 +226,10 @@ A **503** from nginx means the gateway received the request (e.g. for `smc.ed` o
 
 1. **Confirm the service is enabled and running:**
    ```bash
-   docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E 'ope-gateway|ope-smc|ope-canvas'
+   docker ps --format "table {{.Names}}\t{{.Status}}"
    ```
    If the service container is missing, make sure it is listed in `config.yml`
-   under `services:`, then rebuild and start:
+   under `services:`, then run (up.sh will rebuild docker compose):
    ```bash
    ./up.sh
    ```
