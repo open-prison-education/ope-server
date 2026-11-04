@@ -29,7 +29,8 @@ jobs:
       github.event.review.user.login == 'cursor[bot]' &&
       startsWith(github.event.review.body, 'OPE review') &&
       (contains(github.event.review.body, 'Blocker') ||
-       contains(github.event.review.body, 'Should fix'))
+       contains(github.event.review.body, 'Should fix' ||
+       contains(github.event.review.body, 'Nits')))
     runs-on: ubuntu-latest
     steps:
       - name: Post trigger comment as a real user
