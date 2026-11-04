@@ -12,8 +12,11 @@
 #
 # Usage:
 #   echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
-#   ./up.sh b
+#   ./scripts/rebuild.sh && docker compose build
 #   ./scripts/push_images.sh [--dry-run]
+#
+# `docker compose build` and `./up.sh b` only build services enabled in
+# config.yml. `./up.sh b` also starts the stack and removes orphaned containers.
 #
 # The GHCR token needs the write:packages scope.
 #
@@ -58,8 +61,10 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Services that set `build:` contribute their ghcr.io image. Other services in
-# the same file (jobs that reuse an image, upstream mirrors) are ignored.
+# Services that set `build:` contribute their ghcr.io image. The key may be a
+# path on the same line (`build: ./ope-foo`) or a mapping (`build:` with
+# `context:` on the following lines). Other services in the same file (jobs
+# that reuse an image, upstream mirrors) are ignored.
 collect_built_images() {
     local file line svc_has_build svc_image image files
     shopt -s nullglob
@@ -80,7 +85,7 @@ collect_built_images() {
                 fi
                 svc_has_build=false
                 svc_image=""
-            elif [[ "$line" =~ ^[[:space:]]+build:[[:space:]] ]]; then
+            elif [[ "$line" =~ ^[[:space:]]+build:[[:space:]]*(#.*)?$ ]] || [[ "$line" =~ ^[[:space:]]+build:[[:space:]]+[^[:space:]#] ]]; then
                 svc_has_build=true
             elif [[ "$line" =~ ^[[:space:]]+image:[[:space:]]*(.*)$ ]]; then
                 image="${BASH_REMATCH[1]}"
@@ -140,7 +145,7 @@ FAILED=0
 for image in "${IMAGES[@]}"; do
     echo "==> ${image}"
     if ! docker image inspect "$image" >/dev/null 2>&1; then
-        echo "    skip  not present locally (build with ./up.sh b)"
+        echo "    skip  not present locally (enable it in config.yml, then ./scripts/rebuild.sh && docker compose build)"
         SKIPPED=$((SKIPPED + 1))
         echo ""
         continue

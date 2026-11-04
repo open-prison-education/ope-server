@@ -160,15 +160,17 @@ ope-server/
 
 ## Pushing built images
 
-Images this repository builds are already tagged for GHCR (`ghcr.io/open-prison-education/<name>:release`, or `:latest` for a few services). Build them, then push the tags that exist on this machine:
+Images this repository builds are already tagged for GHCR (`ghcr.io/open-prison-education/<name>:release`, or `:latest` for a few services). Only services enabled in `config.yml` are built. Build those images without starting the stack, then push the tags that exist on this machine:
 
 ```bash
 # Personal access token with the write:packages scope
 echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
 
-./up.sh b
+./scripts/rebuild.sh && docker compose build
 ./scripts/push_images.sh
 ```
+
+`./up.sh b` builds the same enabled services, then starts the stack and removes orphaned containers. Enable a service in `config.yml` before either command will build it.
 
 `./scripts/push_images.sh --dry-run` prints the same list without pushing. Images that have not been built locally are skipped.
 
