@@ -108,11 +108,6 @@ collect_built_images() {
     done
 }
 
-ghcr_logged_in() {
-    local cfg="${DOCKER_CONFIG:-$HOME/.docker}/config.json"
-    [[ -f "$cfg" ]] && grep -q 'ghcr\.io' "$cfg"
-}
-
 mapfile -t IMAGES < <(collect_built_images | sort -u)
 
 if [[ ${#IMAGES[@]} -eq 0 ]]; then
@@ -124,19 +119,6 @@ echo "=== OPE Server: Push built images ==="
 echo "  Registry: ${REGISTRY}"
 echo "  Dry run:  ${DRY_RUN}"
 echo ""
-
-if [[ "$DRY_RUN" == false ]] && ! ghcr_logged_in; then
-    echo "ERROR: Docker is not logged in to ghcr.io." >&2
-    echo "Log in with a personal access token that has write:packages:" >&2
-    echo '  echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin' >&2
-    exit 1
-fi
-
-if [[ "$DRY_RUN" == true ]] && ! ghcr_logged_in; then
-    echo "NOTE: Docker is not logged in to ghcr.io. A real push would stop here."
-    echo '  echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin'
-    echo ""
-fi
 
 PUSHED=0
 SKIPPED=0
@@ -172,6 +154,9 @@ fi
 echo "  Skipped:    ${SKIPPED}"
 if [[ "$FAILED" -gt 0 ]]; then
     echo "  Failed:     ${FAILED}"
+    echo ""
+    echo "If the errors say unauthorized or denied, log in with a token that has write:packages:" >&2
+    echo '  echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin' >&2
     exit 1
 fi
 if [[ "$DRY_RUN" == true ]]; then
