@@ -131,7 +131,7 @@ ope-server/
 │   ├── requirements.txt     # Python dependencies
 │   ├── bundle_runtime.sh    # Build offline ope-server tarball with bundled Python
 │   ├── retag_images.sh      # Retag Docker images from operepo/* to ghcr.io/open-prison-education/*
-│   ├── push_images.py       # Push images to registry
+│   ├── push_images.sh       # Push locally built images to ghcr.io/open-prison-education
 │   ├── backup_canvas.sh     # Canvas snapshot: database, files, keys, and config
 │   ├── restore_canvas.sh    # Restore a Canvas snapshot directory
 │   ├── export_databases.sh  # Nightly Canvas snapshot, then FOG MySQL dump
@@ -156,6 +156,23 @@ ope-server/
 | `./scripts/flush_redis_keys.sh` | Clear Redis cache (Canvas DB 0 only) |
 | `./scripts/bundle_runtime.sh` | Build an offline ope-server tarball with bundled Python for air-gapped deployment |
 | `./scripts/retag_images.sh` | Retag local Docker images from the old `operepo/*` namespace to `ghcr.io/open-prison-education/*` |
+| `./scripts/push_images.sh` | Push locally built images to `ghcr.io/open-prison-education` |
+
+## Pushing built images
+
+Images this repository builds are already tagged for GHCR (`ghcr.io/open-prison-education/<name>:release`, or `:latest` for a few services). Build them, then push the tags that exist on this machine:
+
+```bash
+# Personal access token with the write:packages scope
+echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
+
+./up.sh b
+./scripts/push_images.sh
+```
+
+`./scripts/push_images.sh --dry-run` prints the same list without pushing. Images that have not been built locally are skipped.
+
+Monitoring and Penpot images are upstream mirrors. Push those with `./ope-monitoring/update_monitoring_images.sh` and `./ope-penpot/update_penpot_images.sh`.
 
 ## Configuration
 
