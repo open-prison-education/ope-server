@@ -120,40 +120,51 @@ echo "  Registry: ${REGISTRY}"
 echo "  Dry run:  ${DRY_RUN}"
 echo ""
 
-PUSHED=0
-SKIPPED=0
-FAILED=0
+PUSHED=()
+SKIPPED=()
+FAILED=()
 
 for image in "${IMAGES[@]}"; do
     echo "==> ${image}"
     if ! docker image inspect "$image" >/dev/null 2>&1; then
         echo "    skip  not present locally (enable it in config.yml, then ./scripts/rebuild.sh && docker compose build)"
-        SKIPPED=$((SKIPPED + 1))
+        SKIPPED+=("$image")
         echo ""
         continue
     fi
 
     if [[ "$DRY_RUN" == true ]]; then
         echo "    [dry-run] docker push ${image}"
-        PUSHED=$((PUSHED + 1))
+        PUSHED+=("$image")
     elif docker push "$image"; then
-        PUSHED=$((PUSHED + 1))
+        PUSHED+=("$image")
     else
         echo "    [FAILED] push"
-        FAILED=$((FAILED + 1))
+        FAILED+=("$image")
     fi
     echo ""
 done
 
-echo "=== Done ==="
+print_group() {
+    local label="$1"
+    shift
+    echo "  ${label} ($#):"
+    if [[ $# -eq 0 ]]; then
+        echo "    (none)"
+    else
+        printf '    %s\n' "${@#"${REGISTRY}/"}"
+    fi
+}
+
+echo "=== Summary ==="
 if [[ "$DRY_RUN" == true ]]; then
-    echo "  Would push: ${PUSHED}"
+    print_group "Would push" "${PUSHED[@]}"
 else
-    echo "  Pushed:     ${PUSHED}"
+    print_group "Pushed" "${PUSHED[@]}"
 fi
-echo "  Skipped:    ${SKIPPED}"
-if [[ "$FAILED" -gt 0 ]]; then
-    echo "  Failed:     ${FAILED}"
+print_group "Skipped, not built locally" "${SKIPPED[@]}"
+if [[ ${#FAILED[@]} -gt 0 ]]; then
+    print_group "Failed" "${FAILED[@]}"
     echo ""
     echo "If the errors say unauthorized or denied, log in with a token that has write:packages:" >&2
     echo '  echo "$GHCR_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin' >&2
