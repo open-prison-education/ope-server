@@ -40,70 +40,81 @@ RUN apt-get update -qq \
     && npm install -g npm@9.8.1 \
     && corepack enable && corepack prepare yarn@1.19.1 --activate \
     && gem install bundler -v "$BUNDLER_VERSION" --no-document \
-    && groupadd --gid 9999 canvas && useradd --uid 9999 --gid canvas --create-home canvas
+    && groupadd --gid 9999 canvas && useradd --uid 9999 --gid canvas --create-home canvas \
+    && mkdir -p "$APP_HOME" && chown canvas:canvas "$APP_HOME"
 
 WORKDIR $APP_HOME
 
-# Fetch happens at image-build time on the connected builder.
+# Clone as canvas. A later `chown -R` would copy the whole tree into a new
+# layer. Drop .git in this same step so the history is never stored.
+USER canvas
 RUN git clone --depth 1 https://github.com/instructure/canvas-lms.git "$APP_HOME" \
     && git -C "$APP_HOME" fetch --depth 1 origin "$CANVAS_COMMIT" \
     && git -C "$APP_HOME" checkout --detach "$CANVAS_COMMIT" \
+    && rm -rf "$APP_HOME/.git" \
     && git clone --depth 1 https://github.com/instructure/QTIMigrationTool.git "$APP_HOME/vendor/QTIMigrationTool" \
     && git -C "$APP_HOME/vendor/QTIMigrationTool" fetch --depth 1 origin "$QTI_COMMIT" \
     && git -C "$APP_HOME/vendor/QTIMigrationTool" checkout --detach "$QTI_COMMIT" \
+    && rm -rf "$APP_HOME/vendor/QTIMigrationTool/.git" \
     && chmod +x "$APP_HOME/vendor/QTIMigrationTool/migrate.py"
 
-COPY patches/apply_ope_patches.py /tmp/apply_ope_patches.py
-COPY ope.rake lib/tasks/ope.rake
-COPY fonts/ public/fonts/
-COPY ajax/ public/ajax/
-COPY ViewerJS/ public/vendor/ViewerJS/
+COPY --chown=canvas:canvas patches/apply_ope_patches.py /tmp/apply_ope_patches.py
+COPY --chown=canvas:canvas ope.rake lib/tasks/ope.rake
+COPY --chown=canvas:canvas fonts/ public/fonts/
+COPY --chown=canvas:canvas ajax/ public/ajax/
+COPY --chown=canvas:canvas ViewerJS/ public/vendor/ViewerJS/
 COPY bin/canvas-web.sh bin/canvas-jobs.sh bin/canvas-migrate.sh bin/canvas-init.sh /usr/local/bin/
 
+# Rewrite only files that contain an external URL. sed -i replaces the file
+# even when nothing matches, which would store a second copy of every
+# html, css, erb, and js file in this layer.
 RUN python3 /tmp/apply_ope_patches.py "$APP_HOME" \
-    && find . \( -name '*.html' -o -name '*.css' -o -name '*.erb' -o -name '*.js' \) -type f -print0 \
-      | xargs -0 sed -i \
+    && grep -rlZ --include='*.html' --include='*.css' --include='*.erb' --include='*.js' \
+        -e 'fonts.googleapis.com/css' -e '//cdnjs.cloudflare.com' . \
+      | xargs -0 -r sed -i \
         -e 's#https://fonts.googleapis.com/css#/fonts/css.css#g' \
         -e 's#/fonts/css.css2#/fonts/css.css#g' \
         -e 's#//cdnjs.cloudflare.com##g' \
-    && chmod 755 /usr/local/bin/canvas-*.sh \
-    && mkdir -p tmp/files log tmp/pids \
-    && chown -R canvas:canvas "$APP_HOME" /usr/local/bundle
+    && mkdir -p tmp/files log tmp/pids
 
+COPY --chown=canvas:canvas patches/silence_sass.js /tmp/silence-sass.js
+
+# gem install runs as root and leaves /usr/local/bundle/cache root-owned.
+# Give that still-small tree to canvas before any gems are installed.
+USER root
+RUN chown -R canvas:canvas /usr/local/bundle
 USER canvas
+
+# Install, compile, and delete build-only files in one step. Removing
+# node_modules or the Yarn cache in a later step would hide them but still
+# ship them. One asset task at a time: production rspack plus CSS, styleguide,
+# and API docs together exhaust this builder. Compile output stays in a file
+# so Sass warnings cannot fill the BuildKit log and hide the real failure.
+# This Canvas commit imports @instructure/platform-alerts and omits it from package.json.
 RUN bundle config set --local build.nokogiri --use-system-libraries \
     && bundle config set --local build.ffi --enable-system-libffi \
     && bundle install --jobs "$(nproc)" \
     && python3 /tmp/apply_ope_patches.py "$APP_HOME" "$(bundle show switchman)" \
-    && yarn install --frozen-lockfile
-
-COPY patches/silence_sass.js /tmp/silence-sass.js
-
-# One asset task at a time. Production rspack plus CSS, styleguide, and API
-# docs together exhaust this builder. Compile output stays in a file so Sass
-# warnings cannot fill the BuildKit log and hide the real failure.
-# This Canvas commit imports @instructure/platform-alerts and omits it from package.json.
-RUN yarn add @instructure/platform-alerts@0.2.0 --ignore-scripts -W \
-    && NODE_OPTIONS="--max-old-space-size=4096 --require /tmp/silence-sass.js" \
-      CANVAS_BUILD_CONCURRENCY=1 \
-      COMPILE_ASSETS_API_DOCS=0 \
-      COMPILE_ASSETS_BRAND_CONFIGS=0 \
-      COMPILE_ASSETS_NPM_INSTALL=0 \
-      COMPILE_ASSETS_STYLEGUIDE=0 \
-      SKIP_SOURCEMAPS=1 \
-      bin/rails canvas:compile_assets --trace > /tmp/canvas-compile.log 2>&1 & \
-    compile_pid=$!; \
-    while kill -0 "$compile_pid" 2>/dev/null; do \
-      echo "canvas assets still compiling ($(wc -l < /tmp/canvas-compile.log) log lines)"; \
-      sleep 20; \
-    done; \
-    wait "$compile_pid" \
-    || { echo '----- canvas compile log tail -----'; tail -n 200 /tmp/canvas-compile.log; exit 1; } \
-    && rm -rf node_modules tmp/cache /usr/local/bundle/cache /tmp/canvas-compile.log
-
-USER root
-RUN rm -f /tmp/apply_ope_patches.py /tmp/silence-sass.js
-USER canvas
+    && YARN_CACHE_FOLDER=/tmp/yarn-cache yarn install --frozen-lockfile \
+    && YARN_CACHE_FOLDER=/tmp/yarn-cache yarn add @instructure/platform-alerts@0.2.0 --ignore-scripts -W \
+    && ( NODE_OPTIONS="--max-old-space-size=4096 --require /tmp/silence-sass.js" \
+        CANVAS_BUILD_CONCURRENCY=1 \
+        COMPILE_ASSETS_API_DOCS=0 \
+        COMPILE_ASSETS_BRAND_CONFIGS=0 \
+        COMPILE_ASSETS_NPM_INSTALL=0 \
+        COMPILE_ASSETS_STYLEGUIDE=0 \
+        SKIP_SOURCEMAPS=1 \
+        bin/rails canvas:compile_assets --trace > /tmp/canvas-compile.log 2>&1 & \
+      compile_pid=$!; \
+      while kill -0 "$compile_pid" 2>/dev/null; do \
+        echo "canvas assets still compiling ($(wc -l < /tmp/canvas-compile.log) log lines)"; \
+        sleep 20; \
+      done; \
+      wait "$compile_pid" \
+      || { echo '----- canvas compile log tail -----'; tail -n 200 /tmp/canvas-compile.log; exit 1; } ) \
+    && rm -rf node_modules tmp/cache /usr/local/bundle/cache /tmp/yarn-cache \
+      /tmp/canvas-compile.log /tmp/apply_ope_patches.py /tmp/silence-sass.js \
+      /home/canvas/.cache /home/canvas/.npm /home/canvas/.yarn
 
 # production.rb loads production-*.rb. Rails must serve /public because the
 COPY --chown=canvas:canvas production-local.rb config/environments/production-local.rb
