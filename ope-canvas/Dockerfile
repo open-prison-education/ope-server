@@ -63,11 +63,15 @@ COPY --chown=canvas:canvas ope.rake lib/tasks/ope.rake
 COPY --chown=canvas:canvas fonts/ public/fonts/
 COPY --chown=canvas:canvas ajax/ public/ajax/
 COPY --chown=canvas:canvas ViewerJS/ public/vendor/ViewerJS/
-COPY --chmod=755 bin/canvas-web.sh bin/canvas-jobs.sh bin/canvas-migrate.sh bin/canvas-init.sh /usr/local/bin/
+COPY bin/canvas-web.sh bin/canvas-jobs.sh bin/canvas-migrate.sh bin/canvas-init.sh /usr/local/bin/
 
+# Rewrite only files that contain an external URL. sed -i replaces the file
+# even when nothing matches, which would store a second copy of every
+# html, css, erb, and js file in this layer.
 RUN python3 /tmp/apply_ope_patches.py "$APP_HOME" \
-    && find . \( -name '*.html' -o -name '*.css' -o -name '*.erb' -o -name '*.js' \) -type f -print0 \
-      | xargs -0 sed -i \
+    && grep -rlZ --include='*.html' --include='*.css' --include='*.erb' --include='*.js' \
+        -e 'fonts.googleapis.com/css' -e '//cdnjs.cloudflare.com' . \
+      | xargs -0 -r sed -i \
         -e 's#https://fonts.googleapis.com/css#/fonts/css.css#g' \
         -e 's#/fonts/css.css2#/fonts/css.css#g' \
         -e 's#//cdnjs.cloudflare.com##g' \
