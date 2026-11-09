@@ -1,4 +1,3 @@
-!.env.template
 !.gitignore
 /config.yml
 /.secrets.yml
@@ -16,4 +15,5 @@ ope-server-offline.tar.gz
 GeoLite2-City.mmdb
 .enabled
 .env*
+!.env.template
 *.tar*
