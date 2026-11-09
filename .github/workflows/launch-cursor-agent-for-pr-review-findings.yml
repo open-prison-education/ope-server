@@ -9,11 +9,12 @@
 #   A user API key (Cursor Dashboard → API Keys) or a team service-account key.
 #   The key's account must have this GitHub repository connected for Cloud Agents.
 
-name: Resolve OPE review with Cursor
+name: Launch Cursor agent for PR review findings
 
 # The run name is how a later review on the same pull request finds an
-# earlier resolver run. Keep the "PR #<number> " prefix stable.
-run-name: Resolve OPE review for PR #${{ github.event.pull_request.number }} review ${{ github.event.review.id }}
+# earlier resolver run. Keep the "PR #<number> " prefix stable, and keep it
+# in sync with the prefix the script below matches on.
+run-name: Launch Cursor agent for PR #${{ github.event.pull_request.number }} review ${{ github.event.review.id }} findings
 
 on:
   pull_request_review:
@@ -103,7 +104,7 @@ jobs:
 
           # Older runs for this pull request go first. Each review has its own
           # concurrency group, so this wait is what keeps a single editor.
-          prefix="Resolve OPE review for PR #${PR_NUMBER} "
+          prefix="Launch Cursor agent for PR #${PR_NUMBER} "
           wait_deadline=$((SECONDS + 50 * 60))
           while true; do
             listing=""
