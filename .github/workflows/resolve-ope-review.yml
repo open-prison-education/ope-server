@@ -1,0 +1,267 @@
+# .github/workflows/resolve-ope-review.yml
+#
+# Cursor Automations ignore PR comments posted by bots, so a comment relay
+# never reliably starts the resolver. This workflow launches a Cursor cloud
+# agent directly against the pull request when the reviewer automation posts
+# an OPE review that still has findings.
+#
+# Required secret: CURSOR_API_KEY
+#   A user API key (Cursor Dashboard → API Keys) or a team service-account key.
+#   The key's account must have this GitHub repository connected for Cloud Agents.
+
+name: Resolve OPE review with Cursor
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: cursor-relay-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    # The reviewer always posts a comment review whose body starts with
+    # "OPE review". A clean pass is the sentence "No findings." A pass with
+    # findings uses the severities Blocker, Should fix, and Nit.
+    # The resolver leaves a pull request comment, not a review. A review
+    # starting with "OPE review" would re-trigger this and make the reviewer
+    # skip that commit.
+    if: >-
+      github.event.review.user.login == 'cursor[bot]' &&
+      startsWith(github.event.review.body || '', 'OPE review') &&
+      !contains(github.event.review.body || '', 'No findings.') &&
+      (contains(github.event.review.body || '', 'Blocker') ||
+       contains(github.event.review.body || '', 'Should fix') ||
+       contains(github.event.review.body || '', 'Nit'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Launch a Cursor cloud agent on this pull request
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
+          REVIEW_ID: ${{ github.event.review.id }}
+          REVIEW_SHA: ${{ github.event.review.commit_id }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CURSOR_API_KEY}" ]; then
+            echo "Secret CURSOR_API_KEY is not set." >&2
+            exit 1
+          fi
+
+          # Stable id so a re-run of this review does not start a second agent.
+          AGENT_ID="$(python3 -c 'import os, uuid; print("bc-" + str(uuid.uuid5(uuid.NAMESPACE_URL, "ope-review-" + os.environ["REVIEW_ID"])))')"
+
+          # Blocker and Should-fix items are also left on the changed line.
+          # The summary body is the full list; these comments repeat it.
+          INLINE_COMMENTS=""
+          if ! INLINE_COMMENTS="$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments" \
+            --jq '.[] | "- \(.path):\(.line // .original_line // "?") \(.body)"' \
+            2>/tmp/inline-err)"; then
+            echo "Could not read inline review comments. Continuing with the review body." >&2
+            cat /tmp/inline-err >&2 || true
+            INLINE_COMMENTS=""
+          fi
+
+          jq -n \
+            --arg repo "$REPO_URL" \
+            --arg pr "$PR_URL" \
+            --arg review "$REVIEW_URL" \
+            --arg sha "$REVIEW_SHA" \
+            --arg inline "$INLINE_COMMENTS" \
+            --arg name "Fix OPE review on PR ${PR_NUMBER}" \
+            --arg agentId "$AGENT_ID" \
+            '{
+              prompt: {
+                text: (
+                  "Address every finding in this OPE review on the current pull request. "
+                  + "Each finding is one line: severity, path:line, what is wrong, and what correct behavior is. "
+                  +                   "Severities are Blocker, Should fix, and Nit. Fix every finding, Blockers first. "
+                  + "The findings were written against commit " + $sha + ". "
+                  + "Edit the current pull request head. If a cited line no longer matches, find that same code before changing it. "
+                  + "Do not commit generated or local files: config.yml, .secrets.yml, .env, docker-compose.yml, volumes/, runtime/, backups/, or ope-monitoring/generated/. "
+                  + "Change the source that produces them. "
+                  + "Push the fixes to the pull request head branch. Do not open a new pull request. "
+                  + "Leave a short summary as a pull request comment. Do not submit a pull request review. "
+                  + "Do not start that comment with \"OPE review\". "
+                  + "A review that starts that way is treated as this commit already being reviewed.\n\n"
+                  + "Review: " + $review + "\n"
+                  + "Pull request: " + $pr + "\n\n"
+                  + $ENV.REVIEW_BODY
+                  + (if $inline == "" then "" else "\n\nInline comments:\n" + $inline end)
+                )
+              },
+              name: $name,
+              repos: [{ url: $repo, prUrl: $pr }],
+              workOnCurrentBranch: true,
+              autoCreatePR: false,
+              agentId: $agentId
+            }' > /tmp/cursor-agent.json
+
+          # Transient gateway and rate-limit responses are retried. Other codes,
+          # including 409, are returned to the caller as-is.
+          api() {
+            local method="$1" path="$2" body="${3:-}"
+            local attempt code
+            for attempt in 1 2 3 4 5; do
+              local args=(-sS -o /tmp/cursor-api.json -w "%{http_code}" -X "$method" \
+                -H "Authorization: Bearer ${CURSOR_API_KEY}" \
+                -H "Accept: application/json")
+              if [ -n "$body" ]; then
+                args+=(-H "Content-Type: application/json" --data @"$body")
+              fi
+              code="$(curl "${args[@]}" "https://api.cursor.com${path}" || true)"
+              case "$code" in
+                429|500|502|503|504|000|"")
+                  echo "HTTP ${code:-000} from ${method} ${path}; retry ${attempt}/5." >&2
+                  sleep $((attempt * 5))
+                  ;;
+                *)
+                  printf '%s' "$code"
+                  return 0
+                  ;;
+              esac
+            done
+            printf '%s' "${code:-000}"
+          }
+
+          require_run_id() {
+            if [ -z "${RUN_ID}" ] || [ "${RUN_ID}" = "null" ]; then
+              echo "Cloud Agents API did not return a run id." >&2
+              cat /tmp/cursor-api.json >&2
+              exit 1
+            fi
+          }
+
+          # One new run on the agent that already exists for this review.
+          # Used when a re-run finds ERROR, CANCELLED, EXPIRED, or no run.
+          start_followup() {
+            local follow_code err
+            echo "Starting a new run on ${AGENT_ID}."
+            jq '{prompt: .prompt}' /tmp/cursor-agent.json > /tmp/cursor-followup.json
+            follow_code="$(api POST "/v1/agents/${AGENT_ID}/runs" /tmp/cursor-followup.json)"
+            if [ "$follow_code" = "409" ]; then
+              err="$(jq -r '.code // empty' /tmp/cursor-api.json 2>/dev/null || true)"
+              if [ -n "$err" ] && [ "$err" != "agent_busy" ]; then
+                echo "Follow-up failed with ${err}." >&2
+                cat /tmp/cursor-api.json >&2
+                exit 1
+              fi
+              echo "Agent is busy. Waiting on its current run."
+              follow_code="$(api GET "/v1/agents/${AGENT_ID}")"
+              if [ "$follow_code" != "200" ]; then
+                echo "Could not load existing agent (HTTP ${follow_code})." >&2
+                cat /tmp/cursor-api.json >&2
+                exit 1
+              fi
+              RUN_ID="$(jq -r '.latestRunId // empty' /tmp/cursor-api.json)"
+              AGENT_URL="$(jq -r '.url // empty' /tmp/cursor-api.json)"
+            elif [ "$follow_code" != "200" ] && [ "$follow_code" != "201" ]; then
+              echo "Follow-up returned HTTP ${follow_code}." >&2
+              cat /tmp/cursor-api.json >&2
+              exit 1
+            else
+              RUN_ID="$(jq -r '.run.id // empty' /tmp/cursor-api.json)"
+            fi
+            require_run_id
+          }
+
+          code="$(api POST /v1/agents /tmp/cursor-agent.json)"
+          if [ "$code" = "409" ]; then
+            err="$(jq -r '.code // empty' /tmp/cursor-api.json 2>/dev/null || true)"
+            if [ -n "$err" ] && [ "$err" != "agent_id_conflict" ]; then
+              echo "Cloud Agents API returned ${err}." >&2
+              cat /tmp/cursor-api.json >&2
+              exit 1
+            fi
+            echo "Agent ${AGENT_ID} already exists for this review."
+            code="$(api GET "/v1/agents/${AGENT_ID}")"
+            if [ "$code" != "200" ]; then
+              echo "Could not load existing agent (HTTP ${code})." >&2
+              cat /tmp/cursor-api.json >&2
+              exit 1
+            fi
+            RUN_ID="$(jq -r '.latestRunId // empty' /tmp/cursor-api.json)"
+            AGENT_URL="$(jq -r '.url // empty' /tmp/cursor-api.json)"
+            if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+              start_followup
+            else
+              code="$(api GET "/v1/agents/${AGENT_ID}/runs/${RUN_ID}")"
+              if [ "$code" != "200" ]; then
+                echo "Could not read existing run (HTTP ${code})." >&2
+                cat /tmp/cursor-api.json >&2
+                exit 1
+              fi
+              case "$(jq -r '.status' /tmp/cursor-api.json)" in
+                ERROR|CANCELLED|EXPIRED) start_followup ;;
+              esac
+            fi
+          elif [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            echo "Cloud Agents API returned HTTP ${code}." >&2
+            cat /tmp/cursor-api.json >&2
+            exit 1
+          else
+            RUN_ID="$(jq -r '.run.id // empty' /tmp/cursor-api.json)"
+            AGENT_URL="$(jq -r '.agent.url // empty' /tmp/cursor-api.json)"
+            AGENT_ID="$(jq -r '.agent.id // empty' /tmp/cursor-api.json)"
+            require_run_id
+          fi
+
+          if [ -z "${AGENT_ID}" ] || [ "${AGENT_ID}" = "null" ]; then
+            echo "Cloud Agents API did not return an agent id." >&2
+            exit 1
+          fi
+          require_run_id
+
+          echo "Agent: ${AGENT_URL}"
+          echo "Run: ${RUN_ID}"
+
+          deadline=$((SECONDS + 40 * 60))
+          while true; do
+            code="$(api GET "/v1/agents/${AGENT_ID}/runs/${RUN_ID}")"
+            if [ "$code" != "200" ]; then
+              echo "Could not read run status (HTTP ${code})." >&2
+              cat /tmp/cursor-api.json >&2
+              exit 1
+            fi
+            status="$(jq -r '.status' /tmp/cursor-api.json)"
+            echo "status=${status}"
+            case "$status" in
+              FINISHED)
+                jq -r '.result // empty' /tmp/cursor-api.json
+                exit 0
+                ;;
+              ERROR|CANCELLED|EXPIRED)
+                jq -r '.result // empty' /tmp/cursor-api.json >&2
+                echo "Cursor agent run ended with status ${status}." >&2
+                exit 1
+                ;;
+              CREATING|RUNNING|WAITING_FOR_BACKGROUND_WORK)
+                ;;
+              *)
+                echo "Unexpected run status: ${status}" >&2
+                exit 1
+                ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "Timed out waiting for ${AGENT_URL}. Cancelling run ${RUN_ID}." >&2
+              code="$(api POST "/v1/agents/${AGENT_ID}/runs/${RUN_ID}/cancel")"
+              if [ "$code" != "200" ] && [ "$code" != "202" ] && [ "$code" != "409" ]; then
+                echo "Cancel returned HTTP ${code}." >&2
+                cat /tmp/cursor-api.json >&2
+              fi
+              exit 1
+            fi
+            sleep 20
+          done
