@@ -11,34 +11,50 @@
 
 name: Resolve OPE review with Cursor
 
+# The run name is how a later review on the same pull request finds an
+# earlier resolver run. Keep the "PR #<number> " prefix stable.
+run-name: Resolve OPE review for PR #${{ github.event.pull_request.number }} review ${{ github.event.review.id }}
+
 on:
   pull_request_review:
     types: [submitted]
 
 permissions:
+  actions: read
   pull-requests: read
 
+# One group per review, so a third review is not dropped while another run
+# is still polling. GitHub keeps only one pending run in a group. The job
+# itself waits until any older run for this pull request has finished, so
+# two agents do not edit the same branch at once.
 concurrency:
-  group: cursor-relay-${{ github.event.pull_request.number }}
+  group: resolve-ope-review-${{ github.event.review.id }}
   cancel-in-progress: false
 
 jobs:
   resolve:
-    # The reviewer always posts a comment review whose body starts with
-    # "OPE review". A clean pass is the sentence "No findings." A pass with
-    # findings uses the severities Blocker, Should fix, and Nit.
+    # The reviewer instructions say the body starts with "OPE review".
+    # Cursor also prepends an <!-- CURSOR_AUTOMATION_ID: ... --> line, which
+    # is what the reviews on this repo actually contain. Accept either form.
+    # A clean pass says "No findings." Only Blocker and Should fix start an
+    # agent. A Nit-only review does not, so fixing nits cannot start another
+    # run. The script checks the finding line itself: GitHub contains() is
+    # case-insensitive and would also match those words in a sentence.
     # The resolver leaves a pull request comment, not a review. A review
     # starting with "OPE review" would re-trigger this and make the reviewer
     # skip that commit.
     if: >-
       github.event.review.user.login == 'cursor[bot]' &&
-      startsWith(github.event.review.body || '', 'OPE review') &&
+      (
+        startsWith(github.event.review.body || '', 'OPE review') ||
+        startsWith(github.event.review.body || '', '<!-- CURSOR_AUTOMATION_ID:')
+      ) &&
+      contains(github.event.review.body || '', 'OPE review') &&
       !contains(github.event.review.body || '', 'No findings.') &&
       (contains(github.event.review.body || '', 'Blocker') ||
-       contains(github.event.review.body || '', 'Should fix') ||
-       contains(github.event.review.body || '', 'Nit'))
+       contains(github.event.review.body || '', 'Should fix'))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Launch a Cursor cloud agent on this pull request
         env:
@@ -54,10 +70,72 @@ jobs:
         run: |
           set -euo pipefail
 
+          decision="$(python3 - << 'PY'
+          import os, re, sys
+          body = os.environ.get("REVIEW_BODY", "")
+          stripped = re.sub(r"\A<!--.*?-->\s*", "", body, count=1, flags=re.DOTALL)
+          lines = stripped.splitlines()
+          first = lines[0] if lines else ""
+          if first != "OPE review":
+              print("skip")
+              print("First review line is %r, not an OPE review." % first, file=sys.stderr)
+              raise SystemExit(0)
+          if re.search(r"(?m)^No findings\.", stripped):
+              print("skip")
+              print("Clean pass.", file=sys.stderr)
+              raise SystemExit(0)
+          if not re.search(r"(?m)^[ \t]*([-*][ \t]*)?(Blocker|Should fix):", stripped):
+              print("skip")
+              print("No Blocker or Should fix finding.", file=sys.stderr)
+              raise SystemExit(0)
+          print("launch")
+          PY
+          )"
+          if [ "$decision" != "launch" ]; then
+            exit 0
+          fi
+
           if [ -z "${CURSOR_API_KEY}" ]; then
             echo "Secret CURSOR_API_KEY is not set." >&2
             exit 1
           fi
+
+          # Older runs for this pull request go first. Each review has its own
+          # concurrency group, so this wait is what keeps a single editor.
+          prefix="Resolve OPE review for PR #${PR_NUMBER} "
+          wait_deadline=$((SECONDS + 50 * 60))
+          while true; do
+            listing=""
+            if ! listing="$(gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/resolve-ope-review.yml/runs?per_page=100" \
+              --jq '.workflow_runs[] | [.id, .status, .display_title] | @tsv' \
+              2>/tmp/runs-err)"; then
+              if grep -q '404' /tmp/runs-err; then
+                echo "No earlier resolver runs are listed."
+                listing=""
+              else
+                echo "Could not list resolver runs." >&2
+                cat /tmp/runs-err >&2
+                exit 1
+              fi
+            fi
+            older=0
+            if [ -n "$listing" ]; then
+              older="$(printf '%s\n' "$listing" | awk -F '\t' -v prefix="$prefix" -v self="${GITHUB_RUN_ID:-0}" '
+                $1 ~ /^[0-9]+$/ && index($3, prefix) == 1 && $2 != "completed" && ($1 + 0) < (self + 0) { c++ }
+                END { print c + 0 }
+              ')"
+            fi
+            if [ "$older" -eq 0 ]; then
+              break
+            fi
+            echo "Waiting for ${older} earlier resolver run(s) on this pull request."
+            if [ "$SECONDS" -ge "$wait_deadline" ]; then
+              echo "Timed out waiting for an earlier resolver run." >&2
+              exit 1
+            fi
+            sleep 20
+          done
 
           # Stable id so a re-run of this review does not start a second agent.
           AGENT_ID="$(python3 -c 'import os, uuid; print("bc-" + str(uuid.uuid5(uuid.NAMESPACE_URL, "ope-review-" + os.environ["REVIEW_ID"])))')"
@@ -87,7 +165,8 @@ jobs:
                 text: (
                   "Address every finding in this OPE review on the current pull request. "
                   + "Each finding is one line: severity, path:line, what is wrong, and what correct behavior is. "
-                  +                   "Severities are Blocker, Should fix, and Nit. Fix every finding, Blockers first. "
+                  + "Severities are Blocker, Should fix, and Nit. Fix every finding in this review, Blockers first. "
+                  + "A later review that only has Nits does not start another run, so fix those Nits in this run. "
                   + "The findings were written against commit " + $sha + ". "
                   + "Edit the current pull request head. If a cited line no longer matches, find that same code before changing it. "
                   + "Do not commit generated or local files: config.yml, .secrets.yml, .env, docker-compose.yml, volumes/, runtime/, backups/, or ope-monitoring/generated/. "
