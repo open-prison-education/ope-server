@@ -36,10 +36,10 @@ jobs:
     # The reviewer instructions say the body starts with "OPE review".
     # Cursor also prepends an <!-- CURSOR_AUTOMATION_ID: ... --> line, which
     # is what the reviews on this repo actually contain. Accept either form.
-    # A clean pass says "No findings." Only Blocker and Should fix start an
-    # agent. A Nit-only review does not, so fixing nits cannot start another
-    # run. The script checks the finding line itself: GitHub contains() is
-    # case-insensitive and would also match those words in a sentence.
+    # A clean pass says "No findings." Blocker, Should fix, and Nit all start
+    # an agent, including a review whose only findings are Nits. The script
+    # checks the finding line itself: GitHub contains() is case-insensitive,
+    # so the word "Nit" would also match "unit" and "initial".
     # The resolver leaves a pull request comment, not a review. A review
     # starting with "OPE review" would re-trigger this and make the reviewer
     # skip that commit.
@@ -52,7 +52,8 @@ jobs:
       contains(github.event.review.body || '', 'OPE review') &&
       !contains(github.event.review.body || '', 'No findings.') &&
       (contains(github.event.review.body || '', 'Blocker') ||
-       contains(github.event.review.body || '', 'Should fix'))
+       contains(github.event.review.body || '', 'Should fix') ||
+       contains(github.event.review.body || '', 'Nit'))
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -84,9 +85,9 @@ jobs:
               print("skip")
               print("Clean pass.", file=sys.stderr)
               raise SystemExit(0)
-          if not re.search(r"(?m)^[ \t]*([-*][ \t]*)?(Blocker|Should fix):", stripped):
+          if not re.search(r"(?m)^[ \t]*([-*][ \t]*)?(Blocker|Should fix|Nit):", stripped):
               print("skip")
-              print("No Blocker or Should fix finding.", file=sys.stderr)
+              print("No Blocker, Should fix, or Nit finding.", file=sys.stderr)
               raise SystemExit(0)
           print("launch")
           PY
@@ -166,7 +167,6 @@ jobs:
                   "Address every finding in this OPE review on the current pull request. "
                   + "Each finding is one line: severity, path:line, what is wrong, and what correct behavior is. "
                   + "Severities are Blocker, Should fix, and Nit. Fix every finding in this review, Blockers first. "
-                  + "A later review that only has Nits does not start another run, so fix those Nits in this run. "
                   + "The findings were written against commit " + $sha + ". "
                   + "Edit the current pull request head. If a cited line no longer matches, find that same code before changing it. "
                   + "Do not commit generated or local files: config.yml, .secrets.yml, .env, docker-compose.yml, volumes/, runtime/, backups/, or ope-monitoring/generated/. "
