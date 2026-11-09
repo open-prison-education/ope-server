@@ -38,9 +38,7 @@ jobs:
     # Cursor also prepends an <!-- CURSOR_AUTOMATION_ID: ... --> line, which
     # is what the reviews on this repo actually contain. Accept either form.
     # A clean pass says "No findings." Blocker, Should fix, and Nit all start
-    # an agent, including a review whose only findings are Nits. The script
-    # checks the finding line itself: GitHub contains() is case-insensitive,
-    # so the word "Nit" would also match "unit" and "initial".
+    # an agent, including a review whose only findings are Nits.
     # The resolver leaves a pull request comment, not a review. A review
     # starting with "OPE review" would re-trigger this and make the reviewer
     # skip that commit.
