@@ -1,4 +1,4 @@
-# .github/workflows/resolve-ope-review.yml
+# .github/workflows/launch-cursor-agent-for-pr-review-findings.yml
 #
 # Cursor Automations ignore PR comments posted by bots, so a comment relay
 # never reliably starts the resolver. This workflow launches a Cursor cloud
@@ -28,7 +28,7 @@ permissions:
 # itself waits until any older run for this pull request has finished, so
 # two agents do not edit the same branch at once.
 concurrency:
-  group: resolve-ope-review-${{ github.event.review.id }}
+  group: launch-cursor-agent-for-pr-review-findings-${{ github.event.review.id }}
   cancel-in-progress: false
 
 jobs:
@@ -108,7 +108,7 @@ jobs:
           while true; do
             listing=""
             if ! listing="$(gh api --paginate \
-              "repos/${GITHUB_REPOSITORY}/actions/workflows/resolve-ope-review.yml/runs?per_page=100" \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/launch-cursor-agent-for-pr-review-findings.yml/runs?per_page=100" \
               --jq '.workflow_runs[] | [.id, .status, .display_title] | @tsv' \
               2>/tmp/runs-err)"; then
               if grep -q '404' /tmp/runs-err; then
