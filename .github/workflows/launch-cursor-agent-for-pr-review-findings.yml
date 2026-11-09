@@ -85,7 +85,7 @@ jobs:
               print("skip")
               print("Clean pass.", file=sys.stderr)
               raise SystemExit(0)
-          if not re.search(r"(?m)^[ \t]*([-*][ \t]*)?(Blocker|Should fix|Nit):", stripped):
+          if not re.search(r"(?m)^[ \t]*(?:[-*][ \t]*)?(?:\*\*)?(?:Blocker|Should fix|Nit)\b", stripped):
               print("skip")
               print("No Blocker, Should fix, or Nit finding.", file=sys.stderr)
               raise SystemExit(0)
