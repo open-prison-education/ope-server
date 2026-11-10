@@ -37,8 +37,13 @@ jobs:
     # The reviewer instructions say the body starts with "OPE review".
     # Cursor also prepends an <!-- CURSOR_AUTOMATION_ID: ... --> line, which
     # is what the reviews on this repo actually contain. Accept either form.
-    # A clean pass says "No findings." Blocker, Should fix, and Nit all start
-    # an agent, including a review whose only findings are Nits.
+    # Do not filter on the sentence "No findings." here. A finding can quote
+    # it, and contains() cannot tell that quote from a clean pass. The Python
+    # step is the source of truth: it skips a line that is "No findings." and
+    # still launches when that sentence only appears inside a finding. A clean
+    # pass that never mentions Blocker, Should fix, or Nit fails the severity
+    # check below, so it does not start a job. Those three all start an agent,
+    # including a review whose only findings are Nits.
     # The resolver leaves a pull request comment, not a review. A review
     # starting with "OPE review" would re-trigger this and make the reviewer
     # skip that commit.
@@ -49,7 +54,6 @@ jobs:
         startsWith(github.event.review.body || '', '<!-- CURSOR_AUTOMATION_ID:')
       ) &&
       contains(github.event.review.body || '', 'OPE review') &&
-      !contains(github.event.review.body || '', 'No findings.') &&
       (contains(github.event.review.body || '', 'Blocker') ||
        contains(github.event.review.body || '', 'Should fix') ||
        contains(github.event.review.body || '', 'Nit'))
