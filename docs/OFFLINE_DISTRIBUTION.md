@@ -4,7 +4,7 @@ This guide is for **OPE developers** who need to prepare OPE Server
 files for deployment on an air-gapped machine.
 
 If you are the **site operator** who already has `ope-server-offline.tar.gz`
-and `ope-images.tar.gz`, skip this guide and go straight to the
+and the image archives, skip this guide and go straight to the
 **[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**.
 
 **Related:**
@@ -13,6 +13,51 @@ and `ope-images.tar.gz`, skip this guide and go straight to the
 
 The approach bundles a standalone CPython interpreter with all dependencies
 pre-installed, so the target machine needs **no Python, no pip, and no network**.
+
+---
+
+## Published Releases (GitHub Actions)
+
+The usual way to produce the bundle is the **Offline release** workflow
+(`.github/workflows/offline-release.yml`). It publishes a GitHub Release
+containing every file a site needs.
+
+**To publish a new release:** open the repository's **Actions** tab, pick
+**Offline release**, click **Run workflow**, and leave the branch on `main`.
+The workflow tags the latest commit on `main` as `yy.mm.dd.build` (UTC date,
+no zero padding, no `v` prefix) and publishes that release. The first run on
+6 Nov 2026 creates `26.11.6.0`; a second run that day creates `26.11.6.1`.
+A run started from any other branch fails.
+
+**To rebuild an existing release:** push its tag again, for example
+`git push origin 26.11.6.0`. This replaces that release with freshly pulled
+images and does not create a new build number. Merges to `main` never publish.
+
+The workflow pulls images from GHCR (`:release` and the pinned Penpot and
+monitoring tags) rather than building them, so a re-run picks up whatever
+those tags point at that day. Each release contains:
+
+- `ope-server-offline.tar.gz` from `bundle_runtime.sh --arch x86_64`
+- One archive per group in `scripts/export_images.sh` (see
+  [step 1.4](#14-export-docker-images-if-needed))
+- `SHA256SUMS`, and `manifest.json` listing the image refs, digests, file
+  names, and sizes in each archive
+
+The release stays a draft until every file has uploaded. If any job fails,
+the draft is deleted and the git tag is kept, so that build number is not
+reused.
+
+GitHub rejects release files of 2 GiB or more. An archive at or over that size
+fails the release with its name and size in the job log; archives are never
+split. If that happens (most likely `ope-canvas.tar.gz`), build that archive
+by hand with `./scripts/export_images.sh --archive ope-canvas.tar.gz` and
+upload it to `https://dl.corrections.sbctc.edu/releases/<version>/app_images/`
+as before.
+
+If a pull is denied because a package is private to another repository, add
+a `GHCR_READ_TOKEN` repository secret with the `read:packages` scope.
+
+The rest of this guide is the manual path, for custom or aarch64 builds.
 
 ---
 
@@ -112,14 +157,27 @@ docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep ghcr.io/o
 >             ghcr.io/open-prison-education/ope-canvas-mathman:release \
 >   | gzip > ope-images.tar.gz
 > ```
->
-> To export one archive per service group instead, run
-> `./scripts/export_images.sh [--output-dir DIR]`. It writes
-> `ope-canvas.tar.gz` with all five Canvas images (`ope-canvas`,
-> `ope-canvas-rce`, `ope-canvas-mathman`, `ope-canvas-postgres`,
-> `ope-canvas-redis`), grouped Penpot and monitoring archives, and one
-> `.tar.gz` for each remaining image. Load each archive on the target with
-> `docker load -i <file>`.
+
+**One archive per service group** (the same files the release workflow
+publishes):
+
+```bash
+./scripts/export_images.sh --pull [--output-dir DIR]
+```
+
+This writes:
+
+- `ope-canvas.tar.gz` with all five Canvas images. RCE, Mathman, Postgres, and
+  Redis ship as Canvas dependencies rather than separate services:
+  `ope-canvas`, `ope-canvas-rce`, `ope-canvas-mathman`,
+  `ope-canvas-postgres`, `ope-canvas-redis`
+- `ope-penpot.tar.gz` and `ope-monitoring.tar.gz` with their groups
+- One `.tar.gz` for each remaining image (`ope-smc.tar.gz`,
+  `ope-gateway.tar.gz`, and so on)
+
+Run `./scripts/export_images.sh --list` to see every archive name, and
+`--archive NAME` to export just one. Without `--pull`, the images must
+already be on the build machine.
 
 ---
 
@@ -129,13 +187,14 @@ Copy the following files to the target via USB drive, SCP through a jump host,
 shared network drive, or any other method:
 
 - `ope-server-offline.tar.gz` (scripts + bundled Python runtime)
-- `ope-images.tar.gz` (Docker images, if exported in step 1.4)
+- The image archives from step 1.4 (`ope-images.tar.gz`, or the per-group
+  `.tar.gz` files)
 
 ---
 
 ## Step 3: Hand Off to the Site Operator
 
-Give the site operator these two files along with the
+Give the site operator these files along with the
 **[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**, which walks them through
 extracting, loading images, running the setup wizard, and starting services.
 

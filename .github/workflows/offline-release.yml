@@ -1,0 +1,307 @@
+# .github/workflows/offline-release.yml
+#
+# Publishes the offline bundle as a GitHub Release. See
+# docs/OFFLINE_DISTRIBUTION.md for how to run it.
+#
+# A manual run from main tags the selected commit as the next yy.mm.dd.build
+# (UTC, no zero padding, for example 26.11.6.0) and publishes that release.
+# Pushing an existing version tag rebuilds and republishes its release.
+#
+# Images are pulled from GHCR, never built here. Any asset at or over 2 GiB
+# fails the release; archives are not split.
+#
+# Optional secret: GHCR_READ_TOKEN
+#   A token with read:packages, only needed if GITHUB_TOKEN cannot pull a
+#   private package owned by another repository.
+
+name: Offline release
+
+run-name: Offline release ${{ github.event_name == 'push' && github.ref_name || format('from {0}', github.ref_name) }}
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '[0-9][0-9].[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: offline-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+  # GitHub rejects release files of 2 GiB or more.
+  MAX_ASSET_BYTES: 2147483648
+
+jobs:
+  tag:
+    name: Create version tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: offline-release-tag
+      cancel-in-progress: false
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # A push made with GITHUB_TOKEN does not start another workflow run, so
+      # this run carries on into the build instead of the tag trigger firing.
+      - name: Push the next yy.mm.dd.build tag
+        id: next
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Run this workflow from main. It was started from ${GITHUB_REF}."
+            exit 1
+          fi
+
+          prefix="$(date -u +%y).$(date -u +%-m).$(date -u +%-d)"
+          prefix_re="${prefix//./\\.}"
+
+          for attempt in 1 2 3 4 5; do
+            last="$(git ls-remote --tags --refs origin \
+              | awk '{ sub("^refs/tags/", "", $2); print $2 }' \
+              | { grep -E "^${prefix_re}\.[0-9]+$" || true; } \
+              | awk -F. '{ print $4 }' | sort -n | tail -1)"
+            build=$(( ${last:--1} + 1 ))
+            tag="${prefix}.${build}"
+            echo "Tagging ${GITHUB_SHA} as ${tag}."
+            if git push origin "${GITHUB_SHA}:refs/tags/${tag}"; then
+              echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Push of ${tag} was rejected; retry ${attempt}/5." >&2
+            sleep $(( attempt * 3 ))
+          done
+          echo "::error::Could not push a ${prefix}.N tag."
+          exit 1
+
+  draft:
+    name: Create draft release
+    needs: tag
+    if: >-
+      !cancelled() &&
+      (needs.tag.result == 'success' ||
+       (needs.tag.result == 'skipped' && github.event_name == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      archives: ${{ steps.archives.outputs.archives }}
+    steps:
+      - name: Resolve tag
+        id: tag
+        env:
+          DISPATCH_TAG: ${{ needs.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="$DISPATCH_TAG"
+          fi
+          if [ -z "$tag" ]; then
+            echo "::error::No release tag was resolved."
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+
+      - name: List image archives
+        id: archives
+        run: |
+          set -euo pipefail
+          archives="$(./scripts/export_images.sh --list | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          echo "archives=${archives}" >> "$GITHUB_OUTPUT"
+          echo "Archives: ${archives}"
+
+      # Any older release or leftover draft for this tag is removed first, so
+      # gh resolves the tag to exactly one release. The git tag is kept.
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          for id in $(gh api --paginate "repos/${GH_REPO}/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"${TAG}\") | .id"); do
+            echo "Deleting existing release ${id} for ${TAG}."
+            gh api -X DELETE "repos/${GH_REPO}/releases/${id}"
+          done
+
+          cat > /tmp/notes.md << EOF
+          Offline bundle for OPE Server ${TAG} (commit ${GITHUB_SHA}).
+
+          Download \`ope-server-offline.tar.gz\` and every image archive you need, then follow
+          [docs/OFFLINE_DEPLOYMENT.md](${GITHUB_SERVER_URL}/${GH_REPO}/blob/${TAG}/docs/OFFLINE_DEPLOYMENT.md).
+          Check downloads with \`sha256sum -c SHA256SUMS --ignore-missing\`. \`manifest.json\` lists the image refs, digests, and sizes in each archive.
+          EOF
+
+          gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file /tmp/notes.md
+
+  bundle:
+    name: Server bundle
+    needs: draft
+    if: ${{ !cancelled() && needs.draft.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ needs.draft.outputs.tag }}
+      FILE: ope-server-offline.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.draft.outputs.tag }}
+
+      - name: Build ope-server-offline.tar.gz
+        run: ./scripts/bundle_runtime.sh --arch x86_64
+
+      - name: Check size and write manifest entry
+        run: |
+          set -euo pipefail
+          size="$(stat -c %s "$FILE")"
+          echo "${FILE}: ${size} bytes"
+          if [ "$size" -ge "$MAX_ASSET_BYTES" ]; then
+            echo "::error::${FILE} is ${size} bytes, at or over the 2 GiB release asset limit."
+            exit 1
+          fi
+          mkdir -p manifest
+          jq -n --arg file "$FILE" --argjson size "$size" \
+            --arg sha256 "$(sha256sum "$FILE" | cut -d' ' -f1)" \
+            '{file: $file, size: $size, sha256: $sha256, images: []}' > "manifest/${FILE}.json"
+
+      - name: Upload to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$FILE" --clobber
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifest-${{ env.FILE }}
+          path: manifest/
+          retention-days: 7
+
+  images:
+    name: Images ${{ matrix.archive }}
+    needs: draft
+    if: ${{ !cancelled() && needs.draft.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        archive: ${{ fromJSON(needs.draft.outputs.archives) }}
+    env:
+      TAG: ${{ needs.draft.outputs.tag }}
+      FILE: ${{ matrix.archive }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.draft.outputs.tag }}
+
+      # The Canvas group needs the pulled layers and the gzip on disk at once.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af > /dev/null
+          df -h /
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_READ_TOKEN || github.token }}
+
+      - name: Pull and save ${{ matrix.archive }}
+        run: ./scripts/export_images.sh --archive "$FILE" --pull --output-dir out
+
+      - name: Check size and write manifest entry
+        run: |
+          set -euo pipefail
+          path="out/${FILE}"
+          size="$(stat -c %s "$path")"
+          echo "${FILE}: ${size} bytes"
+          if [ "$size" -ge "$MAX_ASSET_BYTES" ]; then
+            echo "::error::${FILE} is ${size} bytes, at or over the 2 GiB release asset limit. Upload it to the download site instead."
+            exit 1
+          fi
+
+          images="$(./scripts/export_images.sh --list-images "$FILE" | while read -r ref; do
+            repo="${ref%:*}"
+            digest="$(docker image inspect --format '{{json .RepoDigests}}' "$ref" \
+              | jq -r --arg repo "$repo" '[.[] | select(startswith($repo + "@"))][0] // ""')"
+            jq -n --arg ref "$ref" --arg digest "$digest" '{ref: $ref, digest: $digest}'
+          done | jq -s -c .)"
+
+          mkdir -p manifest
+          jq -n --arg file "$FILE" --argjson size "$size" \
+            --arg sha256 "$(sha256sum "$path" | cut -d' ' -f1)" \
+            --argjson images "$images" \
+            '{file: $file, size: $size, sha256: $sha256, images: $images}' > "manifest/${FILE}.json"
+
+      - name: Upload to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "out/${FILE}" --clobber
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifest-${{ matrix.archive }}
+          path: manifest/
+          retention-days: 7
+
+  finalize:
+    name: Publish or delete draft
+    needs: [draft, bundle, images]
+    if: ${{ always() && needs.draft.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ needs.draft.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        if: needs.bundle.result == 'success' && needs.images.result == 'success'
+        with:
+          pattern: manifest-*
+          path: manifest
+          merge-multiple: true
+
+      - name: Upload manifest.json and SHA256SUMS
+        if: needs.bundle.result == 'success' && needs.images.result == 'success'
+        run: |
+          set -euo pipefail
+          jq -s --arg tag "$TAG" --arg commit "$GITHUB_SHA" \
+            '{tag: $tag, commit: $commit, created: (now | todate), assets: sort_by(.file)}' \
+            manifest/*.json > manifest.json
+          jq -r '.assets[] | "\(.sha256)  \(.file)"' manifest.json > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "$TAG" manifest.json SHA256SUMS --clobber
+
+      - name: Publish the release
+        if: needs.bundle.result == 'success' && needs.images.result == 'success'
+        run: gh release edit "$TAG" --draft=false
+
+      # The git tag stays, so a failed build number is never reused for a
+      # different commit.
+      - name: Delete the draft release
+        if: >-
+          failure() || cancelled() ||
+          needs.bundle.result != 'success' || needs.images.result != 'success'
+        run: |
+          set -euo pipefail
+          echo "Bundle: ${{ needs.bundle.result }}. Images: ${{ needs.images.result }}."
+          gh release delete "$TAG" --yes
+          echo "::error::Release ${TAG} was not published. The draft was deleted and the tag was kept."
+          exit 1
