@@ -18,6 +18,10 @@ Published releases are on the repository's GitHub **Releases** page, named
 sha256sum -c SHA256SUMS --ignore-missing
 ```
 
+`manifest.json` lists every archive. An entry with `"omitted": true` is not
+attached to the release (it was too large for GitHub). Download that file
+from the `location` URL and put it with the other archives before Step 2.
+
 If you do not have these files, you may prepare them using
 the [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md).
 
@@ -61,15 +65,18 @@ cd ope-server
 
 ## Step 2: Load the Docker Images
 
-Go back to the directory holding the files you received (`cd ..` from
-`ope-server`), then load every image archive:
+Stay in `ope-server`. The image archives are in the directory you copied the
+files into, one level above this one. Load every archive from there:
 
 ```bash
-for f in *.tar.gz; do
-  [ "$f" = "ope-server-offline.tar.gz" ] && continue
+for f in ../*.tar.gz; do
+  [ "$(basename "$f")" = "ope-server-offline.tar.gz" ] && continue
   docker load -i "$f"
 done
 ```
+
+The shell is still inside `ope-server` after the loop. The retag command
+below and `./setup.sh` in Step 3 run from here.
 
 This may take several minutes depending on the number and size of images.
 You can verify the images loaded correctly:
