@@ -112,6 +112,14 @@ docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep ghcr.io/o
 >             ghcr.io/open-prison-education/ope-canvas-mathman:release \
 >   | gzip > ope-images.tar.gz
 > ```
+>
+> To export one archive per service group instead, run
+> `./scripts/export_images.sh [--output-dir DIR]`. It writes
+> `ope-canvas.tar.gz` with all five Canvas images (`ope-canvas`,
+> `ope-canvas-rce`, `ope-canvas-mathman`, `ope-canvas-postgres`,
+> `ope-canvas-redis`), grouped Penpot and monitoring archives, and one
+> `.tar.gz` for each remaining image. Load each archive on the target with
+> `docker load -i <file>`.
 
 ---
 
