@@ -3,12 +3,20 @@
 This guide is for **site operators** who have received the OPE Server files and
 need to set up the server on a machine **without internet access**.
 
-You should have received two files:
+You should have received these files:
 
 | File | Contents |
 |------|----------|
 | `ope-server-offline.tar.gz` | OPE Server scripts, configuration, and bundled Python runtime |
-| `ope-images.tar.gz` | Pre-built Docker container images |
+| Image archives (`ope-canvas.tar.gz`, `ope-smc.tar.gz`, ...) | Pre-built Docker container images, one archive per service group. Older bundles ship a single `ope-images.tar.gz` instead. |
+
+Published releases are on the repository's GitHub **Releases** page, named
+`yy.mm.dd.build` (for example `26.11.6.0`). Each release also includes
+`SHA256SUMS`, so you can check the downloads before moving them:
+
+```bash
+sha256sum -c SHA256SUMS --ignore-missing
+```
 
 If you do not have these files, you may prepare them using
 the [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md).
@@ -41,8 +49,8 @@ the `.deb` packages available offline.
 
 ## Step 1: Extract the OPE Server Files
 
-Copy both files to the target machine (via USB drive, shared network drive,
-etc.), then extract:
+Copy all the files into one directory on the target machine (via USB drive,
+shared network drive, etc.), then extract:
 
 ```bash
 tar -xzf ope-server-offline.tar.gz
@@ -53,8 +61,14 @@ cd ope-server
 
 ## Step 2: Load the Docker Images
 
+Go back to the directory holding the files you received (`cd ..` from
+`ope-server`), then load every image archive:
+
 ```bash
-docker load < /path/to/ope-images.tar.gz
+for f in *.tar.gz; do
+  [ "$f" = "ope-server-offline.tar.gz" ] && continue
+  docker load -i "$f"
+done
 ```
 
 This may take several minutes depending on the number and size of images.
