@@ -23,15 +23,24 @@ The usual way to produce the bundle is the **Offline release** workflow
 containing every file a site needs.
 
 **To publish a new release:** open the repository's **Actions** tab, pick
-**Offline release**, click **Run workflow**, and leave the branch on `main`.
-The workflow tags the latest commit on `main` as `yy.mm.dd.build` (UTC date,
-no zero padding, no `v` prefix) and publishes that release. The first run on
-6 Nov 2026 creates `26.11.6.0`; a second run that day creates `26.11.6.1`.
-A run started from any other branch fails.
+**Offline release**, click **Run workflow**, leave the branch on `main`, and
+leave the tag input empty. The workflow tags the latest commit on `main` as
+`yy.mm.dd.build` (UTC date, no zero padding, no `v` prefix) and publishes
+that release. The first run on 6 Nov 2026 creates `26.11.6.0`; a second run
+that day creates `26.11.6.1`. A run started from any other branch fails when
+the tag input is empty.
 
-**To rebuild an existing release:** push its tag again, for example
-`git push origin 26.11.6.0`. This replaces that release with freshly pulled
-images and does not create a new build number. Merges to `main` never publish.
+**To rebuild an existing release:** run **Offline release** again, leave the
+branch on `main`, and enter that tag in the tag input, for example
+`26.11.6.0`. The workflow checks the tag out and rebuilds it. It does not
+create a new build number. The published release stays available until the
+new draft has every asset, then it is replaced. If the rebuild fails before
+that, the published release is left as it was.
+
+`git push origin 26.11.6.0` does not rebuild a release. When the remote
+already has that tag, Git prints "Everything up-to-date" and no workflow
+runs. The tag push trigger runs only when that tag ref is updated, such as
+the first push of a new tag. Merges to `main` never publish.
 
 The workflow pulls images from GHCR (`:release` and the pinned Penpot and
 monitoring tags) rather than building them, so a re-run picks up whatever
@@ -43,16 +52,32 @@ those tags point at that day. Each release contains:
 - `SHA256SUMS`, and `manifest.json` listing the image refs, digests, file
   names, and sizes in each archive
 
-The release stays a draft until every file has uploaded. If any job fails,
-the draft is deleted and the git tag is kept, so that build number is not
-reused.
+The release stays a draft until every file that will be attached has
+uploaded. Uploads go to that draft by release id, so a rebuild cannot attach
+files to the release that is still published. On a rebuild, the published
+release is deleted only after the new draft has every asset, and then the
+new one is published. If a job fails before that, the draft is deleted, the
+published release stays, and the git tag is kept, so a failed build number
+is not reused.
 
-GitHub rejects release files of 2 GiB or more. An archive at or over that size
-fails the release with its name and size in the job log; archives are never
-split. If that happens (most likely `ope-canvas.tar.gz`), build that archive
-by hand with `./scripts/export_images.sh --archive ope-canvas.tar.gz` and
-upload it to `https://dl.corrections.sbctc.edu/releases/<version>/app_images/`
-as before.
+GitHub rejects release files of 2 GiB or more. An image archive at or over
+that size is left out of the release, and the rest of the bundle is still
+published. `manifest.json` records that file with `"omitted": true`, the
+size the workflow measured, and a `location` of
+`https://dl.corrections.sbctc.edu/releases/<version>/app_images/<file>`.
+`SHA256SUMS` lists only the files attached to the release. Build the omitted
+archive by hand and upload it to that location:
+
+```bash
+./scripts/export_images.sh --archive ope-canvas.tar.gz --pull
+```
+
+The workflow does not upload to that host. While the archive stays over the
+cap, later runs keep publishing the release without it. `size` and the image
+digests in the manifest describe the archive the workflow built and did not
+upload; a later hand build can differ if `:release` has moved. If
+`ope-server-offline.tar.gz` itself is at or over 2 GiB, that job fails, the
+draft is deleted, and a published release is left in place.
 
 If a pull is denied because a package is private to another repository, add
 a `GHCR_READ_TOKEN` repository secret with the `read:packages` scope.
