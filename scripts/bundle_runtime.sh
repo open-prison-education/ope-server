@@ -163,6 +163,8 @@ tar czf "$STAGE_TAR" \
     --exclude="${PROJECT_NAME}/config.yml" \
     --exclude="${PROJECT_NAME}/docker-compose.yml" \
     --exclude="${PROJECT_NAME}/.env" \
+    --exclude="${PROJECT_NAME}/.github" \
+    --exclude="${PROJECT_NAME}/.cursor" \
     --ignore-failed-read \
     "${PROJECT_NAME}/" || TAR_RC=$?
 
