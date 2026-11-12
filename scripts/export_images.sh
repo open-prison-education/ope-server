@@ -32,15 +32,39 @@ ONLY_ARCHIVE=""
 PULL=0
 MODE="export"
 
+usage() {
+    sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+# $# still includes the flag, so a missing value is $# -lt 2. Check that
+# before reading $2: set -u would otherwise abort with "unbound variable".
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
-        --archive) ONLY_ARCHIVE="$2"; shift 2 ;;
+        --output-dir)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --output-dir requires a value." >&2
+                usage >&2
+                exit 1
+            fi
+            OUTPUT_DIR="$2"; shift 2 ;;
+        --archive)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --archive requires a value." >&2
+                usage >&2
+                exit 1
+            fi
+            ONLY_ARCHIVE="$2"; shift 2 ;;
         --pull) PULL=1; shift ;;
         --list) MODE="list"; shift ;;
-        --list-images) MODE="list-images"; ONLY_ARCHIVE="$2"; shift 2 ;;
-        -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-        *) echo "Unknown option: $1"; exit 1 ;;
+        --list-images)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --list-images requires a value." >&2
+                usage >&2
+                exit 1
+            fi
+            MODE="list-images"; ONLY_ARCHIVE="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
     esac
 done
 
