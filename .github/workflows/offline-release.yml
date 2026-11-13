@@ -240,8 +240,7 @@ jobs:
           cat > /tmp/notes.md << EOF
           Offline bundle for OPE Server ${TAG} (commit ${commit}).
 
-          Download \`ope-server-offline.tar.gz\` and every image archive you need, then follow
-          [docs/OFFLINE_DEPLOYMENT.md](${GITHUB_SERVER_URL}/${GH_REPO}/blob/${TAG}/docs/OFFLINE_DEPLOYMENT.md).
+          Download \`ope-server-offline.tar.gz\` and every image archive you need, then follow [docs/OFFLINE_DEPLOYMENT.md](${GITHUB_SERVER_URL}/${GH_REPO}/blob/${TAG}/docs/OFFLINE_DEPLOYMENT.md).
           Check downloads with \`sha256sum -c SHA256SUMS --ignore-missing\`. \`manifest.json\` lists the image refs, digests, and sizes in each archive. An entry with \`"omitted": true\` is not attached; download that file from its \`location\`.
           EOF
 
