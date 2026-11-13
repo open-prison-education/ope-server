@@ -223,9 +223,11 @@ ope-myapp/
 
 For a complete deployment walkthrough -- system requirements, Docker installation, configuration, SSL, DNS, first-time Canvas database setup, backups, and public deployment hardening (e.g. preventing search engine crawling) -- see the **[Deployment Guide](docs/DEPLOYMENT.md)**. To copy Canvas, restore it, or upgrade the server from an older Canvas version, see **[Canvas backup, restore, and upgrade](docs/CANVAS_BACKUP_RESTORE.md)**.
 
-Deploying on an air-gapped machine with no internet? If you already have the
-pre-built files (`ope-server-offline.tar.gz` and `ope-images.tar.gz`), see the
-**[Offline Deployment Guide](docs/OFFLINE_DEPLOYMENT.md)**. To build those
+Deploying on an air-gapped machine with no internet? Published releases on the
+repository's GitHub **Releases** page include `ope-server-offline.tar.gz` and
+one image archive per service group (`ope-canvas.tar.gz`, `ope-smc.tar.gz`,
+and the rest). Older bundles ship a single `ope-images.tar.gz` instead. See
+the **[Offline Deployment Guide](docs/OFFLINE_DEPLOYMENT.md)**. To build those
 files, see the **[Offline Distribution Guide](docs/OFFLINE_DISTRIBUTION.md)**.
 
 Once services are running, the **[Accessing Services Guide](docs/ACCESSING_SERVICES.md)** covers how to reach Canvas, SMC, and other applications -- including DNS setup for air-gapped environments and remote access via public IP.

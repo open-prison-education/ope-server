@@ -4,7 +4,7 @@ This guide is for **OPE developers** who need to prepare OPE Server
 files for deployment on an air-gapped machine.
 
 If you are the **site operator** who already has `ope-server-offline.tar.gz`
-and `ope-images.tar.gz`, skip this guide and go straight to the
+and the image archives, skip this guide and go straight to the
 **[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**.
 
 **Related:**
@@ -13,6 +13,76 @@ and `ope-images.tar.gz`, skip this guide and go straight to the
 
 The approach bundles a standalone CPython interpreter with all dependencies
 pre-installed, so the target machine needs **no Python, no pip, and no network**.
+
+---
+
+## Published Releases (GitHub Actions)
+
+The usual way to produce the bundle is the **Offline release** workflow
+(`.github/workflows/offline-release.yml`). It publishes a GitHub Release
+containing every file a site needs.
+
+**To publish a new release:** open the repository's **Actions** tab, pick
+**Offline release**, click **Run workflow**, leave the branch on `main`, and
+leave the tag input empty. The workflow tags the latest commit on `main` as
+`yy.mm.dd.build` (UTC date, no zero padding, no `v` prefix) and publishes
+that release. The first run on 6 Nov 2026 creates `26.11.6.0`; a second run
+that day creates `26.11.6.1`. A run started from any other branch fails when
+the tag input is empty.
+
+**To rebuild an existing release:** run **Offline release** again, leave the
+branch on `main`, and enter that tag in the tag input, for example
+`26.11.6.0`. The workflow checks the tag out and rebuilds it. It does not
+create a new build number. The published release stays available until the
+new draft has every asset, then it is replaced. If the rebuild fails before
+that, the published release is left as it was.
+
+`git push origin 26.11.6.0` does not rebuild a release. When the remote
+already has that tag, Git prints "Everything up-to-date" and no workflow
+runs. The tag push trigger runs only when that tag ref is updated, such as
+the first push of a new tag. Merges to `main` never publish.
+
+The workflow pulls images from GHCR (`:release` and the pinned Penpot and
+monitoring tags) rather than building them, so a re-run picks up whatever
+those tags point at that day. Each release contains:
+
+- `ope-server-offline.tar.gz` from `bundle_runtime.sh --arch x86_64`
+- One archive per group in `scripts/export_images.sh` (see
+  [step 1.4](#14-export-docker-images-if-needed))
+- `SHA256SUMS`, and `manifest.json` listing the image refs, digests, file
+  names, and sizes in each archive
+
+The release stays a draft until every file that will be attached has
+uploaded. Uploads go to that draft by release id, so a rebuild cannot attach
+files to the release that is still published. On a rebuild, the published
+release is deleted only after the new draft has every asset, and then the
+new one is published. If a job fails before that, the draft is deleted, the
+published release stays, and the git tag is kept, so a failed build number
+is not reused.
+
+GitHub rejects release files of 2 GiB or more. An image archive at or over
+that size is left out of the release, and the rest of the bundle is still
+published. `manifest.json` records that file with `"omitted": true`, the
+size the workflow measured, and a `location` of
+`https://dl.corrections.sbctc.edu/releases/<version>/app_images/<file>`.
+`SHA256SUMS` lists only the files attached to the release. Build the omitted
+archive by hand and upload it to that location:
+
+```bash
+./scripts/export_images.sh --archive ope-canvas.tar.gz --pull
+```
+
+The workflow does not upload to that host. While the archive stays over the
+cap, later runs keep publishing the release without it. `size` and the image
+digests in the manifest describe the archive the workflow built and did not
+upload; a later hand build can differ if `:release` has moved. If
+`ope-server-offline.tar.gz` itself is at or over 2 GiB, that job fails, the
+draft is deleted, and a published release is left in place.
+
+If a pull is denied because a package is private to another repository, add
+a `GHCR_READ_TOKEN` repository secret with the `read:packages` scope.
+
+The rest of this guide is the manual path, for custom or aarch64 builds.
 
 ---
 
@@ -112,14 +182,27 @@ docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep ghcr.io/o
 >             ghcr.io/open-prison-education/ope-canvas-mathman:release \
 >   | gzip > ope-images.tar.gz
 > ```
->
-> To export one archive per service group instead, run
-> `./scripts/export_images.sh [--output-dir DIR]`. It writes
-> `ope-canvas.tar.gz` with all five Canvas images (`ope-canvas`,
-> `ope-canvas-rce`, `ope-canvas-mathman`, `ope-canvas-postgres`,
-> `ope-canvas-redis`), grouped Penpot and monitoring archives, and one
-> `.tar.gz` for each remaining image. Load each archive on the target with
-> `docker load -i <file>`.
+
+**One archive per service group** (the same files the release workflow
+publishes):
+
+```bash
+./scripts/export_images.sh --pull [--output-dir DIR]
+```
+
+This writes:
+
+- `ope-canvas.tar.gz` with all five Canvas images. RCE, Mathman, Postgres, and
+  Redis ship as Canvas dependencies rather than separate services:
+  `ope-canvas`, `ope-canvas-rce`, `ope-canvas-mathman`,
+  `ope-canvas-postgres`, `ope-canvas-redis`
+- `ope-penpot.tar.gz` and `ope-monitoring.tar.gz` with their groups
+- One `.tar.gz` for each remaining image (`ope-smc.tar.gz`,
+  `ope-gateway.tar.gz`, and so on)
+
+Run `./scripts/export_images.sh --list` to see every archive name, and
+`--archive NAME` to export just one. Without `--pull`, the images must
+already be on the build machine.
 
 ---
 
@@ -129,13 +212,14 @@ Copy the following files to the target via USB drive, SCP through a jump host,
 shared network drive, or any other method:
 
 - `ope-server-offline.tar.gz` (scripts + bundled Python runtime)
-- `ope-images.tar.gz` (Docker images, if exported in step 1.4)
+- The image archives from step 1.4 (`ope-images.tar.gz`, or the per-group
+  `.tar.gz` files)
 
 ---
 
 ## Step 3: Hand Off to the Site Operator
 
-Give the site operator these two files along with the
+Give the site operator these files along with the
 **[Offline Deployment Guide](OFFLINE_DEPLOYMENT.md)**, which walks them through
 extracting, loading images, running the setup wizard, and starting services.
 
