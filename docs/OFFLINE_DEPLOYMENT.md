@@ -20,17 +20,23 @@ sha256sum -c SHA256SUMS --ignore-missing
 
 `manifest.json` lists every archive. An entry with `"omitted": true` is not
 attached to the release because it is at or over GitHub's 2 GiB file limit,
-and the release notes name it. It is not in `SHA256SUMS` either. Ask the OPE
-developer who prepares your bundle to build it with
-`./scripts/export_images.sh --archive NAME --pull` (see
-[step 1.4 of the Offline Distribution Guide](OFFLINE_DISTRIBUTION.md#14-export-docker-images-if-needed))
-and to send its `sha256sum` output with the file. Check it before moving it:
+and the release notes name it. Build it yourself on the machine with internet
+access and Docker where you downloaded the release, then add it to
+`SHA256SUMS` so the same check covers it. For example, for
+`ope-canvas.tar.gz`:
 
 ```bash
-echo "<sha256>  ope-canvas.tar.gz" | sha256sum -c
+tar xzf ope-server-offline.tar.gz
+(cd ope-server && ./scripts/export_images.sh --archive ope-canvas.tar.gz --pull --output-dir ..)
+sha256sum ope-canvas.tar.gz >> SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
 ```
 
-Then put it with the other archives before Step 2.
+This pulls the images from the registry and writes the archive next to the
+other downloads. See
+[step 1.4 of the Offline Distribution Guide](OFFLINE_DISTRIBUTION.md#14-export-docker-images-if-needed)
+for details. If an image tag has moved since the release was built, the
+image digests can differ from `manifest.json`.
 
 If you do not have these files, you may prepare them using
 the [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md).
