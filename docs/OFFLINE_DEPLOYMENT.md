@@ -3,12 +3,40 @@
 This guide is for **site operators** who have received the OPE Server files and
 need to set up the server on a machine **without internet access**.
 
-You should have received two files:
+You should have received these files:
 
 | File | Contents |
 |------|----------|
 | `ope-server-offline.tar.gz` | OPE Server scripts, configuration, and bundled Python runtime |
-| `ope-images.tar.gz` | Pre-built Docker container images |
+| Image archives (`ope-canvas.tar.gz`, `ope-smc.tar.gz`, ...) | Pre-built Docker container images, one archive per service group. Older bundles ship a single `ope-images.tar.gz` instead. |
+
+Published releases are on the repository's GitHub **Releases** page, named
+`yy.mm.dd.build` (for example `26.11.6.0`). Each release also includes
+`SHA256SUMS`, so you can check the downloads before moving them:
+
+```bash
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+`manifest.json` lists every archive. An entry with `"omitted": true` is not
+attached to the release because it is at or over GitHub's 2 GiB file limit,
+and the release notes name it. Build it yourself on the machine with internet
+access and Docker where you downloaded the release, then add it to
+`SHA256SUMS` so the same check covers it. For example, for
+`ope-canvas.tar.gz`:
+
+```bash
+tar xzf ope-server-offline.tar.gz
+(cd ope-server && ./scripts/export_images.sh --archive ope-canvas.tar.gz --pull --output-dir ..)
+sha256sum ope-canvas.tar.gz >> SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+This pulls the images from the registry and writes the archive next to the
+other downloads. See
+[step 1.4 of the Offline Distribution Guide](OFFLINE_DISTRIBUTION.md#14-export-docker-images-if-needed)
+for details. If an image tag has moved since the release was built, the
+image digests can differ from `manifest.json`.
 
 If you do not have these files, you may prepare them using
 the [Offline Distribution Guide](OFFLINE_DISTRIBUTION.md).
@@ -41,8 +69,8 @@ the `.deb` packages available offline.
 
 ## Step 1: Extract the OPE Server Files
 
-Copy both files to the target machine (via USB drive, shared network drive,
-etc.), then extract:
+Copy all the files into one directory on the target machine (via USB drive,
+shared network drive, etc.), then extract:
 
 ```bash
 tar -xzf ope-server-offline.tar.gz
@@ -53,9 +81,18 @@ cd ope-server
 
 ## Step 2: Load the Docker Images
 
+Stay in `ope-server`. The image archives are in the directory you copied the
+files into, one level above this one. Load every archive from there:
+
 ```bash
-docker load < /path/to/ope-images.tar.gz
+for f in ../*.tar.gz; do
+  [ "$(basename "$f")" = "ope-server-offline.tar.gz" ] && continue
+  docker load -i "$f"
+done
 ```
+
+The shell is still inside `ope-server` after the loop. The retag command
+below and `./setup.sh` in Step 3 run from here.
 
 This may take several minutes depending on the number and size of images.
 You can verify the images loaded correctly:
